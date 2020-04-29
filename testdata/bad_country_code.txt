@@ -1,0 +1,7 @@
+# Test that we get an error for an unknown language code filename in # a
+# markdown file
+
+! preguide -out _output
+stderr 'unknown language code \("GB"\) for '$WORK'[/\\]badcountrycode[/\\]GB.md'
+
+-- badcountrycode/GB.md --

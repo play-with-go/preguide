@@ -1,0 +1,146 @@
+# Test that we get the expected output when a markdown file includes directives
+
+env
+
+# Intial run
+preguide -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/alldirectives.markdown alldirectives/en.out.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+
+# Check that we get a cache hit
+preguide -debug -out _output
+! stdout .+
+stderr '^cache hit for en: will not re-run script$'
+cmp _output/_posts/alldirectives.markdown alldirectives/en.out.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+
+# Verify that when skipping the cache we get the same output
+preguide -skipcache -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/alldirectives.markdown alldirectives/en.out.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+
+# Verify that -compat works as expected
+preguide -compat -out _output
+cmp _output/_posts/alldirectives.markdown alldirectives/en.out.compat.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+
+-- alldirectives/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--preguide: step1 -->
+
+# Step 2
+
+<!--preguide: step2 -->
+
+# Step 3
+
+<!--preguide: step3 -->
+-- alldirectives/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+preguide.#Guide
+
+Image: "this_will_never_be_used"
+
+Steps: step1: en: preguide.#Command & { Source: """
+echo "Hello, world!"
+! false
+ls
+"""}
+
+Steps: step2: en: preguide.#CommandFile & { Path: "step2.sh" }
+
+Steps: step3: en: preguide.#Upload & { Target: "/scripts/somewhere.sh", Source: """
+#!/usr/bin/env bash
+
+echo "Hello world"
+""" }
+-- alldirectives/step2.sh --
+echo "Hello from a file"
+
+-- alldirectives/step2.sh --
+echo "Hello from a file"
+-- alldirectives/en.out.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo "Hello, world!"
+Hello, world!
+$ false
+$ ls
+bin
+src
+```
+
+# Step 2
+
+```.term1
+$ echo "Hello from a file"
+Hello from a file
+```
+
+# Step 3
+
+```.term1
+#!/usr/bin/env bash
+
+echo "Hello world"
+```
+-- alldirectives/en.out.compat.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+echo "Hello, world!"
+false
+ls
+```
+
+# Step 2
+
+```.term1
+echo "Hello from a file"
+```
+
+# Step 3
+
+```.term1
+cat <<EOD > /scripts/somewhere.sh
+#!/usr/bin/env bash
+
+echo "Hello world"
+EOD
+```
+-- alldirectives/en_testlog.golden --
+$ echo "Hello, world!"
+Hello, world!
+$ false
+$ ls
+bin
+src
+$ echo "Hello from a file"
+Hello from a file
+$ cat <<EOD > /scripts/somewhere.sh
+#!/usr/bin/env bash
+
+echo "Hello world"
+EOD

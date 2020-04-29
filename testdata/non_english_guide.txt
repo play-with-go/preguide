@@ -1,0 +1,16 @@
+# Test that we get the same markdown output for a file with no directives
+# a markdown file
+
+! preguide -out _output
+stderr 'we only support English language guides for now'
+
+-- nodirectives/en.md --
+---
+---
+# Hello
+
+This is a test
+-- nodirectives/es.md --
+---
+---
+# Hola

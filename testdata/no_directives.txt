@@ -1,0 +1,21 @@
+# Test that we get the same markdown output for a file with no directives
+# a markdown file
+
+preguide -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/nodirectives.md nodirectives/en.out.golden
+
+-- nodirectives/en.md --
+---
+---
+# Heading 1
+
+This is a test
+-- nodirectives/en.out.golden --
+---
+lang: en
+---
+# Heading 1
+
+This is a test

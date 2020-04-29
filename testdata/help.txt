@@ -1,0 +1,4 @@
+# Test that basic command help works
+
+! preguide -help
+stderr 'Usage of preguide:'

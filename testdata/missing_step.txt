@@ -1,0 +1,10 @@
+# Test that we get an error when guide prose includes a directive to a non-existent step
+
+! preguide -out _output
+! stdout .+
+stderr 'unknown step "step1" referened in file '$WORK'[/\\]missing_step[/\\]en\.md'
+
+-- missing_step/en.md --
+# Step 1
+
+<!--preguide: step1 -->
