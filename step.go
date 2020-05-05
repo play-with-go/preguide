@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"mvdan.cc/sh/syntax"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 type langSteps struct {
@@ -46,7 +46,10 @@ type commandStmt struct {
 	CmdStr      string
 	ExitCode    int
 	Output      string
+	RawOutput   string
 	outputFence string
+
+	sanitiser sanitiser
 }
 
 // commandStepFromString takes a string value that is a sequence of shell
@@ -85,6 +88,9 @@ func commadStepFromSyntaxFile(name string, order int, f *syntax.File) (*commandS
 	res.Name = name
 	res.Order = order
 	printer := syntax.NewPrinter()
+	sm := sanitiserMatcher{
+		printer: printer,
+	}
 	for i, stmt := range f.Stmts {
 		// Capture whether this statement is negated or not
 		negated := stmt.Negated
@@ -97,8 +103,9 @@ func commadStepFromSyntaxFile(name string, order int, f *syntax.File) (*commandS
 			return res, fmt.Errorf("failed to print statement %v: %v", i, err)
 		}
 		res.Stmts = append(res.Stmts, &commandStmt{
-			CmdStr:  sb.String(),
-			Negated: negated,
+			CmdStr:    sb.String(),
+			Negated:   negated,
+			sanitiser: sm.deriveSanitiser(stmt),
 		})
 	}
 	return res, nil

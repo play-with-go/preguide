@@ -5,15 +5,14 @@ go 1.15
 require (
 	cuelang.org/go v0.1.3-0.20200424192631-12927e83d318
 	github.com/gohugoio/hugo v0.69.2
-	github.com/kr/text v0.2.0 // indirect
+	github.com/google/go-cmp v0.4.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/rogpeppe/go-internal v1.5.1
-	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/rogpeppe/go-internal v1.5.2
 	github.com/yuin/goldmark v1.1.30
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.7
-	mvdan.cc/sh v2.6.0+incompatible
+	mvdan.cc/sh/v3 v3.1.1
 )

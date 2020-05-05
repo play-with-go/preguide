@@ -29,6 +29,7 @@ package out
 	CmdStr: string
 	ExitCode: int
 	Output: string
+	RawOutput: string
 }
 
 #UploadStep: {

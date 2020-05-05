@@ -283,7 +283,11 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 					raise("failed to find %q at position %v in output:\n%s", stmt.outputFence, len(out)-len(walk), out)
 				}
 				walk = walk[len(fence):]
-				stmt.Output = slurp(fence)
+				stmt.RawOutput = slurp(fence)
+				stmt.Output = stmt.RawOutput
+				if stmt.sanitiser != nil {
+					stmt.Output = stmt.sanitiser(stmt.Output)
+				}
 				exitCodeStr := slurp([]byte("\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)
 				check(err, "failed to parse exit code from %q at position %v in output: %v\n%s", exitCodeStr, len(out)-len(walk)-len(exitCodeStr)-1, err, out)

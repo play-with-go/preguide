@@ -94,6 +94,7 @@ func (r *runner) process(g *guide) {
 func (r *runner) generateTestLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
+		fmt.Fprintf(&buf, "Image: %v\n", g.Image)
 		for _, step := range ls.steps {
 			step.renderTestLog(&buf)
 		}

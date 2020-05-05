@@ -1,0 +1,129 @@
+# Test that we get the expected output when a step involves
+# output that should sanitised
+
+# Intial run
+preguide -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/sanitise.markdown sanitise/en.out.golden
+cmp sanitise/en_testlog.txt sanitise/en_testlog.golden
+
+-- sanitise/en.markdown --
+---
+title: A test with output that should be sanitised
+---
+# Create go file
+
+<!--preguide: step1 -->
+
+# Create test file
+
+<!--preguide: step2 -->
+
+# Test
+
+<!--preguide: step3 -->
+-- sanitise/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+preguide.#Guide
+
+Image: "this_will_never_be_used"
+
+Steps: step1: en: preguide.#Upload & { Target: "hello.go", Source: """
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, world!")
+}
+""" }
+
+Steps: step2: en: preguide.#Upload & { Target: "hello_test.go", Source: """
+package main
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestHello(t *testing.T) {
+	fmt.Println("Hello, world... from the test!")
+}
+""" }
+
+Steps: step3: en: preguide.#Command & { Source: """
+go test
+"""}
+
+-- sanitise/en.out.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with output that should be sanitised
+---
+# Create go file
+
+```.term1
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, world!")
+}
+```
+
+# Create test file
+
+```.term1
+package main
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestHello(t *testing.T) {
+	fmt.Println("Hello, world... from the test!")
+}
+```
+
+# Test
+
+```.term1
+$ go test
+Hello, world... from the test!
+PASS
+ok  	_/go	0.042s
+```
+-- sanitise/en_testlog.golden --
+Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+$ cat <<EOD > hello.go
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, world!")
+}
+EOD
+$ cat <<EOD > hello_test.go
+package main
+
+import (
+	"fmt"
+	"testing"
+)
+
+func TestHello(t *testing.T) {
+	fmt.Println("Hello, world... from the test!")
+}
+EOD
+$ go test
+Hello, world... from the test!
+PASS
+ok  	_/go	0.042s
