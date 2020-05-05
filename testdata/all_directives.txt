@@ -46,8 +46,6 @@ package steps
 
 import "github.com/play-with-go/preguide"
 
-preguide.#Guide
-
 Image: "this_will_never_be_used"
 
 Steps: step1: en: preguide.#Command & { Source: """

@@ -478,6 +478,10 @@ func (r *runner) loadSteps(g *guide) {
 		lang := "en"
 		en := stepV.Lookup(lang)
 
+		if en.Pos() == (token.Pos{}) {
+			raise("failed to get position information for step %v; did you embed preguide.#Guide?", fi.Name)
+		}
+
 		var step step
 		switch {
 		case en.Equals(r.commandDef.Unify(en)):
