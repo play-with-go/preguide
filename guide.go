@@ -21,6 +21,8 @@ type guide struct {
 	Image   string
 	Langs   map[string]*langSteps
 
+	instance *cue.Instance
+
 	outputGuide *guide
 	output      cue.Value
 }
@@ -67,16 +69,30 @@ func (r *runner) process(g *guide) {
 
 		if len(md.directives) > 0 {
 			// TODO: implement fallback to en for directives
-			steps := g.Langs[md.lang].Steps
+			var steps map[string]step
+			if ls := g.Langs[md.lang]; ls != nil {
+				steps = ls.Steps
+			}
 			pos := 0
 			for _, d := range md.directives {
-				buf.Write(md.content[pos:d.pos])
-				if *r.fCompat {
-					steps[d.key].renderCompat(&buf)
-				} else {
-					steps[d.key].render(&buf)
+				buf.Write(md.content[pos:d.Pos()])
+				switch d := d.(type) {
+				case *stepDirective:
+					if *r.fCompat {
+						steps[d.Key()].renderCompat(&buf)
+					} else {
+						steps[d.Key()].render(&buf)
+					}
+				case *refDirective:
+					switch d.val.Kind() {
+					case cue.StringKind:
+						v, _ := d.val.String()
+						buf.WriteString(v)
+					}
+				default:
+					panic(fmt.Errorf("don't yet know how to handle %T directives", d))
 				}
-				pos = d.end
+				pos = d.End()
 			}
 			buf.Write(md.content[pos:])
 		} else {

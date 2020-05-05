@@ -32,15 +32,15 @@ title: A test with all directives
 ---
 # Step 1
 
-<!--preguide: step1 -->
+<!--step: step1 -->
 
 # Step 2
 
-<!--preguide: step2 -->
+<!--step: step2 -->
 
 # Step 3
 
-<!--preguide: step3 -->
+<!--step: step3 -->
 -- alldirectives/steps.cue --
 package steps
 

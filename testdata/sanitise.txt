@@ -14,15 +14,15 @@ title: A test with output that should be sanitised
 ---
 # Create go file
 
-<!--preguide: step1 -->
+<!--step: step1 -->
 
 # Create test file
 
-<!--preguide: step2 -->
+<!--step: step2 -->
 
 # Test
 
-<!--preguide: step3 -->
+<!--step: step3 -->
 -- sanitise/steps.cue --
 package steps
 

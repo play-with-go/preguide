@@ -7,4 +7,4 @@ stderr 'unknown step "step1" referened in file '$WORK'[/\\]missing_step[/\\]en\.
 -- missing_step/en.md --
 # Step 1
 
-<!--preguide: step1 -->
+<!--step: step1 -->

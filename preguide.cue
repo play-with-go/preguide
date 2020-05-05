@@ -3,6 +3,7 @@ package preguide
 #Guide: {
 	Image: string
 	Steps: [string]: en: #Command | #CommandFile | #Upload | #UploadFile
+	Defs: [string]: _
 }
 
 #Command: {

@@ -1,0 +1,28 @@
+# Test that basic defs work
+
+preguide -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/defs.md defs/en.out.golden
+
+-- defs/en.md --
+---
+title: A test with defs
+---
+# Hello <!--ref: world -->
+-- defs/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+preguide.#Guide
+
+Image: "this_will_never_be_used"
+Defs: world: "world"
+-- defs/en.out.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with defs
+---
+# Hello world

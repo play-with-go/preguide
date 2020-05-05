@@ -20,6 +20,7 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
+	"cuelang.org/go/cue/parser"
 	"cuelang.org/go/cue/token"
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
@@ -156,16 +157,38 @@ func (r *runner) processDir(dir string) {
 		}
 		for _, d := range mdf.directives {
 			dirCount++
-			var found bool
-			found = ls != nil
-			if found {
-				found = ls.Steps != nil
-			}
-			if found {
-				_, found = ls.Steps[d.key]
-			}
-			if !found {
-				raise("unknown step %q referened in file %v", d.key, mdf.path)
+			switch d := d.(type) {
+			case *stepDirective:
+				var found bool
+				found = ls != nil
+				if found {
+					found = ls.Steps != nil
+				}
+				if found {
+					_, found = ls.Steps[d.key]
+				}
+				if !found {
+					raise("unknown step %q referened in file %v", d.key, mdf.path)
+				}
+			case *refDirective:
+				if g.instance == nil {
+					raise("found a ref directive %v but not CUE instance?", d.key)
+				}
+				key := "Defs." + d.key
+				expr, err := parser.ParseExpr("dummy", key)
+				check(err, "failed to parse CUE expression from %q: %v", key, err)
+				v := g.instance.Eval(expr)
+				if err := v.Err(); err != nil {
+					raise("failed to evaluate %v: %v", key, err)
+				}
+				switch v.Kind() {
+				case cue.StringKind:
+				default:
+					raise("value at %v is of unsupported kind %v", key, v.Kind())
+				}
+				d.val = v
+			default:
+				panic(fmt.Errorf("don't yet know how to handle %T type", d))
 			}
 		}
 	}
@@ -180,7 +203,7 @@ func (r *runner) processDir(dir string) {
 		fmt.Fprintln(os.Stderr, "Not running those steps because they are not referenced.")
 	}
 
-	if dirCount > 0 {
+	if stepCount > 0 {
 		for _, l := range g.langs {
 			ls := g.Langs[l]
 			r.buildBashFile(g, ls)
@@ -416,6 +439,8 @@ func (r *runner) loadSteps(g *guide) {
 	gi, err := r.runtime.Build(gp)
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
 
+	g.instance = gi
+
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
@@ -554,8 +579,13 @@ type mdFile struct {
 	directives  []directive
 }
 
-type directive struct {
-	// key is the space-trimmed name of the directive key
+type directive interface {
+	Key() string
+	Pos() int
+	End() int
+}
+
+type baseDirective struct {
 	key string
 
 	// pos is the byte offset of the start of the directive
@@ -565,8 +595,30 @@ type directive struct {
 	end int
 }
 
+func (b *baseDirective) Key() string {
+	return b.key
+}
+
+func (b *baseDirective) Pos() int {
+	return b.pos
+}
+
+func (b *baseDirective) End() int {
+	return b.end
+}
+
+type stepDirective struct {
+	baseDirective
+}
+
+type refDirective struct {
+	baseDirective
+	val cue.Value
+}
+
 const (
-	directivePrefix           = "preguide:"
+	stepDirectivePrefix       = "step:"
+	refDirectivePrefix        = "ref:"
 	dockerImageFrontMatterKey = "image"
 	langFrontMatterKey        = "lang"
 )
@@ -635,14 +687,22 @@ func (g *guide) buildMarkdownFile(path, lang, ext string) mdFile {
 			return ast.WalkContinue, nil
 		}
 		commentStr := htmldoc.FirstChild.Data
-		if !strings.HasPrefix(commentStr, directivePrefix) {
+		switch {
+		case strings.HasPrefix(commentStr, stepDirectivePrefix):
+			step := &stepDirective{}
+			step.key = strings.TrimSpace(strings.TrimPrefix(commentStr, stepDirectivePrefix))
+			step.pos = pos
+			step.end = end
+			res.directives = append(res.directives, step)
+		case strings.HasPrefix(commentStr, refDirectivePrefix):
+			ref := &refDirective{}
+			ref.key = strings.TrimSpace(strings.TrimPrefix(commentStr, refDirectivePrefix))
+			ref.pos = pos
+			ref.end = end
+			res.directives = append(res.directives, ref)
+		default:
 			return ast.WalkContinue, nil
 		}
-		res.directives = append(res.directives, directive{
-			key: strings.TrimSpace(strings.TrimPrefix(commentStr, directivePrefix)),
-			pos: pos,
-			end: end,
-		})
 		return ast.WalkContinue, nil
 	})
 	return res
