@@ -7,7 +7,10 @@ scriptsDir:   *"./" | string @tag(scriptsDir)
 
 test: schemas.Schema & {
 	name: "Go"
-	env: PREGUIDE_IMAGE_OVERRIDE: "golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6"
+	env: {
+		PREGUIDE_IMAGE_OVERRIDE: "golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6"
+		PREGUIDE_PULL_IMAGE:     "missing"
+	}
 	on: {
 		push: branches: ["master"]
 		pull_request: branches: ["**"]
@@ -28,9 +31,6 @@ test: schemas.Schema & {
 			name: "Install Go"
 			uses: "actions/setup-go@78bd24e01a1a907f7ea3e614b4d7c15e563585a8"
 			with: "go-version": "${{ matrix.go-version }}"
-		}, {
-			name: "Pre-pull docker image"
-			run:  "docker pull $PREGUIDE_IMAGE_OVERRIDE"
 		}, {
 			name: "Verify"
 			run:  "go mod verify"

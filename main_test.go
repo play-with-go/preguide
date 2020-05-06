@@ -40,6 +40,7 @@ func TestScripts(t *testing.T) {
 			env.Vars = append(env.Vars,
 				"TMPDIR="+newTmp,
 				"PREGUIDE_IMAGE_OVERRIDE="+os.Getenv("PREGUIDE_IMAGE_OVERRIDE"),
+				"PREGUIDE_PULL_IMAGE=missing",
 			)
 			err = os.Mkdir(newTmp, 0777)
 			check(err, "failed to create %v: %v", newTmp, err)

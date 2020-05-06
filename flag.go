@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+const (
+	pullImageMissing = "missing"
+)
+
 type usageErr string
 
 func (u usageErr) Error() string { return string(u) }
@@ -29,6 +33,7 @@ func main1() int {
 	r.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
 	r.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 	r.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
+	r.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
 
 	err := r.mainerr()
 	if err == nil {
