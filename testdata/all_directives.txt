@@ -4,27 +4,27 @@
 preguide -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/alldirectives.markdown alldirectives/en.out.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+cmp _output/_posts/alldirectives.markdown alldirectives/en.markdown.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
 
 # Check that we get a cache hit
 preguide -debug -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/_posts/alldirectives.markdown alldirectives/en.out.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+cmp _output/_posts/alldirectives.markdown alldirectives/en.markdown.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
 
 # Verify that when skipping the cache we get the same output
 preguide -skipcache -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/alldirectives.markdown alldirectives/en.out.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+cmp _output/_posts/alldirectives.markdown alldirectives/en.markdown.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
 
 # Verify that -compat works as expected
 preguide -compat -out _output
-cmp _output/_posts/alldirectives.markdown alldirectives/en.out.compat.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.golden
+cmp _output/_posts/alldirectives.markdown alldirectives/en.compat.markdown.golden
+cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
 
 -- alldirectives/en.markdown --
 ---
@@ -66,7 +66,7 @@ echo "Hello from a file"
 
 -- alldirectives/step2.sh --
 echo "Hello from a file"
--- alldirectives/en.out.golden --
+-- alldirectives/en.markdown.golden --
 ---
 image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
 lang: en
@@ -97,7 +97,7 @@ Hello from a file
 
 echo "Hello world"
 ```
--- alldirectives/en.out.compat.golden --
+-- alldirectives/en.compat.markdown.golden --
 ---
 image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
 lang: en
@@ -126,7 +126,7 @@ cat <<EOD > /scripts/somewhere.sh
 echo "Hello world"
 EOD
 ```
--- alldirectives/en_testlog.golden --
+-- alldirectives/en_testlog.txt.golden --
 Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
 $ echo "Hello, world!"
 Hello, world!

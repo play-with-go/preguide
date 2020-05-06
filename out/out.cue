@@ -3,6 +3,7 @@ package out
 #GuideOutput: {
 	Image: string
 	Langs: #Langs
+	Defs: [string]: _
 }
 
 #Langs: {

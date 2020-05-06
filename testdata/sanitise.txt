@@ -5,8 +5,8 @@
 preguide -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/sanitise.markdown sanitise/en.out.golden
-cmp sanitise/en_testlog.txt sanitise/en_testlog.golden
+cmp _output/_posts/sanitise.markdown sanitise/en.markdown.golden
+cmp sanitise/en_testlog.txt sanitise/en_testlog.txt.golden
 
 -- sanitise/en.markdown --
 ---
@@ -57,7 +57,7 @@ Steps: step3: en: preguide.#Command & { Source: """
 go test
 """}
 
--- sanitise/en.out.golden --
+-- sanitise/en.markdown.golden --
 ---
 image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
 lang: en
@@ -98,7 +98,7 @@ Hello, world... from the test!
 PASS
 ok  	_/go	0.042s
 ```
--- sanitise/en_testlog.golden --
+-- sanitise/en_testlog.txt.golden --
 Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
 $ cat <<EOD > hello.go
 package main

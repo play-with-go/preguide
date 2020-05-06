@@ -4,7 +4,7 @@
 preguide -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/nodirectives.md nodirectives/en.out.golden
+cmp _output/_posts/nodirectives.md nodirectives/en.md.golden
 
 -- nodirectives/en.md --
 ---
@@ -12,7 +12,7 @@ cmp _output/_posts/nodirectives.md nodirectives/en.out.golden
 # Heading 1
 
 This is a test
--- nodirectives/en.out.golden --
+-- nodirectives/en.md.golden --
 ---
 lang: en
 ---

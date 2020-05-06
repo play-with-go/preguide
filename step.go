@@ -117,7 +117,7 @@ func (c *commandStep) render(w io.Writer) {
 		fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
 		fmt.Fprintf(w, "%s", stmt.Output)
 	}
-	fmt.Fprintf(w, "```\n")
+	fmt.Fprintf(w, "```")
 }
 
 func (c *commandStep) renderCompat(w io.Writer) {
@@ -125,7 +125,7 @@ func (c *commandStep) renderCompat(w io.Writer) {
 	for _, stmt := range c.Stmts {
 		fmt.Fprintf(w, "%s\n", stmt.CmdStr)
 	}
-	fmt.Fprintf(w, "```\n")
+	fmt.Fprintf(w, "```")
 }
 
 func (c *commandStep) renderTestLog(w io.Writer) {
@@ -178,14 +178,14 @@ func uploadStepFromFile(name string, order int, path, target string) (*uploadSte
 func (u *uploadStep) render(w io.Writer) {
 	fmt.Fprintf(w, "```.term1\n")
 	fmt.Fprintf(w, "%s\n", u.Source)
-	fmt.Fprintf(w, "```\n")
+	fmt.Fprintf(w, "```")
 }
 
 func (u *uploadStep) renderCompat(w io.Writer) {
 	fmt.Fprintf(w, "```.term1\n")
 	source := strings.ReplaceAll(u.Source, "\t", "        ")
 	fmt.Fprintf(w, "cat <<EOD > %v\n%s\nEOD\n", u.Target, source)
-	fmt.Fprintf(w, "```\n")
+	fmt.Fprintf(w, "```")
 }
 
 func (u *uploadStep) renderTestLog(w io.Writer) {

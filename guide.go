@@ -21,7 +21,8 @@ type guide struct {
 	Image   string
 	Langs   map[string]*langSteps
 
-	instance *cue.Instance
+	instance    *cue.Instance
+	outinstance *cue.Instance
 
 	outputGuide *guide
 	output      cue.Value
@@ -84,6 +85,12 @@ func (r *runner) process(g *guide) {
 						steps[d.Key()].render(&buf)
 					}
 				case *refDirective:
+					switch d.val.Kind() {
+					case cue.StringKind:
+						v, _ := d.val.String()
+						buf.WriteString(v)
+					}
+				case *outrefDirective:
 					switch d.val.Kind() {
 					case cue.StringKind:
 						v, _ := d.val.String()

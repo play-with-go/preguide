@@ -516,7 +516,7 @@ def: configuration :: string | number | {
 	[string]: def.configuration
 } | [...def.configuration]
 
-def: container :: {
+def: container :: string | {
 	// Sets an array of environment variables in the container.
 	env?: def.env
 

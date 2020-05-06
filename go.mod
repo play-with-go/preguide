@@ -8,7 +8,6 @@ require (
 	github.com/google/go-cmp v0.4.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/rogpeppe/go-internal v1.5.2
-	github.com/yuin/goldmark v1.1.30
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb // indirect

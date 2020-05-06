@@ -1,0 +1,80 @@
+# Test that basic outrefs work
+
+preguide -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/defs.md defs/en.md.golden
+
+-- defs/en.md --
+---
+title: A test with defs
+---
+# Hello <!--ref: world-->
+
+Here is a `<!--ref: world-->` code example.
+
+And a fence block:
+
+```
+<!--ref: world-->
+```
+
+Here are some commands:
+
+<!--step: step1 -->
+
+Here we talk about the second of those commands,
+`<!--outref: cmd_false -->`.
+
+-- defs/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Image: "this_will_never_be_used"
+
+Defs: world: "world"
+
+Steps: step1: en: preguide.#Command & { Source: """
+echo "Hello, world!"
+! false
+ls
+"""}
+-- defs/out/defs.cue --
+package out
+
+Langs: _
+
+Defs: {
+	cmd_false: Langs.en.Steps.step1.Stmts[1].CmdStr
+}
+-- defs/en.md.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with defs
+---
+# Hello world
+
+Here is a `world` code example.
+
+And a fence block:
+
+```
+world
+```
+
+Here are some commands:
+
+```.term1
+$ echo "Hello, world!"
+Hello, world!
+$ false
+$ ls
+bin
+src
+```
+
+Here we talk about the second of those commands,
+`false`.
+

@@ -24,9 +24,6 @@ import (
 	"cuelang.org/go/cue/token"
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/text"
 	"golang.org/x/net/html"
 )
 
@@ -135,16 +132,47 @@ func (r *runner) processDir(dir string) {
 	}
 
 	r.loadSteps(g)
-	r.loadOutput(g)
+	r.loadOutput(g, false)
 
-	// TODO: support arbitrary top-level fields (other than those required to
-	// satisfy #GuideOutput) to act as directive keys. This will in effect
-	// require building a set of input step and the output top-level references.
+	stepCount := r.validateStepAndRefDirs(g)
 
+	if stepCount > 0 {
+		outputLoadRequired := false
+		for _, l := range g.langs {
+			ls := g.Langs[l]
+			r.buildBashFile(g, ls)
+			if !*r.fSkipCache {
+				if out := g.outputGuide; out != nil {
+					if ols := out.Langs[l]; ols != nil {
+						if ols.Hash == ls.Hash {
+							r.debugf("cache hit for %v: will not re-run script\n", l)
+							ls.Steps = ols.Steps
+							ls.steps = ols.steps
+							continue
+						}
+					}
+				}
+			}
+			outputLoadRequired = true
+			r.runBashFile(g, ls)
+		}
+		r.writeOutput(g)
+		if outputLoadRequired || g.outputGuide == nil {
+			r.loadOutput(g, true)
+		}
+	}
+
+	r.validateOutRefsDirs(g)
+
+	r.process(g)
+	r.generateTestLog(g)
+}
+
+func (r *runner) validateStepAndRefDirs(g *guide) (stepCount int) {
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
 
-	dirCount := 0
+	stepDirCount := 0
 	for _, mdf := range g.mdFiles {
 		if g.Image != "" {
 			mdf.frontMatter[dockerImageFrontMatterKey] = g.Image
@@ -156,9 +184,9 @@ func (r *runner) processDir(dir string) {
 			ls = g.Langs["en"]
 		}
 		for _, d := range mdf.directives {
-			dirCount++
 			switch d := d.(type) {
 			case *stepDirective:
+				stepDirCount++
 				var found bool
 				found = ls != nil
 				if found {
@@ -187,45 +215,52 @@ func (r *runner) processDir(dir string) {
 					raise("value at %v is of unsupported kind %v", key, v.Kind())
 				}
 				d.val = v
+			case *outrefDirective:
+				// we don't validate this at this point
 			default:
 				panic(fmt.Errorf("don't yet know how to handle %T type", d))
 			}
 		}
 	}
-
-	stepCount := 0
 	for _, ls := range g.Langs {
 		stepCount += len(ls.steps)
 	}
-
-	if dirCount == 0 && stepCount > 0 {
+	if stepDirCount == 0 && stepCount > 0 {
 		fmt.Fprintln(os.Stderr, "This guide does not have any directives but does have steps to run.")
 		fmt.Fprintln(os.Stderr, "Not running those steps because they are not referenced.")
 	}
+	return stepCount
+}
 
-	if stepCount > 0 {
-		for _, l := range g.langs {
-			ls := g.Langs[l]
-			r.buildBashFile(g, ls)
-			if !*r.fSkipCache {
-				if out := g.outputGuide; out != nil {
-					if ols := out.Langs[l]; ls != nil {
-						if ols.Hash == ls.Hash {
-							r.debugf("cache hit for %v: will not re-run script\n", l)
-							ls.Steps = ols.Steps
-							ls.steps = ols.steps
-							continue
-						}
-					}
+func (r *runner) validateOutRefsDirs(g *guide) {
+	for _, mdf := range g.mdFiles {
+		for _, d := range mdf.directives {
+			switch d := d.(type) {
+			case *stepDirective:
+			case *refDirective:
+			case *outrefDirective:
+				if g.outinstance == nil {
+					raise("found an outref directive %v but no out CUE instance?", d.key)
 				}
+				key := "Defs." + d.key
+				expr, err := parser.ParseExpr("dummy", key)
+				check(err, "failed to parse CUE expression from %q: %v", key, err)
+				v := g.outinstance.Eval(expr)
+				if err := v.Err(); err != nil {
+					raise("failed to evaluate %v: %v", key, err)
+				}
+				switch v.Kind() {
+				case cue.StringKind:
+				default:
+					raise("value at %v is of unsupported kind %v", key, v.Kind())
+				}
+				d.val = v
+				// we don't validate this at this point
+			default:
+				panic(fmt.Errorf("don't yet know how to handle %T type", d))
 			}
-			r.runBashFile(g, ls)
 		}
-		r.writeOutput(g)
 	}
-
-	r.process(g)
-	r.generateTestLog(g)
 }
 
 func (r *runner) writeOutput(g *guide) {
@@ -243,25 +278,36 @@ func (r *runner) writeOutput(g *guide) {
 	check(err, "failed to write output to %v: %v", outFilePath, err)
 }
 
-func (r *runner) loadOutput(g *guide) {
+func (r *runner) loadOutput(g *guide, fail bool) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
 	bps := load.Instances([]string{"./out"}, conf)
 	gp := bps[0]
 	if gp.Err != nil {
+		if fail {
+			raise("failed to load out CUE package from %v: %v", filepath.Join(g.dir, "out"), gp.Err)
+		}
 		// absorb this error - we have nothing to do. We will fix
 		// out when we write the output later (all being well)
 		return
 	}
 
 	gi, err := r.runtime.Build(gp)
-	check(err, "failed to build %v: %v", gp.ImportPath, err)
+	if err != nil {
+		if fail {
+			raise("failed to build %v: %v", gp.ImportPath, err)
+		}
+		return
+	}
 
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	if gv.Unify(r.guideOutDef).Validate() != nil {
+	if err := gv.Unify(r.guideOutDef).Validate(); err != nil {
+		if fail {
+			raise("failed to validate %v: %v", gp.ImportPath, err)
+		}
 		return
 	}
 
@@ -270,6 +316,7 @@ func (r *runner) loadOutput(g *guide) {
 
 	g.outputGuide = &out
 	g.output = gv
+	g.outinstance = gi
 }
 
 func (r *runner) runBashFile(g *guide, ls *langSteps) {
@@ -453,91 +500,96 @@ func (r *runner) loadSteps(g *guide) {
 	err = r.guideDef.Unify(gv).Validate()
 	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Steps: %v", gp.ImportPath, err)
 
-	steps, err := gv.Lookup("Steps").Struct()
+	if stepsV := gv.Lookup("Steps"); stepsV.Exists() {
+		steps, _ := stepsV.Struct()
 
-	g.Image, _ = gv.Lookup("Image").String()
-	if *r.fImageOverride != "" {
-		g.Image = *r.fImageOverride
-	}
-
-	type posStep struct {
-		pos  token.Position
-		step step
-	}
-
-	toSort := make(map[string][]posStep)
-
-	for i := 0; i < steps.Len(); i++ {
-		fi := steps.Field(i)
-		name := fi.Name
-
-		stepV := fi.Value
-
-		// TODO: add support for multiple languages. For now we know
-		// there will only be "en"
-		lang := "en"
-		en := stepV.Lookup(lang)
-
-		if en.Pos() == (token.Pos{}) {
-			raise("failed to get position information for step %v; did you embed preguide.#Guide?", fi.Name)
+		g.Image, _ = gv.Lookup("Image").String()
+		if *r.fImageOverride != "" {
+			g.Image = *r.fImageOverride
+		}
+		if g.Image == "" {
+			raise("Image not specified, but we have steps to run")
 		}
 
-		var step step
-		switch {
-		case en.Equals(r.commandDef.Unify(en)):
-			source, _ := en.Lookup("Source").String()
-			step, err = commandStepFromString(name, i, source)
-			check(err, "failed to parse #Command from step %v: %v", name, err)
-		case en.Equals(r.commandFileDef.Unify(en)):
-			path, _ := en.Lookup("Path").String()
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(g.dir, path)
+		type posStep struct {
+			pos  token.Position
+			step step
+		}
+
+		toSort := make(map[string][]posStep)
+
+		for i := 0; i < steps.Len(); i++ {
+			fi := steps.Field(i)
+			name := fi.Name
+
+			stepV := fi.Value
+
+			// TODO: add support for multiple languages. For now we know
+			// there will only be "en"
+			lang := "en"
+			en := stepV.Lookup(lang)
+
+			if en.Pos() == (token.Pos{}) {
+				raise("failed to get position information for step %v; did you embed preguide.#Guide?", fi.Name)
 			}
-			step, err = commandStepFromFile(name, i, path)
-			check(err, "failed to parse #CommandFile from step %v: %v", name, err)
-		case en.Equals(r.uploadDef.Unify(en)):
-			target, _ := en.Lookup("Target").String()
-			source, _ := en.Lookup("Source").String()
-			step = uploadStepFromSource(name, i, source, target)
-		case en.Equals(r.uploadFileDef.Unify(en)):
-			target, _ := en.Lookup("Target").String()
-			path, _ := en.Lookup("Path").String()
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(g.dir, path)
+
+			var step step
+			switch {
+			case en.Equals(r.commandDef.Unify(en)):
+				source, _ := en.Lookup("Source").String()
+				step, err = commandStepFromString(name, i, source)
+				check(err, "failed to parse #Command from step %v: %v", name, err)
+			case en.Equals(r.commandFileDef.Unify(en)):
+				path, _ := en.Lookup("Path").String()
+				if !filepath.IsAbs(path) {
+					path = filepath.Join(g.dir, path)
+				}
+				step, err = commandStepFromFile(name, i, path)
+				check(err, "failed to parse #CommandFile from step %v: %v", name, err)
+			case en.Equals(r.uploadDef.Unify(en)):
+				target, _ := en.Lookup("Target").String()
+				source, _ := en.Lookup("Source").String()
+				step = uploadStepFromSource(name, i, source, target)
+			case en.Equals(r.uploadFileDef.Unify(en)):
+				target, _ := en.Lookup("Target").String()
+				path, _ := en.Lookup("Path").String()
+				if !filepath.IsAbs(path) {
+					path = filepath.Join(g.dir, path)
+				}
+				step, err = uploadStepFromFile(name, i, path, target)
+				check(err, "failed to parse #UploadFile from step %v: %v", name, err)
+			default:
+				panic(fmt.Errorf("unknown type of step: %v", en))
 			}
-			step, err = uploadStepFromFile(name, i, path, target)
-			check(err, "failed to parse #UploadFile from step %v: %v", name, err)
-		default:
-			panic(fmt.Errorf("unknown type of step: %v", en))
+			toSort[lang] = append(toSort[lang], posStep{
+				// TODO: when the FieldInfo position is accurate use that
+				pos:  en.Pos().Position(),
+				step: step,
+			})
 		}
-		toSort[lang] = append(toSort[lang], posStep{
-			// TODO: when the FieldInfo position is accurate use that
-			pos:  en.Pos().Position(),
-			step: step,
-		})
-	}
-	for lang := range toSort {
-		g.langs = append(g.langs, lang)
-	}
-	sort.Strings(g.langs)
-	for _, lang := range g.langs {
-		steps := toSort[lang]
-		sort.Slice(steps, func(i, j int) bool {
-			lhs, rhs := steps[i], steps[j]
-			cmp := strings.Compare(lhs.pos.Filename, rhs.pos.Filename)
-			if cmp == 0 {
-				cmp = lhs.pos.Offset - rhs.pos.Offset
+		for lang := range toSort {
+			g.langs = append(g.langs, lang)
+		}
+		sort.Strings(g.langs)
+		for _, lang := range g.langs {
+			steps := toSort[lang]
+			sort.Slice(steps, func(i, j int) bool {
+				lhs, rhs := steps[i], steps[j]
+				cmp := strings.Compare(lhs.pos.Filename, rhs.pos.Filename)
+				if cmp == 0 {
+					cmp = lhs.pos.Offset - rhs.pos.Offset
+				}
+				return cmp < 0
+			})
+			ls := &langSteps{
+				Steps: make(map[string]step),
 			}
-			return cmp < 0
-		})
-		ls := &langSteps{
-			Steps: make(map[string]step),
+			for _, v := range steps {
+				ls.steps = append(ls.steps, v.step)
+				ls.Steps[v.step.name()] = v.step
+			}
+			g.Langs[lang] = ls
 		}
-		for _, v := range steps {
-			ls.steps = append(ls.steps, v.step)
-			ls.Steps[v.step.name()] = v.step
-		}
-		g.Langs[lang] = ls
 	}
 }
 
@@ -620,9 +672,15 @@ type refDirective struct {
 	val cue.Value
 }
 
+type outrefDirective struct {
+	baseDirective
+	val cue.Value
+}
+
 const (
 	stepDirectivePrefix       = "step:"
 	refDirectivePrefix        = "ref:"
+	outrefDirectivePrefix     = "outref:"
 	dockerImageFrontMatterKey = "image"
 	langFrontMatterKey        = "lang"
 )
@@ -661,53 +719,93 @@ func (g *guide) buildMarkdownFile(path, lang, ext string) mdFile {
 		frontFormat: string(front.FrontMatterFormat),
 		// dockerImage: image,
 	}
-	parser := goldmark.DefaultParser()
-	reader := text.NewReader(content)
-	doc := parser.Parse(reader)
-	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
-			return ast.WalkContinue, nil
+	ch := newChunker(content, "<!--", "-->")
+	for {
+		ok, err := ch.next()
+		if err != nil {
+			raise("got an error parsing markdown body: %v", err)
 		}
-		var pos, end int
-		switch n := n.(type) {
-		case *ast.HTMLBlock:
-			firstSeg := n.Lines().At(0)
-			pos = firstSeg.Start
-			if cl := n.ClosureLine; cl.Start != -1 && cl.Stop != -1 {
-				end = cl.Stop
-			} else {
-				end = firstSeg.Stop
-			}
-		case *ast.RawHTML:
-			pos = n.Segments.At(0).Start
-			end = n.Segments.At(n.Segments.Len() - 1).Stop
-		default:
-			return ast.WalkContinue, nil
+		if !ok {
+			break
 		}
-		htmlComment := content[pos:end]
-		htmldoc, err := html.Parse(bytes.NewReader(htmlComment))
-		check(err, "failed to parse HTML %q: %v", htmlComment, err)
+		pos := ch.pos()
+		end := ch.end()
+		match := content[pos:end]
+		htmldoc, err := html.Parse(bytes.NewReader(match))
+		check(err, "failed to parse HTML comment %q: %v", match, err)
 		if htmldoc.FirstChild.Type != html.CommentNode {
-			return ast.WalkContinue, nil
+			continue
 		}
 		commentStr := htmldoc.FirstChild.Data
 		switch {
 		case strings.HasPrefix(commentStr, stepDirectivePrefix):
-			step := &stepDirective{}
-			step.key = strings.TrimSpace(strings.TrimPrefix(commentStr, stepDirectivePrefix))
-			step.pos = pos
-			step.end = end
+			step := &stepDirective{baseDirective: baseDirective{
+				key: strings.TrimSpace(strings.TrimPrefix(commentStr, stepDirectivePrefix)),
+				pos: pos,
+				end: end,
+			}}
 			res.directives = append(res.directives, step)
 		case strings.HasPrefix(commentStr, refDirectivePrefix):
-			ref := &refDirective{}
-			ref.key = strings.TrimSpace(strings.TrimPrefix(commentStr, refDirectivePrefix))
-			ref.pos = pos
-			ref.end = end
+			ref := &refDirective{baseDirective: baseDirective{
+				key: strings.TrimSpace(strings.TrimPrefix(commentStr, refDirectivePrefix)),
+				pos: pos,
+				end: end,
+			}}
 			res.directives = append(res.directives, ref)
-		default:
-			return ast.WalkContinue, nil
+		case strings.HasPrefix(commentStr, outrefDirectivePrefix):
+			outref := &outrefDirective{baseDirective: baseDirective{
+				key: strings.TrimSpace(strings.TrimPrefix(commentStr, outrefDirectivePrefix)),
+				pos: pos,
+				end: end,
+			}}
+			res.directives = append(res.directives, outref)
 		}
-		return ast.WalkContinue, nil
-	})
+	}
 	return res
+}
+
+type chunker struct {
+	b   string
+	e   string
+	buf []byte
+	p   int
+	ep  int
+	lp  int
+}
+
+func newChunker(b []byte, beg, end string) *chunker {
+	return &chunker{
+		buf: b,
+		b:   beg,
+		e:   end,
+	}
+}
+
+func (c *chunker) next() (bool, error) {
+	find := func(key string) bool {
+		p := bytes.Index(c.buf, []byte(key))
+		if p == -1 {
+			return false
+		}
+		c.lp = c.p
+		c.p = c.ep + p
+		c.ep += p + len(key)
+		c.buf = c.buf[p+len(key):]
+		return true
+	}
+	if !find(c.b) {
+		return false, nil
+	}
+	if !find(c.e) {
+		return false, fmt.Errorf("failed to find end %q terminator", c.e)
+	}
+	return true, nil
+}
+
+func (c *chunker) pos() int {
+	return c.lp
+}
+
+func (c *chunker) end() int {
+	return c.ep
 }
