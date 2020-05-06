@@ -41,6 +41,7 @@ type runner struct {
 	fSkipCache     *bool
 	fImageOverride *string
 	fCompat        *bool
+	fPullImage     *string
 
 	runtime cue.Runtime
 
@@ -327,8 +328,21 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	err = ioutil.WriteFile(sf, []byte(ls.bashScript), 0777)
 	check(err, "failed to write temporary script to %v: %v", sf, err)
 
+	imageCheck := exec.Command("docker", "inspect", g.Image)
+	out, err := imageCheck.CombinedOutput()
+	if err != nil {
+		if *r.fPullImage == pullImageMissing {
+			r.debugf("failed to find docker image %v (%v); will attempt pull", g.Image, err)
+			pull := exec.Command("docker", "pull", g.Image)
+			out, err = pull.CombinedOutput()
+			check(err, "failed to find docker image %v; also failed to pull it: %v\n%s", g.Image, err, out)
+		} else {
+			raise("failed to find docker image %v (%v); either pull this image manually or use -pull=missing", g.Image, err)
+		}
+	}
+
 	cmd := exec.Command("docker", "run", "--rm", "-v", fmt.Sprintf("%v:/scripts", td), g.Image, "/scripts/script.sh")
-	out, err := cmd.CombinedOutput()
+	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 
 	r.debugf("output from [%v]:\n%s", strings.Join(cmd.Args, " "), out)
