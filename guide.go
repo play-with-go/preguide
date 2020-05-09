@@ -79,7 +79,7 @@ func (r *runner) process(g *guide) {
 				buf.Write(md.content[pos:d.Pos()])
 				switch d := d.(type) {
 				case *stepDirective:
-					if *r.fCompat {
+					if *r.genCmd.fCompat {
 						steps[d.Key()].renderCompat(&buf)
 					} else {
 						steps[d.Key()].render(&buf)

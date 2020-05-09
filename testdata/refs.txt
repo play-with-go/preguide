@@ -1,6 +1,6 @@
 # Test that basic defs work
 
-preguide -out _output
+preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/defs.md defs/en.md.golden

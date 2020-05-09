@@ -1,4 +1,63 @@
 # Test that basic command help works
 
+env PREGUIDE_IMAGE_OVERRIDE=
+env PREGUIDE_PULL_IMAGE=
+
+# Explicit help flag
 ! preguide -help
-stderr 'Usage of preguide:'
+cmp stderr help.txt
+
+# Missing command
+! preguide
+cmp stderr missing_command.txt
+
+# Command help
+preguide help gen
+cmp stdout gen_command_help.txt
+
+-- help.txt --
+Usage of preguide:
+
+    preguide <command>
+
+The commands are:
+
+    init
+    gen
+
+Use "preguide help <command>" for more information about a command.
+
+preguide defines the following flags:
+
+	  -debug
+	        include debug output
+-- missing_command.txt --
+missing command
+Usage of preguide:
+
+    preguide <command>
+
+The commands are:
+
+    init
+    gen
+
+Use "preguide help <command>" for more information about a command.
+
+preguide defines the following flags:
+
+	  -debug
+	        include debug output
+-- gen_command_help.txt --
+usage: preguide gen
+
+	  -compat
+	        render old-style PWD code blocks
+	  -image string
+	        the image to use instead of the guide-specified image
+	  -out string
+	        the target directory for generation
+	  -pull string
+	        try and docker pull image if missing
+	  -skipcache
+	        whether to skip any output cache checking

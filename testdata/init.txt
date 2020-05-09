@@ -1,0 +1,4 @@
+# Test that we can init a new guide using preguide
+
+preguide init
+preguide gen -out _output
