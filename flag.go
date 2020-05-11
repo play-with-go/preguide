@@ -1,62 +1,194 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strings"
 )
 
 const (
 	pullImageMissing = "missing"
 )
 
-type usageErr string
+type usageErr struct {
+	err error
+	u   cmd
+}
 
-func (u usageErr) Error() string { return string(u) }
-
-type flagErr string
-
-func (f flagErr) Error() string { return string(f) }
+func (u usageErr) Error() string { return u.err.Error() }
 
 func main() { os.Exit(main1()) }
 
 func main1() int {
-	r := &runner{}
+	r := newRunner()
 
-	fs := flag.NewFlagSet("preguide", flag.ContinueOnError)
-	r.flagSet = fs
-	fs.Usage = r.usage
-
-	r.fDir = fs.String("dir", ".", "the directory in which to run preguide")
-	r.fOutput = fs.String("out", "", "the target directory for generation")
-	r.fDebug = fs.Bool("debug", false, "include debug output")
-	r.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
-	r.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
-	r.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
-	r.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
+	r.rootCmd = newRootCmd()
+	r.genCmd = newGenCmd()
+	r.initCmd = newInitCmd()
+	r.helpCmd = newHelpCmd(r)
 
 	err := r.mainerr()
 	if err == nil {
 		return 0
 	}
-	switch err.(type) {
+	switch err := err.(type) {
 	case usageErr:
-		fmt.Fprintln(os.Stderr, err)
-		r.flagSet.Usage()
-		return 2
-	case flagErr:
+		if err.err != flag.ErrHelp {
+			fmt.Fprintln(os.Stderr, err.err)
+		}
+		fmt.Fprint(os.Stderr, err.u.usage())
 		return 2
 	}
 	fmt.Fprintln(os.Stderr, err)
 	return 1
 }
 
-func (r *runner) usage() {
-	fmt.Fprintf(os.Stderr, `
+type cmd interface {
+	usage() string
+	usageErr(format string, args ...interface{}) usageErr
+}
+
+type rootCmd struct {
+	fs           *flag.FlagSet
+	flagDefaults string
+	fDebug       *bool
+}
+
+func newFlagSet(name string, setupFlags func(*flag.FlagSet)) string {
+	res := flag.NewFlagSet(name, flag.ContinueOnError)
+	var b bytes.Buffer
+	res.SetOutput(&b)
+	setupFlags(res)
+	res.PrintDefaults()
+	res.SetOutput(ioutil.Discard)
+	s := b.String()
+	const indent = "\t"
+	if s == "" {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		if strings.TrimSpace(l) == "" {
+			lines[i] = ""
+		} else {
+			lines[i] = indent + strings.Replace(l, "\t", "    ", 1)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func newRootCmd() *rootCmd {
+	res := &rootCmd{}
+	res.flagDefaults = newFlagSet("preguide", func(fs *flag.FlagSet) {
+		res.fs = fs
+		res.fDebug = fs.Bool("debug", false, "include debug output")
+	})
+	return res
+}
+
+func (r *rootCmd) usage() string {
+	return fmt.Sprintf(`
 Usage of preguide:
 
-`[1:])
-	r.flagSet.PrintDefaults()
+    preguide <command>
+
+The commands are:
+
+    init
+    gen
+
+Use "preguide help <command>" for more information about a command.
+
+preguide defines the following flags:
+
+%s`[1:], r.flagDefaults)
+}
+
+func (r *rootCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), r}
+}
+
+type genCmd struct {
+	fs             *flag.FlagSet
+	flagDefaults   string
+	fOutput        *string
+	fSkipCache     *bool
+	fImageOverride *string
+	fCompat        *bool
+	fPullImage     *string
+}
+
+func newGenCmd() *genCmd {
+	res := &genCmd{}
+	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
+		res.fs = fs
+		res.fOutput = fs.String("out", "", "the target directory for generation")
+		res.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
+		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
+		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
+		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
+	})
+	return res
+}
+
+func (g *genCmd) usage() string {
+	return fmt.Sprintf(`
+usage: preguide gen
+
+%s`[1:], g.flagDefaults)
+}
+
+func (g *genCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), g}
+}
+
+type initCmd struct {
+	fs           *flag.FlagSet
+	flagDefaults string
+}
+
+func newInitCmd() *initCmd {
+	res := &initCmd{}
+	res.flagDefaults = newFlagSet("preguide init", func(fs *flag.FlagSet) {
+		res.fs = fs
+	})
+	return res
+}
+
+func (i *initCmd) usage() string {
+	return fmt.Sprintf(`
+usage: preguide init
+
+%s`[1:], i.flagDefaults)
+}
+
+func (i *initCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), i}
+}
+
+type helpCmd struct {
+	fs           *flag.FlagSet
+	flagDefaults string
+	r            *runner
+}
+
+func newHelpCmd(r *runner) *helpCmd {
+	res := &helpCmd{}
+	res.flagDefaults = newFlagSet("preguide help", func(fs *flag.FlagSet) {
+		res.fs = fs
+	})
+	return res
+}
+
+func (h *helpCmd) usage() {
+	h.r.rootCmd.usage()
+}
+
+func (h *helpCmd) usageErr(format string, args ...interface{}) usageErr {
+	return h.r.rootCmd.usageErr(format, args...)
 }
 
 func check(err error, format string, args ...interface{}) {

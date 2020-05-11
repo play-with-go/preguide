@@ -2,7 +2,7 @@
 # output that should sanitised
 
 # Intial run
-preguide -out _output
+preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/sanitise.markdown sanitise/en.markdown.golden

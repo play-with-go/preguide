@@ -1,7 +1,7 @@
 # Test that we get the same markdown output for a file with no directives
 # a markdown file
 
-preguide -out _output
+preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/nodirectives.md nodirectives/en.md.golden

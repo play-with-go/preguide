@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -28,22 +27,14 @@ import (
 )
 
 type runner struct {
-	flagSet *flag.FlagSet
-
-	// fDir is the directory in which to run preguide
-	fDir *string
-
-	// fOutput is the directory into which preguide should place
-	// generated content
-	fOutput *string
-
-	fDebug         *bool
-	fSkipCache     *bool
-	fImageOverride *string
-	fCompat        *bool
-	fPullImage     *string
+	*rootCmd
+	genCmd  *genCmd
+	initCmd *initCmd
+	helpCmd *helpCmd
 
 	runtime cue.Runtime
+
+	dir string
 
 	codec *gocodec.Codec
 
@@ -57,22 +48,70 @@ type runner struct {
 	uploadStep     cue.Value
 }
 
+func newRunner() *runner {
+	return &runner{
+		dir: ".",
+	}
+}
+
 func (r *runner) mainerr() (err error) {
 	defer handleKnown(&err)
 
+	if err := r.rootCmd.fs.Parse(os.Args[1:]); err != nil {
+		return usageErr{err, r.rootCmd}
+	}
+
+	args := r.rootCmd.fs.Args()
+	if len(args) == 0 {
+		return r.rootCmd.usageErr("missing command")
+	}
+	cmd := args[0]
+	switch cmd {
+	case "gen":
+		return r.runGen(args[1:])
+	case "init":
+		return r.runInit(args[1:])
+	case "help":
+		return r.runHelp(args[1:])
+	default:
+		return r.rootCmd.usageErr("unknown command: " + cmd)
+	}
+}
+
+func (r *runner) runHelp(args []string) error {
+	if len(args) != 1 {
+		return r.helpCmd.usageErr("help takes a single command argument")
+	}
+	var u func() string
+	switch args[0] {
+	case "gen":
+		u = r.genCmd.usage
+	case "init":
+		u = r.initCmd.usage
+	case "help":
+		u = r.rootCmd.usage
+	default:
+		return r.helpCmd.usageErr("no help available for command %v", args[0])
+	}
+	fmt.Print(u())
+	return nil
+}
+func (r *runner) runInit(args []string) error {
+	return nil
+}
+
+func (r *runner) runGen(args []string) error {
+	if err := r.genCmd.fs.Parse(args); err != nil {
+	}
+	if r.genCmd.fOutput == nil || *r.genCmd.fOutput == "" {
+		return r.genCmd.usageErr("target directory must be specified")
+	}
+
 	r.codec = gocodec.New(&r.runtime, nil)
-
-	if err := r.flagSet.Parse(os.Args[1:]); err != nil {
-		return flagErr(err.Error())
-	}
-	if r.fOutput == nil || *r.fOutput == "" {
-		return usageErr("target directory must be specified")
-	}
-
 	r.loadSchemas()
 
-	dir, err := filepath.Abs(*r.fDir)
-	check(err, "failed to make path %q absolute: %v", *r.fDir, err)
+	dir, err := filepath.Abs(r.dir)
+	check(err, "failed to make path %q absolute: %v", r.dir, err)
 
 	es, err := ioutil.ReadDir(dir)
 	check(err, "failed to read directory %v: %v", dir, err)
@@ -123,7 +162,7 @@ func (r *runner) processDir(dir string) {
 	g := &guide{
 		dir:    dir,
 		name:   filepath.Base(dir),
-		target: *r.fOutput,
+		target: *r.genCmd.fOutput,
 		Langs:  make(map[string]*langSteps),
 	}
 
@@ -142,7 +181,7 @@ func (r *runner) processDir(dir string) {
 		for _, l := range g.langs {
 			ls := g.Langs[l]
 			r.buildBashFile(g, ls)
-			if !*r.fSkipCache {
+			if !*r.genCmd.fSkipCache {
 				if out := g.outputGuide; out != nil {
 					if ols := out.Langs[l]; ols != nil {
 						if ols.Hash == ls.Hash {
@@ -331,7 +370,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	imageCheck := exec.Command("docker", "inspect", g.Image)
 	out, err := imageCheck.CombinedOutput()
 	if err != nil {
-		if *r.fPullImage == pullImageMissing {
+		if *r.genCmd.fPullImage == pullImageMissing {
 			r.debugf("failed to find docker image %v (%v); will attempt pull", g.Image, err)
 			pull := exec.Command("docker", "pull", g.Image)
 			out, err = pull.CombinedOutput()
@@ -518,8 +557,8 @@ func (r *runner) loadSteps(g *guide) {
 		steps, _ := stepsV.Struct()
 
 		g.Image, _ = gv.Lookup("Image").String()
-		if *r.fImageOverride != "" {
-			g.Image = *r.fImageOverride
+		if *r.genCmd.fImageOverride != "" {
+			g.Image = *r.genCmd.fImageOverride
 		}
 		if g.Image == "" {
 			raise("Image not specified, but we have steps to run")

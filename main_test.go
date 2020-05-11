@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,6 +16,10 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
+var (
+	fUpdateScripts = flag.Bool("update", false, "whether to update testscript scripts that use cmp with (stdout|stderr)")
+)
+
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"preguide": main1,
@@ -27,7 +32,8 @@ func TestScripts(t *testing.T) {
 	}
 
 	p := testscript.Params{
-		Dir: filepath.Join("testdata"),
+		UpdateScripts: *fUpdateScripts,
+		Dir:           filepath.Join("testdata"),
 		Setup: func(env *testscript.Env) (err error) {
 			defer handleKnown(&err)
 
