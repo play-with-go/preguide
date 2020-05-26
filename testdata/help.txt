@@ -2,6 +2,7 @@
 
 env PREGUIDE_IMAGE_OVERRIDE=
 env PREGUIDE_PULL_IMAGE=
+env PREGUIDE_PRESTEP_DOCKEXEC=
 
 # Explicit help flag
 ! preguide -help
@@ -57,6 +58,8 @@ usage: preguide gen
 	        the image to use instead of the guide-specified image
 	  -out string
 	        the target directory for generation
+	  -prestep string
+	        the image and docker flags passed to dockexec when running the pre-step (if there is one)
 	  -pull string
 	        try and docker pull image if missing
 	  -skipcache

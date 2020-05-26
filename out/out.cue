@@ -1,6 +1,12 @@
 package out
 
 #GuideOutput: {
+	PreStep: {
+		Package: string
+		Version: string
+		BuildID: string
+		Args: [...string]
+	}
 	Image: string
 	Langs: #Langs
 	Defs: [string]: _
@@ -11,7 +17,7 @@ package out
 }
 
 #LangSteps: {
-	Hash: string
+	Hash:  string
 	Steps: #Steps
 }
 
@@ -20,22 +26,22 @@ package out
 }
 
 #CommandStep: {
-	Name: string
+	Name:  string
 	Order: int
 	Stmts: [...#Stmt]
 }
 
 #Stmt: {
-	Negated: bool
-	CmdStr: string
-	ExitCode: int
-	Output: string
+	Negated:   bool
+	CmdStr:    string
+	ExitCode:  int
+	Output:    string
 	RawOutput: string
 }
 
 #UploadStep: {
-	Name: string
-	Order: int
+	Name:   string
+	Order:  int
 	Source: string
 	Target: string
 }
