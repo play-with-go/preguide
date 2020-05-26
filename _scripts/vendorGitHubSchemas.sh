@@ -11,5 +11,4 @@ mkdir -p $targetDir
 
 rm -f $targetFile
 curl -s https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json | \
-	sed 's/working-directory/working_directory/g' | # workaround cuelang.org/issue/378
-	go run cuelang.org/go/cmd/cue def -p schemas -o $targetFile jsonschema: -
+	go run cuelang.org/go/cmd/cue import -f -p schemas -l ''#Schema: jsonschema: - --outfile $targetFile
