@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,8 +19,16 @@ type guide struct {
 
 	mdFiles []mdFile
 	langs   []string
-	Image   string
-	Langs   map[string]*langSteps
+
+	PreStep struct {
+		Package string
+		Version string
+		buildID string
+		Args    []string
+	}
+
+	Image string
+	Langs map[string]*langSteps
 
 	instance    *cue.Instance
 	outinstance *cue.Instance
@@ -118,6 +127,11 @@ func (r *runner) generateTestLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Image: %v\n", g.Image)
+		if g.PreStep.Package != "" {
+			byts, err := json.MarshalIndent(g.PreStep, "", "  ")
+			check(err, "failed to marshal prestep: %v", err)
+			fmt.Fprintf(&buf, "PreStep: %s\n", byts)
+		}
 		for _, step := range ls.steps {
 			step.renderTestLog(&buf)
 		}

@@ -1,0 +1,122 @@
+# Test that presteps work
+
+# Intial run
+preguide gen -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
+cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
+
+# Check that we get a cache hit
+preguide -debug gen -out _output
+! stdout .+
+stderr '^cache hit for en: will not re-run script$'
+cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
+cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
+
+# Verify that changing the prestep causes a new output
+cp main.go.other main.go
+preguide gen -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/prestep.markdown prestep/en.markdown.other.golden
+cmp prestep/en_testlog.txt prestep/en_testlog.txt.other.golden
+
+
+-- go.mod --
+module mod.com/blah
+
+go 1.12
+
+require mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
+-- main.go --
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	fmt.Printf("#!/usr/bin/env bash\n")
+	fmt.Printf("export GREETING=%q\n", os.Args[1])
+}
+-- main.go.other --
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	fmt.Printf("#!/usr/bin/env bash\n")
+	fmt.Printf("export GREETING=gopher\n")
+}
+-- prestep/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--step: step1 -->
+-- prestep/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+PreStep: {
+	Package: "mod.com/blah"
+	Args: ["Hello, world!"]
+}
+
+Image: "this_will_never_be_used"
+
+Steps: step1: en: preguide.#Command & {Source: """
+echo $GREETING
+"""}
+-- prestep/en.markdown.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo $GREETING
+Hello, world!
+```
+-- prestep/en_testlog.txt.golden --
+Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+PreStep: {
+  "Package": "mod.com/blah",
+  "Version": "devel",
+  "Args": [
+    "Hello, world!"
+  ]
+}
+$ echo $GREETING
+Hello, world!
+-- prestep/en.markdown.other.golden --
+---
+image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo $GREETING
+gopher
+```
+-- prestep/en_testlog.txt.other.golden --
+Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+PreStep: {
+  "Package": "mod.com/blah",
+  "Version": "devel",
+  "Args": [
+    "Hello, world!"
+  ]
+}
+$ echo $GREETING
+gopher

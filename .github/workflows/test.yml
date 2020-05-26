@@ -3,6 +3,7 @@
 name: Go
 env:
   PREGUIDE_IMAGE_OVERRIDE: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+  PREGUIDE_PRESTEP_DOCKEXEC: buildpack-deps@sha256:ec0e9539673254d0cb1db0de347905cdb5d5091df95330f650be071a7e939420
   PREGUIDE_PULL_IMAGE: missing
 on:
   pull_request:

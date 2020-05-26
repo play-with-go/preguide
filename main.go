@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -346,7 +347,7 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 
 	if err := gv.Unify(r.guideOutDef).Validate(); err != nil {
 		if fail {
-			raise("failed to validate %v: %v", gp.ImportPath, err)
+			raise("failed to validate %v against out schema: %v", gp.ImportPath, err)
 		}
 		return
 	}
@@ -360,11 +361,26 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 }
 
 func (r *runner) runBashFile(g *guide, ls *langSteps) {
+	// Now run the pre-step if there is one
+	var toWrite string
+	if g.PreStep.Package != "" {
+		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fPreStepDockExec), g.PreStep.Package}
+		args = append(args, g.PreStep.Args...)
+		var stdout, stderr bytes.Buffer
+		prestep := exec.Command(args[0], args[1:]...)
+		prestep.Stdout = &stdout
+		prestep.Stderr = &stderr
+		err := prestep.Run()
+		check(err, "failed to run prestep [%#v]: %v\n%s", prestep.Args, err, stderr.Bytes())
+		toWrite = stdout.String() + "\n"
+	}
+	// Concatenate the bash script
+	toWrite += ls.bashScript
 	td, err := ioutil.TempDir("", fmt.Sprintf("preguide-%v-runner-", g.name))
 	check(err, "failed to create temp directory for guide %v: %v", g.dir, err)
 	defer os.RemoveAll(td)
 	sf := filepath.Join(td, "script.sh")
-	err = ioutil.WriteFile(sf, []byte(ls.bashScript), 0777)
+	err = ioutil.WriteFile(sf, []byte(toWrite), 0777)
 	check(err, "failed to write temporary script to %v: %v", sf, err)
 
 	imageCheck := exec.Command("docker", "inspect", g.Image)
@@ -423,6 +439,13 @@ func (r *runner) encodeGuide(v cue.Value, g *guide) {
 	// TODO: pending a solution to cuelang.org/issue/377 we do this
 	// by hand
 	g.Image, _ = v.Lookup("Image").String()
+	g.PreStep.Package, _ = v.Lookup("PreStep", "Package").String()
+	g.PreStep.buildID, _ = v.Lookup("PreStep", "BuildID").String()
+	g.PreStep.Version, _ = v.Lookup("PreStep", "Version").String()
+	{
+		args := v.Lookup("PreStep", "Args")
+		_ = args.Decode(&g.PreStep.Args)
+	}
 	if g.Langs == nil {
 		g.Langs = make(map[string]*langSteps)
 	}
@@ -473,6 +496,9 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	hf := func(format string, args ...interface{}) {
 		fmt.Fprintf(h, format, args...)
 	}
+	// We write the PreStep information to the hash, and only run the pre-step if
+	// we have a cache miss and come to run the bash file
+	hf("prestep: %#v", g.PreStep)
 	// We write the docker image to the hash, because if the user want to ensure
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image)
@@ -562,6 +588,50 @@ func (r *runner) loadSteps(g *guide) {
 		}
 		if g.Image == "" {
 			raise("Image not specified, but we have steps to run")
+		}
+		g.PreStep.Package, _ = gv.Lookup("PreStep", "Package").String()
+		{
+			args := gv.Lookup("PreStep", "Args")
+			_ = args.Decode(&g.PreStep.Args)
+		}
+		if g.PreStep.Package != "" {
+			// TODO: cache this step; package lookup will not change over the course
+			// of running a guide
+
+			// Resolve to a version. The runner of preguide should be doing
+			// so in the context of a module that makes this resolution
+			// possible.
+			var pkg struct {
+				ImportPath string
+				Export     string
+				Module     struct {
+					Version string
+				}
+			}
+			var stdout, stderr bytes.Buffer
+			list := exec.Command("go", "list", "-export", "-json", g.PreStep.Package)
+			list.Stdout = &stdout
+			list.Stderr = &stderr
+			err := list.Run()
+			check(err, "failed to try and list %v: %v\n%s", g.PreStep.Package, err, stderr.Bytes())
+			// There should be a single package resolved. If there is more than one
+			// this next step will fail... which is what we want.
+			err = json.Unmarshal(stdout.Bytes(), &pkg)
+			check(err, "failed to decode package: %v; input was\n%s", err, stdout.Bytes())
+
+			if pkg.ImportPath != g.PreStep.Package {
+				raise("%v resolved to %v; it should be steady", g.PreStep.Package, pkg.ImportPath)
+			}
+
+			if pkg.Module.Version != "" {
+				g.PreStep.Version = pkg.Module.Version
+			} else {
+				g.PreStep.Version = "devel"
+				buildid := exec.Command("go", "tool", "buildid", pkg.Export)
+				out, err := buildid.CombinedOutput()
+				check(err, "failed to get buildid of package %v via %v: %v\n%s", pkg.ImportPath, pkg.Export, err, out)
+				g.PreStep.buildID = strings.TrimSpace(string(out))
+			}
 		}
 
 		type posStep struct {
