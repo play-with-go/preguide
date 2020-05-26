@@ -3,7 +3,7 @@ module github.com/play-with-go/preguide
 go 1.15
 
 require (
-	cuelang.org/go v0.1.3-0.20200424192631-12927e83d318
+	cuelang.org/go v0.2.0
 	github.com/gohugoio/hugo v0.69.2
 	github.com/google/go-cmp v0.4.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

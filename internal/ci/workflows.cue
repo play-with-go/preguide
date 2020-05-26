@@ -5,7 +5,7 @@ import "github.com/SchemaStore/schemastore/src/schemas/json:schemas"
 workflowsDir: *"./" | string @tag(workflowsDir)
 scriptsDir:   *"./" | string @tag(scriptsDir)
 
-test: schemas.Schema & {
+test: schemas.#Schema & {
 	name: "Go"
 	env: {
 		PREGUIDE_IMAGE_OVERRIDE: "golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6"
