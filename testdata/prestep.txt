@@ -24,7 +24,7 @@ cmp prestep/en_testlog.txt prestep/en_testlog.txt.other.golden
 
 
 -- go.mod --
-module mod.com/blah
+module mod.com/init
 
 go 1.12
 
@@ -65,7 +65,7 @@ package steps
 import "github.com/play-with-go/preguide"
 
 PreStep: {
-	Package: "mod.com/blah"
+	Package: "mod.com/init"
 	Args: ["Hello, world!"]
 }
 
@@ -76,7 +76,7 @@ echo $GREETING
 """}
 -- prestep/en.markdown.golden --
 ---
-image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 lang: en
 title: A test with all directives
 ---
@@ -87,9 +87,9 @@ $ echo $GREETING
 Hello, world!
 ```
 -- prestep/en_testlog.txt.golden --
-Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+Image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 PreStep: {
-  "Package": "mod.com/blah",
+  "Package": "mod.com/init",
   "Version": "devel",
   "Args": [
     "Hello, world!"
@@ -99,7 +99,7 @@ $ echo $GREETING
 Hello, world!
 -- prestep/en.markdown.other.golden --
 ---
-image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 lang: en
 title: A test with all directives
 ---
@@ -110,9 +110,9 @@ $ echo $GREETING
 gopher
 ```
 -- prestep/en_testlog.txt.other.golden --
-Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+Image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 PreStep: {
-  "Package": "mod.com/blah",
+  "Package": "mod.com/init",
   "Version": "devel",
   "Args": [
     "Hello, world!"

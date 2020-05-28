@@ -37,6 +37,7 @@ Defs: world: "world"
 
 Steps: step1: en: preguide.#Command & { Source: """
 echo "Hello, world!"
+touch blah
 ! false
 ls
 """}
@@ -46,11 +47,11 @@ package out
 Langs: _
 
 Defs: {
-	cmd_false: Langs.en.Steps.step1.Stmts[1].CmdStr
+	cmd_false: Langs.en.Steps.step1.Stmts[2].CmdStr
 }
 -- defs/en.md.golden --
 ---
-image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 lang: en
 title: A test with defs
 ---
@@ -69,10 +70,10 @@ Here are some commands:
 ```.term1
 $ echo "Hello, world!"
 Hello, world!
+$ touch blah
 $ false
 $ ls
-bin
-src
+blah
 ```
 
 Here we talk about the second of those commands,
