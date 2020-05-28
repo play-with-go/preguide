@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"cuelang.org/go/cue"
 	"gopkg.in/yaml.v2"
@@ -35,6 +36,8 @@ type guide struct {
 
 	outputGuide *guide
 	output      cue.Value
+
+	vars [][2]string
 }
 
 func (r *runner) process(g *guide) {
@@ -49,11 +52,6 @@ func (r *runner) process(g *guide) {
 	check(err, "failed to os.MkdirAll %v: %v", postsDir, err)
 
 	for _, md := range g.mdFiles {
-		// TODO: support rewriting of directives
-		// if len(md.directives) != 0 {
-		// 	raise("we don't yet support directive parsing")
-		// }
-
 		// TODO: multi-language support
 
 		outFilePath := filepath.Join(postsDir, fmt.Sprintf("%v%v", g.name, md.ext))
@@ -139,4 +137,11 @@ func (r *runner) generateTestLog(g *guide) {
 		err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
 		check(err, "failed to write testlog output to %v: %v", logFilePath, err)
 	}
+}
+
+func (g *guide) sanitiseVars(s string) string {
+	for _, repl := range g.vars {
+		s = strings.ReplaceAll(s, repl[1], repl[0])
+	}
+	return s
 }

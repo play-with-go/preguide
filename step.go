@@ -49,7 +49,7 @@ type commandStmt struct {
 	RawOutput   string
 	outputFence string
 
-	sanitiser sanitiser
+	sanitisers []sanitiser
 }
 
 // commandStepFromString takes a string value that is a sequence of shell
@@ -103,9 +103,9 @@ func commadStepFromSyntaxFile(name string, order int, f *syntax.File) (*commandS
 			return res, fmt.Errorf("failed to print statement %v: %v", i, err)
 		}
 		res.Stmts = append(res.Stmts, &commandStmt{
-			CmdStr:    sb.String(),
-			Negated:   negated,
-			sanitiser: sm.deriveSanitiser(stmt),
+			CmdStr:     sb.String(),
+			Negated:    negated,
+			sanitisers: sm.deriveSanitiser(stmt),
 		})
 	}
 	return res, nil
