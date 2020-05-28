@@ -1,7 +1,9 @@
 package ci
 
 import (
+	"tool/http"
 	"tool/file"
+	"tool/exec"
 	"encoding/yaml"
 	"strconv"
 )
@@ -23,4 +25,17 @@ command: genenv: task: write: file.Create & {
 	preguide_image_override=\(strconv.Quote(test.env.PREGUIDE_IMAGE_OVERRIDE))
 	preguide_prestep_dockexec=\(strconv.Quote(test.env.PREGUIDE_PRESTEP_DOCKEXEC))
 	"""
+}
+
+// vendorgithubschema is expected to be run within the cuelang.org/go
+// cue.mod directory
+command: vendorgithubschema: {
+	get: http.Get & {
+		request: body: ""
+		url: "https://raw.githubusercontent.com/SchemaStore/schemastore/f7a0789ccb3bd74a720ddbd6691d60fd9e2d8b7a/src/schemas/json/github-workflow.json"
+	}
+	convert: exec.Run & {
+		stdin: get.response.body
+		cmd:   "go run cuelang.org/go/cmd/cue import -f -p json -l #Workflow: jsonschema: - --outfile pkg/github.com/SchemaStore/schemastore/src/schemas/json/github-workflow.cue"
+	}
 }

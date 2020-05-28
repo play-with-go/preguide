@@ -1,8 +1,8 @@
-package schemas
+package json
 
 import "strings"
 
-#Schema: {
+#Workflow: {
 	@jsonschema(schema="http://json-schema.org/draft-07/schema")
 	number | null | bool | string | [...] | {
 		// The name of your workflow. GitHub displays the names of your
@@ -253,10 +253,9 @@ import "strings"
 			// Runs your workflow anytime the release event occurs. More than
 			// one activity type triggers this event. For information about
 			// the REST API, see
-			// https://developer.github.com/v3/repos/releases/ in the GitHub
-			// Developer documentation.
+			// https://developer.github.com/v3/repos/releases/.
 			release?: #eventObject & {
-				types?: #types & [..."published" | "unpublished" | "created" | "edited" | "deleted" | "prereleased" | "released"] | *["published", "unpublished", "created", "edited", "deleted", "prereleased", "released"]
+				types?: #types & [..."published" | "unpublished" | "created" | "edited" | "deleted" | "prereleased"] | *["published", "unpublished", "created", "edited", "deleted", "prereleased"]
 				...
 			}
 
@@ -513,7 +512,7 @@ import "strings"
 
 	#branch: #globs
 
-	#configuration: string | number | bool | {
+	#configuration: string | number | {
 		[string]: #configuration
 	} | [...#configuration]
 
