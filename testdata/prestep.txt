@@ -35,22 +35,40 @@ package main
 import (
 	"fmt"
 	"os"
+	"encoding/json"
 )
 
 func main() {
-	fmt.Printf("#!/usr/bin/env bash\n")
-	fmt.Printf("export GREETING=%q\n", os.Args[1])
+	out := struct {
+		Script string
+		Vars   map[string]string
+	}{
+		Script: fmt.Sprintf("#!/usr/bin/env bash\nexport GREETING=%q\n", os.Args[1]),
+		Vars: map[string]string{
+			"$GREETING": os.Args[1],
+		},
+	}
+	enc := json.NewEncoder(os.Stdout)
+	_ = enc.Encode(out)
 }
 -- main.go.other --
 package main
 
 import (
 	"fmt"
+	"os"
+	"encoding/json"
 )
 
 func main() {
-	fmt.Printf("#!/usr/bin/env bash\n")
-	fmt.Printf("export GREETING=gopher\n")
+	out := struct {
+		Script string
+		Vars   map[string]string
+	}{
+		Script: fmt.Sprintf("#!/usr/bin/env bash\nexport GREETING=%q\n", os.Args[1]),
+	}
+	enc := json.NewEncoder(os.Stdout)
+	_ = enc.Encode(out)
 }
 -- prestep/en.markdown --
 ---
@@ -84,7 +102,7 @@ title: A test with all directives
 
 ```.term1
 $ echo $GREETING
-Hello, world!
+$GREETING
 ```
 -- prestep/en_testlog.txt.golden --
 Image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
@@ -96,7 +114,7 @@ PreStep: {
   ]
 }
 $ echo $GREETING
-Hello, world!
+$GREETING
 -- prestep/en.markdown.other.golden --
 ---
 image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
@@ -107,7 +125,7 @@ title: A test with all directives
 
 ```.term1
 $ echo $GREETING
-gopher
+Hello, world!
 ```
 -- prestep/en_testlog.txt.other.golden --
 Image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
@@ -119,4 +137,4 @@ PreStep: {
   ]
 }
 $ echo $GREETING
-gopher
+Hello, world!

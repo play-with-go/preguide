@@ -1,0 +1,119 @@
+# Test that we get the expected output when a step involves
+# git commands that should be sanitised
+
+# Intial run
+preguide gen -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/sanitise.markdown sanitise/en.markdown.golden
+cmp sanitise/en_testlog.txt sanitise/en_testlog.txt.golden
+
+-- go.mod --
+module mod.com/init
+
+go 1.12
+
+require mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
+-- main.go --
+package main
+
+import (
+	"encoding/json"
+	"os"
+)
+
+func main() {
+	out := struct {
+		Script string
+		Vars   map[string]string
+	}{
+		Script: `
+#!/usr/bin/env bash
+
+git config --global user.email "gopher@gopher.com"
+git config --global user.name "Random Gopher"
+`[1:],
+	}
+	enc := json.NewEncoder(os.Stdout)
+	_ = enc.Encode(out)
+}
+-- sanitise/en.markdown --
+---
+title: A test with output that should be sanitised
+---
+
+<!--step: step1 -->
+
+<!--step: step2 -->
+
+<!--step: step3 -->
+-- sanitise/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Image: "this_will_never_be_used"
+
+PreStep: {
+  Package: "mod.com/init"
+}
+
+Steps: step1: en: preguide.#Command & { Source: """
+mkdir example
+cd example
+git init
+"""}
+
+Steps: step2: en: preguide.#Upload & { Target: "README", Source: """
+This is a test.
+""" }
+
+Steps: step3: en: preguide.#Command & { Source: """
+git add -A
+git commit -am 'Initial commit'
+"""}
+
+-- sanitise/en.markdown.golden --
+---
+image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
+lang: en
+title: A test with output that should be sanitised
+---
+
+```.term1
+$ mkdir example
+$ cd example
+$ git init
+Initialized empty Git repository in /home/gopher/example/.git/
+```
+
+```.term1
+This is a test.
+```
+
+```.term1
+$ git add -A
+$ git commit -am 'Initial commit'
+[master (root-commit) abcd123] Initial commit
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README
+```
+-- sanitise/en_testlog.txt.golden --
+Image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
+PreStep: {
+  "Package": "mod.com/init",
+  "Version": "devel",
+  "Args": null
+}
+$ mkdir example
+$ cd example
+$ git init
+Initialized empty Git repository in /home/gopher/example/.git/
+$ cat <<EOD > README
+This is a test.
+EOD
+$ git add -A
+$ git commit -am 'Initial commit'
+[master (root-commit) abcd123] Initial commit
+ 1 file changed, 1 insertion(+)
+ create mode 100644 README

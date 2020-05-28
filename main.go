@@ -372,7 +372,25 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 		prestep.Stderr = &stderr
 		err := prestep.Run()
 		check(err, "failed to run prestep [%#v]: %v\n%s", prestep.Args, err, stderr.Bytes())
-		toWrite = stdout.String() + "\n"
+		var out struct {
+			Script string
+			Vars   map[string]string
+		}
+		err = json.Unmarshal(stdout.Bytes(), &out)
+		check(err, "failed to unmarshal output from prestep: %v\n%s", err, stdout.Bytes())
+		var vars [][2]string
+		for k, v := range out.Vars {
+			vars = append(vars, [2]string{k, v})
+		}
+		sort.SliceStable(vars, func(i, j int) bool {
+			lhs, rhs := vars[i], vars[j]
+			if lhs[1] == rhs[1] {
+				raise("prestep defined vars that map to same value: %v and %v", lhs[0], rhs[0])
+			}
+			return strings.Contains(lhs[1], rhs[1])
+		})
+		g.vars = vars
+		toWrite = out.Script + "\n"
 	}
 	// Concatenate the bash script
 	toWrite += ls.bashScript
@@ -429,8 +447,8 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 				walk = walk[len(fence):]
 				stmt.RawOutput = slurp(fence)
 				stmt.Output = stmt.RawOutput
-				if stmt.sanitiser != nil {
-					stmt.Output = stmt.sanitiser(stmt.Output)
+				for _, s := range append(stmt.sanitisers, g.sanitiseVars) {
+					stmt.Output = s(stmt.Output)
 				}
 				exitCodeStr := slurp([]byte("\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)
