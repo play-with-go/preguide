@@ -396,7 +396,12 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 		}
 	}
 
-	cmd := exec.Command("docker", "run", "--rm", "-v", fmt.Sprintf("%v:/scripts", td), g.Image, "/scripts/script.sh")
+	cmd := exec.Command("docker", "run", "--rm",
+		"-v", fmt.Sprintf("%v:/scripts", td),
+		"-e", fmt.Sprintf("USER_UID=%v", os.Geteuid()),
+		"-e", fmt.Sprintf("USER_GID=%v", os.Getegid()),
+		g.Image, "/scripts/script.sh",
+	)
 	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 

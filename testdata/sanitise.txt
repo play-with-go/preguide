@@ -59,7 +59,7 @@ go test
 
 -- sanitise/en.markdown.golden --
 ---
-image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 lang: en
 title: A test with output that should be sanitised
 ---
@@ -96,10 +96,10 @@ func TestHello(t *testing.T) {
 $ go test
 Hello, world... from the test!
 PASS
-ok  	_/go	0.042s
+ok  	_/home/gopher	0.042s
 ```
 -- sanitise/en_testlog.txt.golden --
-Image: golang@sha256:b451547e2056c6369bbbaf5a306da1327cc12c074f55c311f6afe3bfc1c286b6
+Image: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
 $ cat <<EOD > hello.go
 package main
 
@@ -124,4 +124,4 @@ EOD
 $ go test
 Hello, world... from the test!
 PASS
-ok  	_/go	0.042s
+ok  	_/home/gopher	0.042s
