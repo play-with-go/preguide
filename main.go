@@ -683,26 +683,26 @@ func (r *runner) loadSteps(g *guide) {
 			switch {
 			case en.Equals(r.commandDef.Unify(en)):
 				source, _ := en.Lookup("Source").String()
-				step, err = commandStepFromString(name, i, source)
+				step, err = commandStepFromString(name, source)
 				check(err, "failed to parse #Command from step %v: %v", name, err)
 			case en.Equals(r.commandFileDef.Unify(en)):
 				path, _ := en.Lookup("Path").String()
 				if !filepath.IsAbs(path) {
 					path = filepath.Join(g.dir, path)
 				}
-				step, err = commandStepFromFile(name, i, path)
+				step, err = commandStepFromFile(name, path)
 				check(err, "failed to parse #CommandFile from step %v: %v", name, err)
 			case en.Equals(r.uploadDef.Unify(en)):
 				target, _ := en.Lookup("Target").String()
 				source, _ := en.Lookup("Source").String()
-				step = uploadStepFromSource(name, i, source, target)
+				step = uploadStepFromSource(name, source, target)
 			case en.Equals(r.uploadFileDef.Unify(en)):
 				target, _ := en.Lookup("Target").String()
 				path, _ := en.Lookup("Path").String()
 				if !filepath.IsAbs(path) {
 					path = filepath.Join(g.dir, path)
 				}
-				step, err = uploadStepFromFile(name, i, path, target)
+				step, err = uploadStepFromFile(name, path, target)
 				check(err, "failed to parse #UploadFile from step %v: %v", name, err)
 			default:
 				panic(fmt.Errorf("unknown type of step: %v", en))
@@ -730,7 +730,8 @@ func (r *runner) loadSteps(g *guide) {
 			ls := &langSteps{
 				Steps: make(map[string]step),
 			}
-			for _, v := range steps {
+			for i, v := range steps {
+				v.step.setorder(i)
 				ls.steps = append(ls.steps, v.step)
 				ls.Steps[v.step.name()] = v.step
 			}

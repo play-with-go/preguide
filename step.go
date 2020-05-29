@@ -20,6 +20,7 @@ type langSteps struct {
 type step interface {
 	name() string
 	order() int
+	setorder(int)
 	render(io.Writer)
 	renderCompat(io.Writer)
 	renderTestLog(io.Writer)
@@ -41,6 +42,10 @@ func (c *commandStep) order() int {
 	return c.Order
 }
 
+func (c *commandStep) setorder(i int) {
+	c.Order = i
+}
+
 type commandStmt struct {
 	Negated     bool
 	CmdStr      string
@@ -55,19 +60,19 @@ type commandStmt struct {
 // commandStepFromString takes a string value that is a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case s cannot be parsed
-func commandStepFromString(name string, order int, s string) (*commandStep, error) {
+func commandStepFromString(name string, s string) (*commandStep, error) {
 	r := strings.NewReader(s)
 	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse command string %q: %v", s, err)
 	}
-	return commadStepFromSyntaxFile(name, order, f)
+	return commadStepFromSyntaxFile(name, f)
 }
 
 // commandStepFromFile takes a path to a file that contains a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case path cannot be read or parsed
-func commandStepFromFile(name string, order int, path string) (*commandStep, error) {
+func commandStepFromFile(name string, path string) (*commandStep, error) {
 	byts, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", path, err)
@@ -77,16 +82,15 @@ func commandStepFromFile(name string, order int, path string) (*commandStep, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse commands from %v: %v", path, err)
 	}
-	return commadStepFromSyntaxFile(name, order, f)
+	return commadStepFromSyntaxFile(name, f)
 }
 
 // commadStepFromSyntaxFile takes a *mvdan.cc/sh/syntax.File and returns a
 // commandStep with the individual statements, or an error in case any of the
 // statements cannot be printed as string values
-func commadStepFromSyntaxFile(name string, order int, f *syntax.File) (*commandStep, error) {
+func commadStepFromSyntaxFile(name string, f *syntax.File) (*commandStep, error) {
 	res := &commandStep{}
 	res.Name = name
-	res.Order = order
 	printer := syntax.NewPrinter()
 	sm := sanitiserMatcher{
 		printer: printer,
@@ -152,23 +156,25 @@ func (u *uploadStep) order() int {
 	return u.Order
 }
 
-func uploadStepFromSource(name string, order int, source, target string) *uploadStep {
+func (u *uploadStep) setorder(i int) {
+	u.Order = i
+}
+
+func uploadStepFromSource(name string, source, target string) *uploadStep {
 	return &uploadStep{
 		Name:   name,
-		Order:  order,
 		Source: source,
 		Target: target,
 	}
 }
 
-func uploadStepFromFile(name string, order int, path, target string) (*uploadStep, error) {
+func uploadStepFromFile(name string, path, target string) (*uploadStep, error) {
 	byts, err := ioutil.ReadFile(target)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", path, err)
 	}
 	res := &uploadStep{
 		Name:   name,
-		Order:  order,
 		Source: string(byts),
 		Target: target,
 	}
