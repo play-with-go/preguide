@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,6 +38,8 @@ type runner struct {
 
 	dir string
 
+	preguideBuildInfo string
+
 	codec *gocodec.Codec
 
 	guideDef       cue.Value
@@ -57,6 +60,29 @@ func newRunner() *runner {
 
 func (r *runner) mainerr() (err error) {
 	defer handleKnown(&err)
+
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		raise("failed to read build info")
+	}
+	if bi.Main.Replace != nil {
+		bi.Main = *bi.Main.Replace
+	}
+	if bi.Main.Sum == "" {
+		// Local development. Use the export information if it is available
+		export := exec.Command("go", "list", "-mod=readonly", "-export", "-f={{.Export}}", "github.com/play-with-go/preguide")
+		out, err := export.CombinedOutput()
+		if err == nil {
+			r.preguideBuildInfo = string(out)
+		} else {
+			// The only really conceivable case where this should happen is development
+			// of preguide itself. In that case, we will be running testscript tests
+			// that start from a clean slate.
+			r.preguideBuildInfo = "devel"
+		}
+	} else {
+		r.preguideBuildInfo = bi.Main.Version + " " + bi.Main.Sum
+	}
 
 	if err := r.rootCmd.fs.Parse(os.Args[1:]); err != nil {
 		return usageErr{err, r.rootCmd}
@@ -519,9 +545,11 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	hf := func(format string, args ...interface{}) {
 		fmt.Fprintf(h, format, args...)
 	}
+	// Write the module info for github.com/play-with-go/preguide
+	hf("preguide: %#v\n", r.preguideBuildInfo)
 	// We write the PreStep information to the hash, and only run the pre-step if
 	// we have a cache miss and come to run the bash file
-	hf("prestep: %#v", g.PreStep)
+	hf("prestep: %#v\n", g.PreStep)
 	// We write the docker image to the hash, because if the user want to ensure
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image)
