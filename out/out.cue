@@ -32,11 +32,10 @@ package out
 }
 
 #Stmt: {
-	Negated:   bool
-	CmdStr:    string
-	ExitCode:  int
-	Output:    string
-	RawOutput: string
+	Negated:  bool
+	CmdStr:   string
+	ExitCode: int
+	Output:   string
 }
 
 #UploadStep: {

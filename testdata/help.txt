@@ -62,5 +62,7 @@ usage: preguide gen
 	        the image and docker flags passed to dockexec when running the pre-step (if there is one)
 	  -pull string
 	        try and docker pull image if missing
+	  -raw
+	        generate raw output for steps
 	  -skipcache
 	        whether to skip any output cache checking
