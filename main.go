@@ -199,7 +199,9 @@ func (r *runner) processDir(dir string) {
 	}
 
 	r.loadSteps(g)
-	r.loadOutput(g, false)
+	if !*r.genCmd.fRaw {
+		r.loadOutput(g, false)
+	}
 
 	stepCount := r.validateStepAndRefDirs(g)
 
@@ -224,7 +226,7 @@ func (r *runner) processDir(dir string) {
 			r.runBashFile(g, ls)
 		}
 		r.writeOutput(g)
-		if outputLoadRequired || g.outputGuide == nil {
+		if !*r.genCmd.fRaw && (outputLoadRequired || g.outputGuide == nil) {
 			r.loadOutput(g, true)
 		}
 	}
@@ -331,15 +333,21 @@ func (r *runner) validateOutRefsDirs(g *guide) {
 }
 
 func (r *runner) writeOutput(g *guide) {
-	outDir := filepath.Join(g.dir, "out")
-	err := os.MkdirAll(outDir, 0777)
-	check(err, "failed to mkdir %v: %v", outDir, err)
 	enc := gocodec.New(&r.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
 	byts, err := format.Node(v.Syntax())
-	out := fmt.Sprintf("package out\n\n%s", byts)
+	out := fmt.Sprintf("package out\n\n%s\n", byts)
 	check(err, "failed to format CUE output: %v", err)
+
+	if *r.genCmd.fRaw {
+		fmt.Printf("%s", out)
+		return
+	}
+
+	outDir := filepath.Join(g.dir, "out")
+	err = os.MkdirAll(outDir, 0777)
+	check(err, "failed to mkdir %v: %v", outDir, err)
 	outFilePath := filepath.Join(outDir, "gen_out.cue")
 	err = ioutil.WriteFile(outFilePath, []byte(out), 0666)
 	check(err, "failed to write output to %v: %v", outFilePath, err)
@@ -471,10 +479,11 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 					raise("failed to find %q at position %v in output:\n%s", stmt.outputFence, len(out)-len(walk), out)
 				}
 				walk = walk[len(fence):]
-				stmt.RawOutput = slurp(fence)
-				stmt.Output = stmt.RawOutput
-				for _, s := range append(stmt.sanitisers, g.sanitiseVars) {
-					stmt.Output = s(stmt.Output)
+				stmt.Output = slurp(fence)
+				if !*r.genCmd.fRaw {
+					for _, s := range append(stmt.sanitisers, g.sanitiseVars) {
+						stmt.Output = s(stmt.Output)
+					}
 				}
 				exitCodeStr := slurp([]byte("\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)

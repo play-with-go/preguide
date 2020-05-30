@@ -1,0 +1,51 @@
+# Test that we get the expected output when using -raw
+
+# A run should generate stdout but no out/gen_out.cue file
+preguide gen -raw -out _output
+cmp stdout raw/stdout
+! stderr .+
+! exists raw/out/gen_out.cue
+
+-- raw/en.markdown --
+---
+title: A test with raw output
+---
+
+<!--step: step1 -->
+-- raw/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Image: "this_will_never_be_used"
+
+Steps: step1: en: preguide.#Command & { Source: """
+echo -n "Hello, world!"
+"""}
+-- raw/stdout --
+package out
+
+{
+	PreStep: {
+		Package: ""
+		Version: ""
+	}
+	Image: "playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382"
+	Langs: {
+		en: {
+			Steps: {
+				step1: {
+					Name:  "step1"
+					Order: 0
+					Stmts: [{
+						Negated:  false
+						CmdStr:   "echo -n \"Hello, world!\""
+						ExitCode: 0
+						Output:   "Hello, world!"
+					}]
+				}
+			}
+			Hash: "114eb1f07460f7344b25f960234c04ba2d5eb93d34d4f6a80b3702b41034ea90"
+		}
+	}
+}

@@ -51,7 +51,6 @@ type commandStmt struct {
 	CmdStr      string
 	ExitCode    int
 	Output      string
-	RawOutput   string
 	outputFence string
 
 	sanitisers []sanitiser
