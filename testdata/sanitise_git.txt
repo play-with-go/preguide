@@ -75,7 +75,7 @@ git commit -am 'Initial commit'
 
 -- sanitise/en.markdown.golden --
 ---
-image: playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8
+image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
 lang: en
 title: A test with output that should be sanitised
 ---
@@ -99,7 +99,7 @@ $ git commit -am 'Initial commit'
  create mode 100644 README
 ```
 -- sanitise/en_testlog.txt.golden --
-Image: playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8
+Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
 PreStep: {
   "Package": "mod.com/init",
   "Version": "devel",
