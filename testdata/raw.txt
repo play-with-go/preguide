@@ -30,7 +30,7 @@ package out
 		Package: ""
 		Version: ""
 	}
-	Image: "playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382"
+	Image: "playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8"
 	Langs: {
 		en: {
 			Steps: {
@@ -45,7 +45,7 @@ package out
 					}]
 				}
 			}
-			Hash: "114eb1f07460f7344b25f960234c04ba2d5eb93d34d4f6a80b3702b41034ea90"
+			Hash: "152562381a46c5f0063ae18f5ff7f38a7444deef1e13ea54c716e471d58b9136"
 		}
 	}
 }

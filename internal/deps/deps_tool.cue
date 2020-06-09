@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// vendorgithubschema is expected to be run within the cuelang.org/go
-// cue.mod directory
 command: vendorgithubschema: {
 	get: http.Get & {
 		request: body: ""

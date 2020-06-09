@@ -2,7 +2,7 @@
 
 name: Go
 env:
-  PREGUIDE_IMAGE_OVERRIDE: playwithgo/go1.14.3@sha256:6289a34af0112146e551790d9f2a36622e083600752a02d36f1ad1f9e1389382
+  PREGUIDE_IMAGE_OVERRIDE: playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8
   PREGUIDE_PRESTEP_DOCKEXEC: buildpack-deps@sha256:ec0e9539673254d0cb1db0de347905cdb5d5091df95330f650be071a7e939420
   PREGUIDE_PULL_IMAGE: missing
 on:
@@ -17,9 +17,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code
-      uses: actions/checkout@722adc63f1aa60a57ec37892e133b1d319cae598
+      uses: actions/checkout@v2
     - name: Install Go
-      uses: actions/setup-go@78bd24e01a1a907f7ea3e614b4d7c15e563585a8
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Verify
@@ -37,5 +37,5 @@ jobs:
         os:
         - ubuntu-latest
         go_version:
-        - go1.14.2
+        - go1.14.4
       fail-fast: false
