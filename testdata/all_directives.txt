@@ -69,7 +69,7 @@ echo "Hello from a file"
 echo "Hello from a file"
 -- alldirectives/en.markdown.golden --
 ---
-image: playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8
+image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
 lang: en
 title: A test with all directives
 ---
@@ -100,7 +100,7 @@ echo "Hello world"
 ```
 -- alldirectives/en.compat.markdown.golden --
 ---
-image: playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8
+image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
 lang: en
 title: A test with all directives
 ---
@@ -129,7 +129,7 @@ echo "Hello world"
 EOD
 ```
 -- alldirectives/en_testlog.txt.golden --
-Image: playwithgo/go1.14.4@sha256:a4bd24f1f831b0ff9674810b258f547961491282da5e339dd1af36f71bc336f8
+Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
 $ echo "Hello, world!"
 Hello, world!
 $ touch blah
