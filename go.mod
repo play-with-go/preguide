@@ -13,6 +13,6 @@ require (
 	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.7
-	mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
+	mvdan.cc/dockexec v0.0.0-20200617140021-ca98d4465984
 	mvdan.cc/sh/v3 v3.1.1
 )
