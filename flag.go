@@ -29,6 +29,7 @@ func main1() int {
 	r.genCmd = newGenCmd()
 	r.initCmd = newInitCmd()
 	r.helpCmd = newHelpCmd(r)
+	r.dockerCmd = newDockerCmd()
 
 	err := r.mainerr()
 	if err == nil {
@@ -112,27 +113,31 @@ func (r *rootCmd) usageErr(format string, args ...interface{}) usageErr {
 }
 
 type genCmd struct {
-	fs               *flag.FlagSet
-	flagDefaults     string
-	fOutput          *string
-	fSkipCache       *bool
-	fImageOverride   *string
-	fCompat          *bool
-	fPullImage       *string
-	fPreStepDockExec *string
-	fRaw             *bool
+	fs             *flag.FlagSet
+	flagDefaults   string
+	fConfigs       []string
+	fOutput        *string
+	fSkipCache     *bool
+	fImageOverride *string
+	fCompat        *bool
+	fPullImage     *string
+	fDocker        *string
+	fRaw           *bool
+
+	config genConfig
 }
 
 func newGenCmd() *genCmd {
 	res := &genCmd{}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
+		fs.Var(stringFlagList{&res.fConfigs}, "config", "CUE-style configuration input; can appear multiple times. See 'cue help inputs'")
 		res.fOutput = fs.String("out", "", "the target directory for generation")
 		res.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
-		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
-		res.fPreStepDockExec = fs.String("prestep", os.Getenv("PREGUIDE_PRESTEP_DOCKEXEC"), "the image and docker flags passed to dockexec when running the pre-step (if there is one)")
+		res.fDocker = fs.String("docker", os.Getenv("PREGUIDE_DOCKER"), "run prestep requests in a docker container configured by the arguments passed to this flag")
+		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing when running guide")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 	})
 	return res
@@ -147,6 +152,30 @@ usage: preguide gen
 
 func (g *genCmd) usageErr(format string, args ...interface{}) usageErr {
 	return usageErr{fmt.Errorf(format, args...), g}
+}
+
+type dockerCmd struct {
+	fs           *flag.FlagSet
+	flagDefaults string
+}
+
+func newDockerCmd() *dockerCmd {
+	res := &dockerCmd{}
+	res.flagDefaults = newFlagSet("preguide docker", func(fs *flag.FlagSet) {
+		res.fs = fs
+	})
+	return res
+}
+
+func (i *dockerCmd) usage() string {
+	return fmt.Sprintf(`
+usage: preguide docker
+
+%s`[1:], i.flagDefaults)
+}
+
+func (i *dockerCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), i}
 }
 
 type initCmd struct {
@@ -218,4 +247,20 @@ func handleKnown(err *error) {
 	default:
 		panic(r)
 	}
+}
+
+type stringFlagList struct {
+	vals *[]string
+}
+
+func (s stringFlagList) String() string {
+	if s.vals == nil {
+		return ""
+	}
+	return strings.Join(*s.vals, " ")
+}
+
+func (s stringFlagList) Set(v string) error {
+	*s.vals = append(*s.vals, v)
+	return nil
 }

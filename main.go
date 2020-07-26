@@ -7,7 +7,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,15 +27,17 @@ import (
 	"cuelang.org/go/cue/token"
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/kr/pretty"
 	"github.com/play-with-go/preguide/out"
 	"golang.org/x/net/html"
 )
 
 type runner struct {
 	*rootCmd
-	genCmd  *genCmd
-	initCmd *initCmd
-	helpCmd *helpCmd
+	genCmd    *genCmd
+	initCmd   *initCmd
+	helpCmd   *helpCmd
+	dockerCmd *dockerCmd
 
 	runtime cue.Runtime
 
@@ -124,6 +128,34 @@ func (r *runner) runHelp(args []string) error {
 	fmt.Print(u())
 	return nil
 }
+
+func (r *runner) runDocker(args []string) error {
+	// Usage:
+	//
+	//     preguide docker http://endpoint args
+	//
+	// where args is a JSON-encoded string. Returns (via stdout) the JSON-encoded result
+	// (without checking that result)
+
+	if want := 2; len(args) != want {
+		return r.dockerCmd.usageErr("expected %v args; got %v", want, len(args))
+	}
+
+	url := args[0]
+	reqArgs := args[1]
+
+	resp, err := http.Post(url, "encoding/json", strings.NewReader(reqArgs))
+	if err != nil {
+		return fmt.Errorf("failed to POST %q to %v: %v", reqArgs, url, err)
+	}
+
+	if _, err := io.Copy(os.Stdout, resp.Body); err != nil {
+		return fmt.Errorf("failed to read response body from %v: %v", url, err)
+	}
+
+	return nil
+}
+
 func (r *runner) runInit(args []string) error {
 	return nil
 }
@@ -134,6 +166,19 @@ func (r *runner) runGen(args []string) error {
 	if r.genCmd.fOutput == nil || *r.genCmd.fOutput == "" {
 		return r.genCmd.usageErr("target directory must be specified")
 	}
+
+	// Fallback to env-supplied config if no values supplied via -config flag
+	if len(r.genCmd.fConfigs) == 0 {
+		envVals := strings.Split(os.Getenv("PREGUIDE_CONFIG"), ":")
+		for _, v := range envVals {
+			v = strings.TrimSpace(v)
+			if v != "" {
+				r.genCmd.fConfigs = append(r.genCmd.fConfigs, v)
+			}
+		}
+	}
+
+	r.genCmd.loadConfig()
 
 	r.codec = gocodec.New(&r.runtime, nil)
 	r.loadSchemas()
@@ -155,6 +200,64 @@ func (r *runner) runGen(args []string) error {
 		r.processDir(filepath.Join(dir, e.Name()))
 	}
 	return nil
+}
+
+type genConfig map[string]struct {
+	Endpoint string
+	Networks []string
+}
+
+func (g *genCmd) loadConfig() {
+	if len(g.fConfigs) == 0 {
+		return
+	}
+
+	// TODO two things need to improve here:
+	//
+	// 1. We should code generate a CUE version of the genConfig type
+	// so that people can use that schema as they wish. This is essentially
+	// a request for the missing half of cuelang.org/go/encoding/gocode
+	// 2. At runtime when validating -config inputs we should extract the
+	// definition via something like cuelang.org/go/encoding/gocode/gocodec
+	// and the ExtractType method. However at the moment this does not support
+	// extracting a definition directly, neither does the cuelang.org/go/cue
+	// API support deriving a closed value of a *cue.Struct
+	//
+	// So for now we maintain the genConfig type and the following string const
+	// of CUE code by hand
+	var r cue.Runtime
+	const schemaDef = `
+	#def: [string]: {
+		Endpoint: string
+		Networks: [...string]
+	}
+	`
+	schemaInst, err := r.Compile("schema.cue", schemaDef)
+	check(err, "failed to compile config schema: %v", err)
+	check(schemaInst.Err, "failed to load config schema: %v", schemaInst.Err)
+
+	schema := schemaInst.LookupDef("def")
+	err = schema.Err()
+	check(err, "failed to lookup schema definition: %v", err)
+
+	// res will hold the config result
+	var res cue.Value
+
+	bis := load.Instances(g.fConfigs, nil)
+	for i, bi := range bis {
+		inst, err := r.Build(bi)
+		check(err, "failed to load config from %v: %v", g.fConfigs[i], err)
+		res = res.Unify(inst.Value())
+	}
+
+	res = schema.Unify(res)
+	err = res.Validate()
+	check(err, "failed to validate input config: %v", err)
+
+	// Now we can extract the config from the CUE
+	codec := gocodec.New(&r, nil)
+	err = codec.Encode(res, &g.config)
+	check(err, "failed to decode config from CUE value: %v", err)
 }
 
 func (r *runner) debugf(format string, args ...interface{}) {
@@ -393,7 +496,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	// Now run the pre-step if there is one
 	var toWrite string
 	if g.PreStep.Package != "" {
-		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fPreStepDockExec), g.PreStep.Package}
+		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fDocker), g.PreStep.Package}
 		args = append(args, g.PreStep.Args...)
 		var stdout, stderr bytes.Buffer
 		prestep := exec.Command(args[0], args[1:]...)
@@ -486,6 +589,48 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 			}
 		}
 	}
+}
+
+// func (g *genCmd) runPrestepInDocker(pkg string, args ...interface{}) {
+// 	cmd := exec.Command("docker")
+// }
+
+// func (g *genCmd) runPrestepBare(pkg string, args ...interface{}) *prestepResult {
+// 	res := callPrestep(endpoint, encodePrestepArgs(args))
+// 	return decodePrestepResult(res)
+// }
+
+func callPrestep(endpoint string, jsonArgs []byte) string {
+	resp, err := http.Post(endpoint, "application/json; charset=utf-8", bytes.NewReader(jsonArgs))
+	check(err, "failed to call %v with args [%v]: %v", endpoint, jsonArgs, err)
+
+	byts, err := ioutil.ReadAll(resp.Body)
+	check(err, "failed to read body from response: %v", err)
+
+	err = resp.Body.Close()
+	check(err, "failed to close response body: %v", err)
+
+	return string(byts)
+}
+
+func encodePrestepArgs(args ...interface{}) []byte {
+	byts, err := json.Marshal(args)
+	check(err, "failed to marshal prestep args %v: %v", pretty.Sprint(args), err)
+	return byts
+}
+
+// prestepResult is a struct type for future extensibility reasons.
+// Today is just has a single field, Args: the environment variables
+// to set in the container when running the guide.
+type prestepResult struct {
+	Args map[string]string
+}
+
+func decodePrestepResult(v string) *prestepResult {
+	var res prestepResult
+	err := json.Unmarshal([]byte(v), &res)
+	check(err, "failed to unmarshal prestep result from [%v]: %v", v, err)
+	return &res
 }
 
 func (r *runner) encodeGuide(v cue.Value, g *guide) {
@@ -646,7 +791,7 @@ func (r *runner) loadSteps(g *guide) {
 		}
 		g.PreStep.Package, _ = gv.Lookup("PreStep", "Package").String()
 		{
-			args := gv.Lookup("PreStep", "Args")
+			args := gv.Lookup("Presteps", "Args")
 			_ = args.Decode(&g.PreStep.Args)
 		}
 		if g.PreStep.Package != "" {

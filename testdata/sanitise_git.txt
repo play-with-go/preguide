@@ -54,9 +54,9 @@ import "github.com/play-with-go/preguide"
 
 Image: "this_will_never_be_used"
 
-PreStep: {
+Presteps: [{
   Package: "mod.com/init"
-}
+}]
 
 Steps: step1: en: preguide.#Command & { Source: """
 mkdir example
@@ -100,11 +100,11 @@ $ git commit -am 'Initial commit'
 ```
 -- sanitise/en_testlog.txt.golden --
 Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
-PreStep: {
+Presteps: [{
   "Package": "mod.com/init",
   "Version": "devel",
   "Args": null
-}
+}]
 $ mkdir example
 $ cd example
 $ git init

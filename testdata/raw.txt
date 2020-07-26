@@ -26,10 +26,10 @@ echo -n "Hello, world!"
 package out
 
 {
-	PreStep: {
+	Prestep: [{
 		Package: ""
 		Version: ""
-	}
+	}]
 	Image: "playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea"
 	Langs: {
 		en: {
