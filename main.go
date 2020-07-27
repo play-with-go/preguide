@@ -25,6 +25,7 @@ import (
 	"cuelang.org/go/cue/token"
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/play-with-go/preguide/out"
 	"golang.org/x/net/html"
 )
 
@@ -163,16 +164,10 @@ func (r *runner) debugf(format string, args ...interface{}) {
 }
 
 func (r *runner) loadSchemas() {
-	pkgs := []string{"github.com/play-with-go/preguide", "github.com/play-with-go/preguide/out"}
-	bps := load.Instances(pkgs, nil)
-	var insts []*cue.Instance
-	for i, pkg := range pkgs {
-		check(bps[i].Err, "failed to load %v: %v", pkg, bps[i].Err)
-		inst, err := r.runtime.Build(bps[i])
-		check(err, "failed to build %v: %v", pkg, err)
-		insts = append(insts, inst)
-	}
-	preguide, preguideOut := insts[0], insts[1]
+	preguide, err := r.runtime.Compile("schema.cue", CUEDef)
+	check(err, "failed to compile github.com/play-with-go/preguide package: %v", err)
+	preguideOut, err := r.runtime.Compile("schema.cue", out.CUEDef)
+	check(err, "failed to compile github.com/play-with-go/preguide/out package: %v", err)
 
 	r.guideDef = preguide.LookupDef("#Guide")
 	r.commandDef = preguide.LookupDef("#Command")
@@ -619,7 +614,7 @@ func (r *runner) loadSteps(g *guide) {
 			// absorb this error - we have nothing to do
 			return
 		}
-		check(gp.Err, "failed to load CUE package in %v: %T", g.dir, gp.Err)
+		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
 	gi, err := r.runtime.Build(gp)
