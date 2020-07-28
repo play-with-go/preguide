@@ -17,4 +17,4 @@ then
 fi
 
 echo $export PREGUIDE_IMAGE_OVERRIDE="$preguide_image_override"
-echo $export PREGUIDE_PRESTEP_DOCKEXEC="$preguide_prestep_dockexec"
+echo $export PREGUIDE_DOCKER="$preguide_image_override"

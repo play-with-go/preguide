@@ -2,7 +2,7 @@
 
 env PREGUIDE_IMAGE_OVERRIDE=
 env PREGUIDE_PULL_IMAGE=
-env PREGUIDE_PRESTEP_DOCKEXEC=
+env PREGUIDE_DOCKER=
 
 # Explicit help flag
 ! preguide -help
@@ -23,8 +23,9 @@ Usage of preguide:
 
 The commands are:
 
-    init
+    docker
     gen
+    init
 
 Use "preguide help <command>" for more information about a command.
 
@@ -40,8 +41,9 @@ Usage of preguide:
 
 The commands are:
 
-    init
+    docker
     gen
+    init
 
 Use "preguide help <command>" for more information about a command.
 
@@ -56,12 +58,12 @@ usage: preguide gen
 	        render old-style PWD code blocks
 	  -config value
 	        CUE-style configuration input; can appear multiple times. See 'cue help inputs'
+	  -docker string
+	        run prestep requests in a docker container configured by the arguments passed to this flag
 	  -image string
 	        the image to use instead of the guide-specified image
 	  -out string
 	        the target directory for generation
-	  -prestep string
-	        the image and docker flags passed to dockexec when running the pre-step (if there is one)
 	  -pull string
 	        try and docker pull image if missing
 	  -raw

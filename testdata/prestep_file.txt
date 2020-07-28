@@ -1,0 +1,66 @@
+# Check that file scheme prestep configuration works
+
+# Expand $WORK in conf.cue
+envsubst conf.cue
+
+# Run
+preguide gen -config conf.cue -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/prestep_text.markdown prestep_text/en.markdown.golden
+cmp prestep_text/en_testlog.txt prestep_text/en_testlog.txt.golden
+
+-- prestep.txt --
+{
+  "Vars": [
+    "GREETING=Hello, world!"
+  ]
+}
+-- conf.cue --
+"github.com/blah": {
+	Endpoint: "file://$WORK/prestep.txt"
+}
+-- prestep_text/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--step: step1 -->
+-- prestep_text/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Presteps: [preguide.#Prestep & {
+	Package: "github.com/blah"
+}]
+
+Image: "this_will_never_be_used"
+
+Steps: step1: en: preguide.#Command & {Source: """
+echo "The answer is: $GREETING!"
+"""}
+-- prestep_text/en.markdown.golden --
+---
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo "The answer is: $GREETING!"
+The answer is: {{.GREETING}}!
+```
+-- prestep_text/en_testlog.txt.golden --
+Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Presteps: [
+  {
+    "Package": "github.com/blah",
+    "Version": "file",
+    "Args": []
+  }
+]
+$ echo "The answer is: $GREETING!"
+The answer is: {{.GREETING}}!

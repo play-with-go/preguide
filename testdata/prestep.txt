@@ -1,7 +1,19 @@
 # Test that presteps work
 
+# Substitute the server address where required
+createdockernetwork
+startserver -f prestep_server.go
+envsubst conf.cue conf.docker.cue
+
+# TODO: put in a sleep process here that waits for the http server to be available?
+# Otherwise preguide can fail
+
+# Set config via env var so we can skip using a flag each time
+env PREGUIDE_CONFIG=conf.cue
+
 # Intial run
-preguide gen -out _output -config conf.cue
+cp version.1 version
+preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
@@ -15,13 +27,24 @@ cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
 cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
 
 # Verify that changing the prestep causes a new output
-cp main.go.other main.go
+cp version.2 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/prestep.markdown prestep/en.markdown.other.golden
 cmp prestep/en_testlog.txt prestep/en_testlog.txt.other.golden
 
+# Now do docker tests by running the server in a docker container.
+# Because this involves running ourselves, we need to set the
+# TESTSCRIPT_COMMAND env var.
+exec docker run --rm --network-alias server --network $PRESTEP_NETWORK --volume=$WORK:/workdir --volume=$PRESTEP_SERVER_BINARY:/workdir/server --workdir=/workdir --entrypoint=/workdir/server $PREGUIDE_IMAGE_OVERRIDE :8080 &
+cp version.1 version
+cp conf.docker.cue conf.cue
+preguide gen -docker $PREGUIDE_IMAGE_OVERRIDE -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
+cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
 
 -- go.mod --
 module mod.com/init
@@ -31,27 +54,17 @@ go 1.12
 require mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
 -- conf.cue --
 "github.com/blah": {
-	Endpoint: "github.com/blah"
+	Endpoint: "http://localhost:$PRESTEP_SERVER_ADDRESS"
 }
--- main.go --
-package main
-
-import (
-	"os"
-	"encoding/json"
-)
-
-func main() {
-	out := struct {
-		Vars   []string
-	}{
-		Vars: []string{
-			"GREETING="+os.Args[1],
-		},
-	}
-	enc := json.NewEncoder(os.Stdout)
-	_ = enc.Encode(out)
+-- conf.docker.cue --
+"github.com/blah": {
+	Endpoint: "http://server:8080"
+	Networks: ["$PRESTEP_NETWORK"]
 }
+-- version.1 --
+1
+-- version.2 --
+2
 -- main.go.other --
 package main
 
@@ -75,7 +88,7 @@ package steps
 import "github.com/play-with-go/preguide"
 
 Presteps: [preguide.#Prestep & {
-	Package: "mod.com/init"
+	Package: "github.com/blah"
 	Args: ["Hello, world!"]
 }]
 
@@ -100,8 +113,8 @@ The answer is: {{.GREETING}}!
 Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 Presteps: [
   {
-    "Package": "mod.com/init",
-    "Version": "devel",
+    "Package": "github.com/blah",
+    "Version": "1",
     "Args": [
       "Hello, world!"
     ]
@@ -125,8 +138,8 @@ The answer is: !
 Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 Presteps: [
   {
-    "Package": "mod.com/init",
-    "Version": "devel",
+    "Package": "github.com/blah",
+    "Version": "2",
     "Args": [
       "Hello, world!"
     ]
@@ -134,3 +147,86 @@ Presteps: [
 ]
 $ echo "The answer is: $GREETING!"
 The answer is: !
+-- prestep_server.go --
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
+	"strings"
+)
+
+func main() {
+	signals := make(chan os.Signal)
+	signal.Notify(signals)
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			err := recover()
+			if err != nil {
+				buf := make([]byte, 1<<20)
+				n := runtime.Stack(buf, true)
+				fmt.Fprintf(os.Stderr, "panic: %v\n\n%s", err, buf[:n])
+				os.Exit(1)
+			}
+		}()
+		f, err := ioutil.ReadFile("version")
+		if err != nil {
+			panic(err)
+		}
+		version := strings.TrimSpace(string(f))
+		if r.URL.Query().Get("get-version") == "1" {
+			fmt.Fprintf(w, "%v", version)
+			return
+		}
+		var args []string
+		dec := json.NewDecoder(r.Body)
+		if err := dec.Decode(&args); err != nil {
+			panic(err)
+		}
+		var out struct {
+			Vars []string
+		}
+		if version == "1" {
+			out.Vars = append(out.Vars, "GREETING="+args[0])
+		}
+		enc := json.NewEncoder(w)
+		if err := enc.Encode(out); err != nil {
+			panic(err)
+		}
+	})
+
+	addr := ":0"
+	if len(os.Args) == 2 {
+		addr = os.Args[1]
+	}
+
+	srv := &http.Server{}
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%v\n", l.Addr().(*net.TCPAddr).Port)
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+		if err := srv.Shutdown(context.Background()); err != nil {
+			panic(err)
+		}
+		close(idleConnsClosed)
+	}()
+	if err := srv.Serve(l); err != http.ErrServerClosed {
+		panic(err)
+	}
+	<-idleConnsClosed
+}

@@ -29,6 +29,7 @@ func main1() int {
 	r.genCmd = newGenCmd()
 	r.initCmd = newInitCmd()
 	r.helpCmd = newHelpCmd(r)
+	r.dockerCmd = newDockerCmd()
 
 	err := r.mainerr()
 	if err == nil {
@@ -97,8 +98,9 @@ Usage of preguide:
 
 The commands are:
 
-    init
+    docker
     gen
+    init
 
 Use "preguide help <command>" for more information about a command.
 
@@ -112,17 +114,17 @@ func (r *rootCmd) usageErr(format string, args ...interface{}) usageErr {
 }
 
 type genCmd struct {
-	fs               *flag.FlagSet
-	flagDefaults     string
-	fConfigs         []string
-	fOutput          *string
-	fSkipCache       *bool
-	fImageOverride   *string
-	fCompat          *bool
-	fPullImage       *string
-	fPrestepDockExec *string
-	fRaw             *bool
-	config           genConfig
+	fs             *flag.FlagSet
+	flagDefaults   string
+	fConfigs       []string
+	fOutput        *string
+	fSkipCache     *bool
+	fImageOverride *string
+	fCompat        *bool
+	fPullImage     *string
+	fDocker        *string
+	fRaw           *bool
+	config         genConfig
 }
 
 func newGenCmd() *genCmd {
@@ -135,7 +137,7 @@ func newGenCmd() *genCmd {
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
 		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
-		res.fPrestepDockExec = fs.String("prestep", os.Getenv("PREGUIDE_PRESTEP_DOCKEXEC"), "the image and docker flags passed to dockexec when running the pre-step (if there is one)")
+		res.fDocker = fs.String("docker", os.Getenv("PREGUIDE_DOCKER"), "run prestep requests in a docker container configured by the arguments passed to this flag")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 	})
 	return res
@@ -150,6 +152,30 @@ usage: preguide gen
 
 func (g *genCmd) usageErr(format string, args ...interface{}) usageErr {
 	return usageErr{fmt.Errorf(format, args...), g}
+}
+
+type dockerCmd struct {
+	fs           *flag.FlagSet
+	flagDefaults string
+}
+
+func newDockerCmd() *dockerCmd {
+	res := &dockerCmd{}
+	res.flagDefaults = newFlagSet("preguide docker", func(fs *flag.FlagSet) {
+		res.fs = fs
+	})
+	return res
+}
+
+func (i *dockerCmd) usage() string {
+	return fmt.Sprintf(`
+usage: preguide docker
+
+%s`[1:], i.flagDefaults)
+}
+
+func (i *dockerCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), i}
 }
 
 type initCmd struct {

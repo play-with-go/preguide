@@ -5,9 +5,8 @@ import "github.com/SchemaStore/schemastore/src/schemas/json"
 test: json.#Workflow & {
 	name: "Test"
 	env: {
-		PREGUIDE_IMAGE_OVERRIDE:   "playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123"
-		PREGUIDE_PRESTEP_DOCKEXEC: "buildpack-deps@sha256:ec0e9539673254d0cb1db0de347905cdb5d5091df95330f650be071a7e939420"
-		PREGUIDE_PULL_IMAGE:       "missing"
+		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123"
+		PREGUIDE_PULL_IMAGE:     "missing"
 	}
 	on: {
 		push: branches: ["master"]
