@@ -33,19 +33,16 @@ require mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
 package main
 
 import (
-	"fmt"
 	"os"
 	"encoding/json"
 )
 
 func main() {
 	out := struct {
-		Script string
-		Vars   map[string]string
+		Vars   []string
 	}{
-		Script: fmt.Sprintf("#!/usr/bin/env bash\nexport GREETING=%q\n", os.Args[1]),
-		Vars: map[string]string{
-			"$GREETING": os.Args[1],
+		Vars: []string{
+			"GREETING="+os.Args[1],
 		},
 	}
 	enc := json.NewEncoder(os.Stdout)
@@ -56,19 +53,10 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"encoding/json"
 )
 
 func main() {
-	out := struct {
-		Script string
-		Vars   map[string]string
-	}{
-		Script: fmt.Sprintf("#!/usr/bin/env bash\nexport GREETING=%q\n", os.Args[1]),
-	}
-	enc := json.NewEncoder(os.Stdout)
-	_ = enc.Encode(out)
+	fmt.Println("{}")
 }
 -- prestep/en.markdown --
 ---
@@ -90,22 +78,22 @@ Presteps: [preguide.#Prestep & {
 Image: "this_will_never_be_used"
 
 Steps: step1: en: preguide.#Command & {Source: """
-echo $GREETING
+echo "The answer is: $GREETING!"
 """}
 -- prestep/en.markdown.golden --
 ---
-image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 lang: en
 title: A test with all directives
 ---
 # Step 1
 
 ```.term1
-$ echo $GREETING
-$GREETING
+$ echo "The answer is: $GREETING!"
+The answer is: $GREETING!
 ```
 -- prestep/en_testlog.txt.golden --
-Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
+Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 Presteps: [
   {
     "Package": "mod.com/init",
@@ -115,22 +103,22 @@ Presteps: [
     ]
   }
 ]
-$ echo $GREETING
-$GREETING
+$ echo "The answer is: $GREETING!"
+The answer is: $GREETING!
 -- prestep/en.markdown.other.golden --
 ---
-image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 lang: en
 title: A test with all directives
 ---
 # Step 1
 
 ```.term1
-$ echo $GREETING
-Hello, world!
+$ echo "The answer is: $GREETING!"
+The answer is: !
 ```
 -- prestep/en_testlog.txt.other.golden --
-Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
+Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 Presteps: [
   {
     "Package": "mod.com/init",
@@ -140,5 +128,5 @@ Presteps: [
     ]
   }
 ]
-$ echo $GREETING
-Hello, world!
+$ echo "The answer is: $GREETING!"
+The answer is: !

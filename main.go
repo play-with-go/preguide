@@ -394,6 +394,8 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	// Now run the pre-step if there is one
 	var toWrite string
 	for _, ps := range g.Presteps {
+		// TODO: run the presteps concurrently, but add their args in order
+		// last prestep's args last etc
 		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fPrestepDockExec), ps.Package}
 		args = append(args, ps.Args...)
 		var stdout, stderr bytes.Buffer
@@ -403,24 +405,16 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 		err := prestep.Run()
 		check(err, "failed to run prestep [%#v]: %v\n%s", prestep.Args, err, stderr.Bytes())
 		var out struct {
-			Script string
-			Vars   map[string]string
+			Vars []string
 		}
 		err = json.Unmarshal(stdout.Bytes(), &out)
 		check(err, "failed to unmarshal output from prestep: %v\n%s", err, stdout.Bytes())
-		var vars [][2]string
-		for k, v := range out.Vars {
-			vars = append(vars, [2]string{k, v})
-		}
-		sort.SliceStable(vars, func(i, j int) bool {
-			lhs, rhs := vars[i], vars[j]
-			if lhs[1] == rhs[1] {
-				raise("prestep defined vars that map to same value: %v and %v", lhs[0], rhs[0])
+		for _, v := range out.Vars {
+			if strings.Index(v, "=") == -1 {
+				raise("bad env var received from prestep: %q", v)
 			}
-			return strings.Contains(lhs[1], rhs[1])
-		})
-		g.vars = vars
-		toWrite = out.Script + "\n"
+		}
+		g.vars = append(g.vars, out.Vars...)
 	}
 	// Concatenate the bash script
 	toWrite += ls.bashScript
@@ -448,8 +442,11 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 		"-v", fmt.Sprintf("%v:/scripts", td),
 		"-e", fmt.Sprintf("USER_UID=%v", os.Geteuid()),
 		"-e", fmt.Sprintf("USER_GID=%v", os.Getegid()),
-		g.Image, "/scripts/script.sh",
 	)
+	for _, v := range g.vars {
+		cmd.Args = append(cmd.Args, "-e", v)
+	}
+	cmd.Args = append(cmd.Args, g.Image, "/scripts/script.sh")
 	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 

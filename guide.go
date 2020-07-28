@@ -32,7 +32,7 @@ type guide struct {
 	outputGuide *guide
 	output      cue.Value
 
-	vars [][2]string
+	vars []string
 }
 
 type guidePrestep struct {
@@ -143,7 +143,9 @@ func (r *runner) generateTestLog(g *guide) {
 
 func (g *guide) sanitiseVars(s string) string {
 	for _, repl := range g.vars {
-		s = strings.ReplaceAll(s, repl[1], repl[0])
+		parts := strings.SplitN(repl, "=", 2)
+		v, val := parts[0], parts[1]
+		s = strings.ReplaceAll(s, val, "$"+v)
 	}
 	return s
 }
