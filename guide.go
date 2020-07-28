@@ -145,7 +145,7 @@ func (g *guide) sanitiseVars(s string) string {
 	for _, repl := range g.vars {
 		parts := strings.SplitN(repl, "=", 2)
 		v, val := parts[0], parts[1]
-		s = strings.ReplaceAll(s, val, "$"+v)
+		s = strings.ReplaceAll(s, val, fmt.Sprintf("{{.%v}}", v))
 	}
 	return s
 }
