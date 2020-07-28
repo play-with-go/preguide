@@ -21,12 +21,7 @@ type guide struct {
 	mdFiles []mdFile
 	langs   []string
 
-	PreStep struct {
-		Package string
-		Version string
-		buildID string
-		Args    []string
-	}
+	Presteps []*guidePrestep
 
 	Image string
 	Langs map[string]*langSteps
@@ -38,6 +33,13 @@ type guide struct {
 	output      cue.Value
 
 	vars [][2]string
+}
+
+type guidePrestep struct {
+	Package string
+	Version string
+	buildID string
+	Args    []string
 }
 
 func (r *runner) process(g *guide) {
@@ -125,10 +127,10 @@ func (r *runner) generateTestLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Image: %v\n", g.Image)
-		if g.PreStep.Package != "" {
-			byts, err := json.MarshalIndent(g.PreStep, "", "  ")
+		if len(g.Presteps) > 0 {
+			byts, err := json.MarshalIndent(g.Presteps, "", "  ")
 			check(err, "failed to marshal prestep: %v", err)
-			fmt.Fprintf(&buf, "PreStep: %s\n", byts)
+			fmt.Fprintf(&buf, "Presteps: %s\n", byts)
 		}
 		for _, step := range ls.steps {
 			step.renderTestLog(&buf)

@@ -25,6 +25,7 @@ import (
 	"cuelang.org/go/cue/token"
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/kr/pretty"
 	"github.com/play-with-go/preguide/out"
 	"golang.org/x/net/html"
 )
@@ -392,9 +393,9 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	// Now run the pre-step if there is one
 	var toWrite string
-	if g.PreStep.Package != "" {
-		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fPreStepDockExec), g.PreStep.Package}
-		args = append(args, g.PreStep.Args...)
+	for _, ps := range g.Presteps {
+		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fPrestepDockExec), ps.Package}
+		args = append(args, ps.Args...)
 		var stdout, stderr bytes.Buffer
 		prestep := exec.Command(args[0], args[1:]...)
 		prestep.Stdout = &stdout
@@ -492,13 +493,20 @@ func (r *runner) encodeGuide(v cue.Value, g *guide) {
 	// TODO: pending a solution to cuelang.org/issue/377 we do this
 	// by hand
 	g.Image, _ = v.Lookup("Image").String()
-	g.PreStep.Package, _ = v.Lookup("PreStep", "Package").String()
-	g.PreStep.buildID, _ = v.Lookup("PreStep", "BuildID").String()
-	g.PreStep.Version, _ = v.Lookup("PreStep", "Version").String()
-	{
-		args := v.Lookup("PreStep", "Args")
-		_ = args.Decode(&g.PreStep.Args)
+	it, _ := v.Lookup("Presteps").List()
+	for it.Next() {
+		var ps guidePrestep
+
+		ps.Package, _ = it.Value().Lookup("Package").String()
+		ps.buildID, _ = it.Value().Lookup("BuildID").String()
+		ps.Version, _ = it.Value().Lookup("Version").String()
+		{
+			args := it.Value().Lookup("Args")
+			_ = args.Decode(&ps.Args)
+		}
+		g.Presteps = append(g.Presteps, &ps)
 	}
+
 	if g.Langs == nil {
 		g.Langs = make(map[string]*langSteps)
 	}
@@ -551,9 +559,12 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	}
 	// Write the module info for github.com/play-with-go/preguide
 	hf("preguide: %#v\n", r.preguideBuildInfo)
-	// We write the PreStep information to the hash, and only run the pre-step if
-	// we have a cache miss and come to run the bash file
-	hf("prestep: %#v\n", g.PreStep)
+	// We write the Presteps information to the hash, and only run the pre-step
+	// if we have a cache miss and come to run the bash file. Note that
+	// this _includes_ the buildID (hence the use of pretty.Sprint rather
+	// than JSON), whereas in the testlog we use JSON to _not_ include the
+	// buildID
+	hf("prestep: %s\n", pretty.Sprint(g.Presteps))
 	// We write the docker image to the hash, because if the user want to ensure
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image)
@@ -644,49 +655,54 @@ func (r *runner) loadSteps(g *guide) {
 		if g.Image == "" {
 			raise("Image not specified, but we have steps to run")
 		}
-		g.PreStep.Package, _ = gv.Lookup("PreStep", "Package").String()
-		{
-			args := gv.Lookup("PreStep", "Args")
-			_ = args.Decode(&g.PreStep.Args)
-		}
-		if g.PreStep.Package != "" {
-			// TODO: cache this step; package lookup will not change over the course
-			// of running a guide
+		it, _ := gv.Lookup("Presteps").List()
+		for it.Next() {
+			var ps guidePrestep
+			ps.Package, _ = it.Value().Lookup("Package").String()
+			{
+				args := it.Value().Lookup("Args")
+				_ = args.Decode(&ps.Args)
+			}
+			if ps.Package != "" {
+				// TODO: cache this step; package lookup will not change over the course
+				// of running a guide
 
-			// Resolve to a version. The runner of preguide should be doing
-			// so in the context of a module that makes this resolution
-			// possible.
-			var pkg struct {
-				ImportPath string
-				Export     string
-				Module     struct {
-					Version string
+				// Resolve to a version. The runner of preguide should be doing
+				// so in the context of a module that makes this resolution
+				// possible.
+				var pkg struct {
+					ImportPath string
+					Export     string
+					Module     struct {
+						Version string
+					}
+				}
+				var stdout, stderr bytes.Buffer
+				list := exec.Command("go", "list", "-export", "-json", ps.Package)
+				list.Stdout = &stdout
+				list.Stderr = &stderr
+				err := list.Run()
+				check(err, "failed to try and list %v: %v\n%s", ps.Package, err, stderr.Bytes())
+				// There should be a single package resolved. If there is more than one
+				// this next step will fail... which is what we want.
+				err = json.Unmarshal(stdout.Bytes(), &pkg)
+				check(err, "failed to decode package: %v; input was\n%s", err, stdout.Bytes())
+
+				if pkg.ImportPath != ps.Package {
+					raise("%v resolved to %v; it should be steady", ps.Package, pkg.ImportPath)
+				}
+
+				if pkg.Module.Version != "" {
+					ps.Version = pkg.Module.Version
+				} else {
+					ps.Version = "devel"
+					buildid := exec.Command("go", "tool", "buildid", pkg.Export)
+					out, err := buildid.CombinedOutput()
+					check(err, "failed to get buildid of package %v via %v: %v\n%s", pkg.ImportPath, pkg.Export, err, out)
+					ps.buildID = strings.TrimSpace(string(out))
 				}
 			}
-			var stdout, stderr bytes.Buffer
-			list := exec.Command("go", "list", "-export", "-json", g.PreStep.Package)
-			list.Stdout = &stdout
-			list.Stderr = &stderr
-			err := list.Run()
-			check(err, "failed to try and list %v: %v\n%s", g.PreStep.Package, err, stderr.Bytes())
-			// There should be a single package resolved. If there is more than one
-			// this next step will fail... which is what we want.
-			err = json.Unmarshal(stdout.Bytes(), &pkg)
-			check(err, "failed to decode package: %v; input was\n%s", err, stdout.Bytes())
-
-			if pkg.ImportPath != g.PreStep.Package {
-				raise("%v resolved to %v; it should be steady", g.PreStep.Package, pkg.ImportPath)
-			}
-
-			if pkg.Module.Version != "" {
-				g.PreStep.Version = pkg.Module.Version
-			} else {
-				g.PreStep.Version = "devel"
-				buildid := exec.Command("go", "tool", "buildid", pkg.Export)
-				out, err := buildid.CombinedOutput()
-				check(err, "failed to get buildid of package %v via %v: %v\n%s", pkg.ImportPath, pkg.Export, err, out)
-				g.PreStep.buildID = strings.TrimSpace(string(out))
-			}
+			g.Presteps = append(g.Presteps, &ps)
 		}
 
 		type posStep struct {

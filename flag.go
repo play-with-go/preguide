@@ -119,7 +119,7 @@ type genCmd struct {
 	fImageOverride   *string
 	fCompat          *bool
 	fPullImage       *string
-	fPreStepDockExec *string
+	fPrestepDockExec *string
 	fRaw             *bool
 }
 
@@ -132,7 +132,7 @@ func newGenCmd() *genCmd {
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
 		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
-		res.fPreStepDockExec = fs.String("prestep", os.Getenv("PREGUIDE_PRESTEP_DOCKEXEC"), "the image and docker flags passed to dockexec when running the pre-step (if there is one)")
+		res.fPrestepDockExec = fs.String("prestep", os.Getenv("PREGUIDE_PRESTEP_DOCKEXEC"), "the image and docker flags passed to dockexec when running the pre-step (if there is one)")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 	})
 	return res

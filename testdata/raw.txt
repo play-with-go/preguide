@@ -26,10 +26,6 @@ echo -n "Hello, world!"
 package out
 
 {
-	PreStep: {
-		Package: ""
-		Version: ""
-	}
 	Image: "playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea"
 	Langs: {
 		en: {
@@ -45,7 +41,7 @@ package out
 					}]
 				}
 			}
-			Hash: "e2b29b36645fa4febd5add7b40034816fc19cb4f3c440a31e6d1db538634d506"
+			Hash: "5c73f95a4c8a12d2de30774bb2b76bb5ce51e45a3b2155d4c3b6d8ec06e56efe"
 		}
 	}
 }

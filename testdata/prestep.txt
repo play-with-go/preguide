@@ -82,10 +82,10 @@ package steps
 
 import "github.com/play-with-go/preguide"
 
-PreStep: {
+Presteps: [preguide.#Prestep & {
 	Package: "mod.com/init"
 	Args: ["Hello, world!"]
-}
+}]
 
 Image: "this_will_never_be_used"
 
@@ -106,13 +106,15 @@ $GREETING
 ```
 -- prestep/en_testlog.txt.golden --
 Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
-PreStep: {
-  "Package": "mod.com/init",
-  "Version": "devel",
-  "Args": [
-    "Hello, world!"
-  ]
-}
+Presteps: [
+  {
+    "Package": "mod.com/init",
+    "Version": "devel",
+    "Args": [
+      "Hello, world!"
+    ]
+  }
+]
 $ echo $GREETING
 $GREETING
 -- prestep/en.markdown.other.golden --
@@ -129,12 +131,14 @@ Hello, world!
 ```
 -- prestep/en_testlog.txt.other.golden --
 Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
-PreStep: {
-  "Package": "mod.com/init",
-  "Version": "devel",
-  "Args": [
-    "Hello, world!"
-  ]
-}
+Presteps: [
+  {
+    "Package": "mod.com/init",
+    "Version": "devel",
+    "Args": [
+      "Hello, world!"
+    ]
+  }
+]
 $ echo $GREETING
 Hello, world!
