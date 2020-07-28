@@ -52,6 +52,12 @@ func TestScripts(t *testing.T) {
 			err = os.Mkdir(newTmp, 0777)
 			check(err, "failed to create %v: %v", newTmp, err)
 
+			// Despite the fact that preguide embeds the definitions it needs,
+			// it's more convenient to write guides' CUE packages and have them
+			// import the preguide packages, for validation etc. That is to say,
+			// if we _didn't_ import the preguide packages as part of a guide's
+			// CUE package we would not be able to validate, code complete etc
+			// independent of running preguide itself (which isn't ideal)
 			err = modInit(env.WorkDir)
 			check(err, "failed to mod init: %v", err)
 
