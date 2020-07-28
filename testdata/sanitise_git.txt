@@ -13,30 +13,6 @@ module mod.com/init
 
 go 1.12
 
-require mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
--- main.go --
-package main
-
-import (
-	"encoding/json"
-	"os"
-)
-
-func main() {
-	out := struct {
-		Script string
-		Vars   map[string]string
-	}{
-		Script: `
-#!/usr/bin/env bash
-
-git config --global user.email "gopher@gopher.com"
-git config --global user.name "Random Gopher"
-`[1:],
-	}
-	enc := json.NewEncoder(os.Stdout)
-	_ = enc.Encode(out)
-}
 -- sanitise/en.markdown --
 ---
 title: A test with output that should be sanitised
@@ -53,10 +29,6 @@ package steps
 import "github.com/play-with-go/preguide"
 
 Image: "this_will_never_be_used"
-
-Presteps: [preguide.#Prestep & {
-  Package: "mod.com/init"
-}]
 
 Steps: step1: en: preguide.#Command & { Source: """
 mkdir example
@@ -75,7 +47,7 @@ git commit -am 'Initial commit'
 
 -- sanitise/en.markdown.golden --
 ---
-image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 lang: en
 title: A test with output that should be sanitised
 ---
@@ -99,14 +71,7 @@ $ git commit -am 'Initial commit'
  create mode 100644 README
 ```
 -- sanitise/en_testlog.txt.golden --
-Image: playwithgo/go1.14.4@sha256:94e0f5cdc221034048679cfd00b29d2410a55696d933c309718530c2bb0f06ea
-Presteps: [
-  {
-    "Package": "mod.com/init",
-    "Version": "devel",
-    "Args": []
-  }
-]
+Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 $ mkdir example
 $ cd example
 $ git init
