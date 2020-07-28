@@ -114,6 +114,7 @@ func (r *rootCmd) usageErr(format string, args ...interface{}) usageErr {
 type genCmd struct {
 	fs               *flag.FlagSet
 	flagDefaults     string
+	fConfigs       []string
 	fOutput          *string
 	fSkipCache       *bool
 	fImageOverride   *string
@@ -121,12 +122,14 @@ type genCmd struct {
 	fPullImage       *string
 	fPrestepDockExec *string
 	fRaw             *bool
+	config genConfig
 }
 
 func newGenCmd() *genCmd {
 	res := &genCmd{}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
+		fs.Var(stringFlagList{&res.fConfigs}, "config", "CUE-style configuration input; can appear multiple times. See 'cue help inputs'")
 		res.fOutput = fs.String("out", "", "the target directory for generation")
 		res.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
@@ -218,4 +221,20 @@ func handleKnown(err *error) {
 	default:
 		panic(r)
 	}
+}
+
+type stringFlagList struct {
+	vals *[]string
+}
+
+func (s stringFlagList) String() string {
+	if s.vals == nil {
+		return ""
+	}
+	return strings.Join(*s.vals, " ")
+}
+
+func (s stringFlagList) Set(v string) error {
+	*s.vals = append(*s.vals, v)
+	return nil
 }

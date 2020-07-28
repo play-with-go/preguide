@@ -136,6 +136,19 @@ func (r *runner) runGen(args []string) error {
 		return r.genCmd.usageErr("target directory must be specified")
 	}
 
+	// Fallback to env-supplied config if no values supplied via -config flag
+	if len(r.genCmd.fConfigs) == 0 {
+		envVals := strings.Split(os.Getenv("PREGUIDE_CONFIG"), ":")
+		for _, v := range envVals {
+			v = strings.TrimSpace(v)
+			if v != "" {
+				r.genCmd.fConfigs = append(r.genCmd.fConfigs, v)
+			}
+		}
+	}
+
+	r.genCmd.loadConfig()
+
 	r.codec = gocodec.New(&r.runtime, nil)
 	r.loadSchemas()
 
@@ -156,6 +169,64 @@ func (r *runner) runGen(args []string) error {
 		r.processDir(filepath.Join(dir, e.Name()))
 	}
 	return nil
+}
+
+type genConfig map[string]struct {
+	Endpoint string
+	Networks []string
+}
+
+func (g *genCmd) loadConfig() {
+	if len(g.fConfigs) == 0 {
+		return
+	}
+
+	// TODO two things need to improve here:
+	//
+	// 1. We should code generate a CUE version of the genConfig type
+	// so that people can use that schema as they wish. This is essentially
+	// a request for the missing half of cuelang.org/go/encoding/gocode
+	// 2. At runtime when validating -config inputs we should extract the
+	// definition via something like cuelang.org/go/encoding/gocode/gocodec
+	// and the ExtractType method. However at the moment this does not support
+	// extracting a definition directly, neither does the cuelang.org/go/cue
+	// API support deriving a closed value of a *cue.Struct
+	//
+	// So for now we maintain the genConfig type and the following string const
+	// of CUE code by hand
+	var r cue.Runtime
+	const schemaDef = `
+	#def: [string]: {
+		Endpoint: string
+		Networks: [...string]
+	}
+	`
+	schemaInst, err := r.Compile("schema.cue", schemaDef)
+	check(err, "failed to compile config schema: %v", err)
+	check(schemaInst.Err, "failed to load config schema: %v", schemaInst.Err)
+
+	schema := schemaInst.LookupDef("def")
+	err = schema.Err()
+	check(err, "failed to lookup schema definition: %v", err)
+
+	// res will hold the config result
+	var res cue.Value
+
+	bis := load.Instances(g.fConfigs, nil)
+	for i, bi := range bis {
+		inst, err := r.Build(bi)
+		check(err, "failed to load config from %v: %v", g.fConfigs[i], err)
+		res = res.Unify(inst.Value())
+	}
+
+	res = schema.Unify(res)
+	err = res.Validate()
+	check(err, "failed to validate input config: %v", err)
+
+	// Now we can extract the config from the CUE
+	codec := gocodec.New(&r, nil)
+	err = codec.Encode(res, &g.config)
+	check(err, "failed to decode config from CUE value: %v", err)
 }
 
 func (r *runner) debugf(format string, args ...interface{}) {
