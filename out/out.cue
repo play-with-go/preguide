@@ -1,15 +1,17 @@
 package out
 
 #GuideOutput: {
-	PreStep: {
-		Package: string
-		Version: string
-		BuildID: string
-		Args: [...string]
-	}
+	Presteps: [...#Prestep]
 	Image: string
 	Langs: #Langs
 	Defs: [string]: _
+}
+
+#Prestep: {
+	Package: string
+	Version: string
+	BuildID: string
+	Args: [...string]
 }
 
 #Langs: {
