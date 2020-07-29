@@ -131,6 +131,7 @@ func (r *runner) runInit(args []string) error {
 
 func (r *runner) runGen(args []string) error {
 	if err := r.genCmd.fs.Parse(args); err != nil {
+		return r.genCmd.usageErr("failed to parse flags: %v", err)
 	}
 	if r.genCmd.fOutput == nil || *r.genCmd.fOutput == "" {
 		return r.genCmd.usageErr("target directory must be specified")
@@ -481,7 +482,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 		err = json.Unmarshal(stdout.Bytes(), &out)
 		check(err, "failed to unmarshal output from prestep: %v\n%s", err, stdout.Bytes())
 		for _, v := range out.Vars {
-			if strings.Index(v, "=") == -1 {
+			if !strings.Contains(v, "=") {
 				raise("bad env var received from prestep: %q", v)
 			}
 		}

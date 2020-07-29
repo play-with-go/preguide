@@ -39,6 +39,9 @@ test: json.#Workflow & {
 			name: "Test"
 			run:  "go test ./..."
 		}, {
+			name: "staticcheck"
+			run:  "go run honnef.co/go/tools/cmd/staticcheck ./..."
+		}, {
 			name: "Tidy"
 			run:  "go mod tidy"
 		}, {

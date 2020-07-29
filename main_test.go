@@ -89,15 +89,18 @@ func modInit(dir string) (err error) {
 	err = ioutil.WriteFile(modFile, []byte("module: \"mod.com\"\n"), 0666)
 	check(err, "failed to write module file %v: %v", modFile, err)
 
+	// TODO this approach is not particularly robust. But doesn't really matter
+	// because with CUE modules the problem will go away
 	bps := load.Instances([]string{".", "./out"}, nil)
 	for _, bp := range bps {
 		pkgRootBits := []string{modDir, "pkg"}
 		pkgRootBits = append(pkgRootBits, strings.Split(bp.Module, "/")...)
 		pkgRoot := filepath.Join(pkgRootBits...)
 
-		for _, f := range bp.CUEFiles {
-			sfp := filepath.Join(bp.Root, f)
-			tfp := filepath.Join(pkgRoot, f)
+		for _, f := range bp.BuildFiles {
+			fn := strings.TrimPrefix(f.Filename, bp.Root+string(os.PathSeparator))
+			sfp := f.Filename
+			tfp := filepath.Join(pkgRoot, fn)
 			td := filepath.Dir(tfp)
 
 			err = os.MkdirAll(td, 0777)

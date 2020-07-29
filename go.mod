@@ -13,6 +13,7 @@ require (
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.7
+	honnef.co/go/tools v0.0.1-2020.1.4
 	mvdan.cc/dockexec v0.0.0-20200617140021-ca98d4465984
 	mvdan.cc/sh/v3 v3.1.1
 )
