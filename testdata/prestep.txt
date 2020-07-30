@@ -50,8 +50,6 @@ cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
 module mod.com/init
 
 go 1.12
-
-require mvdan.cc/dockexec v0.0.0-20200525133310-74f6643d8839
 -- conf.cue --
 "github.com/blah": {
 	Endpoint: "http://localhost:$PRESTEP_SERVER_ADDRESS"
