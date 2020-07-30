@@ -24,6 +24,7 @@ package guide
 Defs: world: "world"
 -- defs/en.md.golden --
 ---
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
 lang: en
 title: A test with defs
 ---

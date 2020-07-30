@@ -116,25 +116,49 @@ func commadStepFromSyntaxFile(name string, f *syntax.File) (*commandStep, error)
 
 func (c *commandStep) render(w io.Writer) {
 	fmt.Fprintf(w, "```.term1\n")
-	for _, stmt := range c.Stmts {
-		fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
-		fmt.Fprintf(w, "%s", stmt.Output)
+	if len(c.Stmts) > 0 {
+		var stmt *commandStmt
+		for _, stmt = range c.Stmts {
+			fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
+			fmt.Fprintf(w, "%s", stmt.Output)
+		}
+		// Output a trailing newline if the last block of output did not include one
+		// otherwise the closing code block fence will not render properly
+		if stmt.Output[len(stmt.Output)-1] != '\n' {
+			fmt.Fprintf(w, "\n")
+		}
 	}
 	fmt.Fprintf(w, "```")
 }
 
 func (c *commandStep) renderCompat(w io.Writer) {
 	fmt.Fprintf(w, "```.term1\n")
-	for _, stmt := range c.Stmts {
-		fmt.Fprintf(w, "%s\n", stmt.CmdStr)
+	if len(c.Stmts) > 0 {
+		var stmt *commandStmt
+		for _, stmt = range c.Stmts {
+			fmt.Fprintf(w, "%s\n", stmt.CmdStr)
+		}
+		// Output a trailing newline if the last block of output did not include one
+		// otherwise the closing code block fence will not render properly
+		if stmt.Output[len(stmt.Output)-1] != '\n' {
+			fmt.Fprintf(w, "\n")
+		}
 	}
 	fmt.Fprintf(w, "```")
 }
 
 func (c *commandStep) renderTestLog(w io.Writer) {
-	for _, stmt := range c.Stmts {
-		fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
-		fmt.Fprintf(w, "%s", stmt.Output)
+	if len(c.Stmts) > 0 {
+		var stmt *commandStmt
+		for _, stmt = range c.Stmts {
+			fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
+			fmt.Fprintf(w, "%s", stmt.Output)
+		}
+		// Output a trailing newline if the last block of output did not include one
+		// otherwise the closing code block fence will not render properly
+		if stmt.Output[len(stmt.Output)-1] != '\n' {
+			fmt.Fprintf(w, "\n")
+		}
 	}
 }
 

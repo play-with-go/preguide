@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"cuelang.org/go/cue"
 	"gopkg.in/yaml.v2"
@@ -32,7 +33,12 @@ type guide struct {
 	outputGuide *guide
 	output      cue.Value
 
-	vars []string
+	vars   []string
+	varMap map[string]string
+
+	// delims are the text/template delimiters for guide prose and
+	// step variable expansion
+	delims [2]string
 }
 
 type guidePrestep struct {
@@ -115,8 +121,31 @@ func (r *runner) process(g *guide) {
 			buf.Write(md.content)
 		}
 
-		_, err = outFile.Write(buf.Bytes())
-		check(err, "failed to write to %v: %v", outFilePath, err)
+		// If we are in raw mode then we want to substitute {{.ENV}} templates
+		// for their actual value.
+		//
+		// TODO: it seems less than ideal that we are performing this substitution
+		// post directive replacement. Far better would be that we perform it
+		// pre directive replacement. However, that would require us to parse
+		// markdown files twice: the first time to establish the list of directives
+		// present, the second time post the substitution of {{.ENV}} templates.
+		// It's not entirely clear what is more correct here. However, it doesn't
+		// really matter because this only affects raw mode, which is essentially a
+		// debug-only mode for now.
+		//
+		// However, if there are no vars, then the substitution will have zero
+		// effect (regardless of whether there are any templates to be expanded)
+		if !*r.genCmd.fRaw || len(g.vars) == 0 {
+			_, err = outFile.Write(buf.Bytes())
+			check(err, "failed to write to %v: %v", outFilePath, err)
+		} else {
+			t := template.New("pre-substitution markdown")
+			t.Option("missingkey=error")
+			_, err = t.Parse(buf.String())
+			check(err, "failed to parse pre-substitution markdown: %v", err)
+			err = t.Execute(outFile, g.varMap)
+			check(err, "failed to execute pre-substitution markdown template: %v", err)
+		}
 
 		err = outFile.Close()
 		check(err, "failed to close %v: %v", outFilePath, err)
@@ -142,10 +171,8 @@ func (r *runner) generateTestLog(g *guide) {
 }
 
 func (g *guide) sanitiseVars(s string) string {
-	for _, repl := range g.vars {
-		parts := strings.SplitN(repl, "=", 2)
-		v, val := parts[0], parts[1]
-		s = strings.ReplaceAll(s, val, fmt.Sprintf("{{.%v}}", v))
+	for name, val := range g.varMap {
+		s = strings.ReplaceAll(s, val, fmt.Sprintf("{{.%v}}", name))
 	}
 	return s
 }
