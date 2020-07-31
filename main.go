@@ -165,7 +165,7 @@ func (r *runner) debugf(format string, args ...interface{}) {
 }
 
 func (r *runner) loadSchemas() {
-	preguide, err := r.runtime.Compile("schema.cue", CUEDef)
+	preguide, err := r.runtime.Compile("schema.cue", cueDef)
 	check(err, "failed to compile github.com/play-with-go/preguide package: %v", err)
 	preguideOut, err := r.runtime.Compile("schema.cue", out.CUEDef)
 	check(err, "failed to compile github.com/play-with-go/preguide/out package: %v", err)
