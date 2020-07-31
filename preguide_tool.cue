@@ -7,6 +7,15 @@ import (
 	"strconv"
 )
 
+exportCUEDef: *false | bool @tag(export,type=bool)
+#CUEDefName:  string
+if exportCUEDef == true {
+	#CUEDefName: "CUEDef"
+}
+if exportCUEDef == false {
+	#CUEDefName: "cueDef"
+}
+
 command: embed: {
 	gen: exec.Run & {
 		cmd: ["go", "run", "cuelang.org/go/cmd/cue", "def"]
@@ -22,10 +31,10 @@ command: embed: {
 		contents: """
 		package \(pkg.GOPACKAGE)
 
-		// CUEDef is the string quoted output of cue def for the current package. This
+		// \(#CUEDefName) is the string quoted output of cue def for the current package. This
 		// constant exists as a workaround until the full intent and capability of
 		// cuelang.org/go/encoding/gocode/... is established.
-		const CUEDef = \(strconv.Quote(gen.stdout))
+		const \(#CUEDefName) = \(strconv.Quote(gen.stdout))
 
 		"""
 	}
