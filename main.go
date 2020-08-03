@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"cuelang.org/go/cue"
@@ -333,6 +334,7 @@ func (r *runner) processDir(dir string) {
 		name:   filepath.Base(dir),
 		target: *r.genCmd.fOutput,
 		Langs:  make(map[string]*langSteps),
+		varMap: make(map[string]string),
 	}
 
 	r.loadMarkdownFiles(g)
@@ -340,7 +342,7 @@ func (r *runner) processDir(dir string) {
 		return
 	}
 
-	r.loadSteps(g)
+	r.validateAndLoadsSteps(g)
 	if !*r.genCmd.fRaw {
 		r.loadOutput(g, false)
 	}
@@ -482,6 +484,7 @@ func (r *runner) writeOutput(g *guide) {
 	out := fmt.Sprintf("package out\n\n%s\n", byts)
 	check(err, "failed to format CUE output: %v", err)
 
+	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
 	if *r.genCmd.fRaw {
 		fmt.Printf("%s", out)
 		return
@@ -570,14 +573,31 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 		err := json.Unmarshal(jsonBody, &out)
 		check(err, "failed to unmarshal output from prestep %v: %v\n%s", ps.Package, err, jsonBody)
 		for _, v := range out.Vars {
-			if !strings.Contains(v, "=") {
+			parts := strings.SplitN(v, "=", 2)
+			if len(parts) != 2 {
 				raise("bad env var received from prestep: %q", v)
 			}
 			g.vars = append(g.vars, v)
+			g.varMap[parts[0]] = parts[1]
 		}
 	}
+	// If we have any vars we need to first perform an expansion of any
+	// templates instances {{.ENV}} that appear in the bashScript, and then
+	// append the result of that substitution
+	bashScript := ls.bashScript
+	if len(g.vars) > 0 {
+		t := template.New("pre-substitution bashScript")
+		t.Option("missingkey=error")
+		_, err := t.Parse(bashScript)
+		check(err, "failed to parse pre-substitution bashScript: %v", err)
+		var b bytes.Buffer
+		err = t.Execute(&b, g.varMap)
+		check(err, "failed to execute pre-substitution bashScript template: %v", err)
+		bashScript = b.String()
+	}
+
 	// Concatenate the bash script
-	toWrite += ls.bashScript
+	toWrite += bashScript
 	td, err := ioutil.TempDir("", fmt.Sprintf("preguide-%v-runner-", g.name))
 	check(err, "failed to create temp directory for guide %v: %v", g.dir, err)
 	defer os.RemoveAll(td)
@@ -771,7 +791,7 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	ls.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (r *runner) loadSteps(g *guide) {
+func (r *runner) validateAndLoadsSteps(g *guide) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -793,14 +813,23 @@ func (r *runner) loadSteps(g *guide) {
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
+	// Double-check (because we are not guaranteed that the guide author) has
+	// enforced this themselves that the package satisfies the #Steps schema
+	//
+	// We derive dv here because default values will be available via that
+	// where required, but will not have source information (which is required
+	// below)
+	gv = gv.Unify(r.guideDef)
+	err = gv.Validate()
+	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Steps: %v", gp.ImportPath, err)
+
 	// Does the guide CUE package validate?
 	err = gv.Validate(cue.Final(), cue.Concrete(true))
 	check(err, "%v does not validate: %v", gp.ImportPath, err)
 
-	// Double-check (because we are not guaranteed that the guide author) has
-	// enforced this themselves that the package satisfies the #Steps schema
-	err = r.guideDef.Unify(gv).Validate()
-	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Steps: %v", gp.ImportPath, err)
+	// At this point we know we have a valid guide instance
+	err = gv.Lookup("Delims").Decode(&g.delims)
+	check(err, "failed to decode Delims from %v: %v", gv, err)
 
 	if stepsV := gv.Lookup("Steps"); stepsV.Exists() {
 		steps, _ := stepsV.Struct()
@@ -862,7 +891,11 @@ func (r *runner) loadSteps(g *guide) {
 			lang := "en"
 			en := stepV.Lookup(lang)
 
-			if en.Pos() == (token.Pos{}) {
+			// TODO: when we can move to the new evaluator this will not be necessary
+			// as the position information will have been retained on en
+			pos := gi.Lookup("Steps", name, "en").Pos()
+
+			if pos == (token.Pos{}) {
 				raise("failed to get position information for step %v; did you embed preguide.#Guide?", fi.Name)
 			}
 
@@ -896,7 +929,7 @@ func (r *runner) loadSteps(g *guide) {
 			}
 			toSort[lang] = append(toSort[lang], posStep{
 				// TODO: when the FieldInfo position is accurate use that
-				pos:  en.Pos().Position(),
+				pos:  pos.Position(),
 				step: step,
 			})
 		}

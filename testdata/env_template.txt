@@ -1,0 +1,138 @@
+# Test that substitution of {{.ENV}} templates in both prose and the steps works.
+# Note the test for the substitution of prose will only happen in -raw mode.
+# Note also that the use of {{.ENV}} templates in commands is for readability reasons.
+# Because the environment passed to a script would allow $GREETING to expand.
+# However it's far more obscure for the user to be reading a guide that says:
+#
+#    go list $PKG
+#
+# compared to:
+#
+#    go list example.com/blah
+#
+# which is the expanded version of:
+#
+#    go list {{.PKG}}
+
+# Expand $WORK in conf.cue
+envsubst conf.cue
+
+# Run normally
+preguide gen -config conf.cue -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/env_template.markdown env_template/en.markdown.golden
+cmp env_template/en_testlog.txt env_template/en_testlog.txt.golden
+
+# Run with -raw
+preguide gen -raw -config conf.cue -out _output
+cmp stdout env_template/raw.cue.golden
+! stderr .+
+cmp _output/_posts/env_template.markdown env_template/en.markdown.raw.golden
+cmp env_template/en_testlog.txt env_template/en_testlog.txt.raw.golden
+
+-- prestep.txt --
+{
+  "Vars": [
+    "GREETING=Hello, world!"
+  ]
+}
+-- conf.cue --
+"github.com/blah": {
+	Endpoint: "file://$WORK/prestep.txt"
+}
+-- env_template/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--step: step1 -->
+-- env_template/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Presteps: [preguide.#Prestep & {
+	Package: "github.com/blah"
+}]
+
+Image: "this_will_never_be_used"
+
+Steps: step1: en: preguide.#Command & {Source: """
+echo -n "The answer is: {{.GREETING}}!"
+"""}
+-- env_template/en.markdown.golden --
+---
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo -n "The answer is: {{.GREETING}}!"
+The answer is: {{.GREETING}}!
+```
+-- env_template/en_testlog.txt.golden --
+Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Presteps: [
+  {
+    "Package": "github.com/blah",
+    "Version": "file",
+    "Args": []
+  }
+]
+$ echo -n "The answer is: {{.GREETING}}!"
+The answer is: {{.GREETING}}!
+-- env_template/raw.cue.golden --
+package out
+
+{
+	Presteps: [{
+		Package: "github.com/blah"
+		Args: []
+		Version: "file"
+	}]
+	Image: "playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123"
+	Langs: {
+		en: {
+			Steps: {
+				step1: {
+					Name:  "step1"
+					Order: 0
+					Stmts: [{
+						Negated:  false
+						CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
+						ExitCode: 0
+						Output:   "The answer is: Hello, world!!"
+					}]
+				}
+			}
+			Hash: "773ab4b40ee9adb99a636a05d674b043c2ec5e5a3196c5af864d14217e29b784"
+		}
+	}
+}
+-- env_template/en.markdown.raw.golden --
+---
+image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo -n "The answer is: Hello, world!!"
+The answer is: Hello, world!!
+```
+-- env_template/en_testlog.txt.raw.golden --
+Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Presteps: [
+  {
+    "Package": "github.com/blah",
+    "Version": "file",
+    "Args": []
+  }
+]
+$ echo -n "The answer is: {{.GREETING}}!"
+The answer is: Hello, world!!

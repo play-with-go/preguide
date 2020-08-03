@@ -17,6 +17,13 @@ package steps
 
 import "github.com/play-with-go/preguide"
 
+// We embed preguide.#Guide here as a check that doing so
+// means we can correctly validate, decode etc the package
+// (because if you try to extract position information from
+// the cue.Value that is the package in this case it will
+// fail, because of the unification with preguide.#Guide)
+preguide.#Guide
+
 Image: "this_will_never_be_used"
 
 Steps: step1: en: preguide.#Command & { Source: """
