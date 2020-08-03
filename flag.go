@@ -114,7 +114,7 @@ func (r *rootCmd) usageErr(format string, args ...interface{}) usageErr {
 type genCmd struct {
 	fs               *flag.FlagSet
 	flagDefaults     string
-	fConfigs       []string
+	fConfigs         []string
 	fOutput          *string
 	fSkipCache       *bool
 	fImageOverride   *string
@@ -122,7 +122,7 @@ type genCmd struct {
 	fPullImage       *string
 	fPrestepDockExec *string
 	fRaw             *bool
-	config genConfig
+	config           genConfig
 }
 
 func newGenCmd() *genCmd {
@@ -188,10 +188,6 @@ func newHelpCmd(r *runner) *helpCmd {
 		res.fs = fs
 	})
 	return res
-}
-
-func (h *helpCmd) usage() {
-	h.r.rootCmd.usage()
 }
 
 func (h *helpCmd) usageErr(format string, args ...interface{}) usageErr {
