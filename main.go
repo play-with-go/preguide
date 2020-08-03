@@ -7,7 +7,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,9 +35,10 @@ import (
 
 type runner struct {
 	*rootCmd
-	genCmd  *genCmd
-	initCmd *initCmd
-	helpCmd *helpCmd
+	genCmd    *genCmd
+	initCmd   *initCmd
+	helpCmd   *helpCmd
+	dockerCmd *dockerCmd
 
 	runtime cue.Runtime
 
@@ -52,11 +56,16 @@ type runner struct {
 	guideOutDef    cue.Value
 	commandStep    cue.Value
 	uploadStep     cue.Value
+
+	// seenPrestepPkgs is a cache of the presteps we have seen and resolved
+	// to a version in a given run of preguide
+	seenPrestepPkgs map[string]string
 }
 
 func newRunner() *runner {
 	return &runner{
-		dir: ".",
+		dir:             ".",
+		seenPrestepPkgs: make(map[string]string),
 	}
 }
 
@@ -100,6 +109,8 @@ func (r *runner) mainerr() (err error) {
 		return r.runGen(args[1:])
 	case "init":
 		return r.runInit(args[1:])
+	case "docker":
+		return r.runDocker(args[1:])
 	case "help":
 		return r.runHelp(args[1:])
 	default:
@@ -125,6 +136,39 @@ func (r *runner) runHelp(args []string) error {
 	fmt.Print(u())
 	return nil
 }
+
+func (r *runner) runDocker(args []string) error {
+	// Usage:
+	//
+	//     preguide docker METHOD URL ARGS
+	//
+	// where ARGS is a JSON-encoded string. Returns (via stdout) the JSON-encoded result
+	// (without checking that result)
+
+	var body io.Reader
+
+	switch len(args) {
+	case 2:
+	case 3:
+		body = strings.NewReader(args[2])
+	default:
+		return r.dockerCmd.usageErr("expected either 2 or 3 args; got %v", len(args))
+	}
+
+	method, url := args[0], args[1]
+
+	req, err := http.NewRequest(method, url, body)
+	check(err, "failed to build a new request for a %v to %v: %v", method, url, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	check(err, "failed to execute %v: %v", req, err)
+
+	_, err = io.Copy(os.Stdout, resp.Body)
+	check(err, "failed to read response body from %v: %v", req, err)
+
+	return nil
+}
+
 func (r *runner) runInit(args []string) error {
 	return nil
 }
@@ -172,9 +216,33 @@ func (r *runner) runGen(args []string) error {
 	return nil
 }
 
-type genConfig map[string]struct {
-	Endpoint string
+// genConfig defines a mapping between the prestep pkg (which is essentially the
+// unique identifier for a prestep) and config for that prestep. For example,
+// github.com/play-with-go/gitea will map to an endpoint that explains where that
+// prestep can be "found". The Networks value represents a (non-production) config
+// that describes which Docker networks the request should be made within.
+type genConfig map[string]*prestepConfig
+
+type prestepConfig struct {
+	Endpoint *url.URL
 	Networks []string
+}
+
+func (p *prestepConfig) UnmarshalJSON(b []byte) error {
+	var v struct {
+		Endpoint string
+		Networks []string
+	}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return fmt.Errorf("failed to unmarshal prestepConfig: %v", err)
+	}
+	u, err := url.Parse(v.Endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to parse URL from prestepConfig Endpoint %q: %v", v.Endpoint, err)
+	}
+	p.Endpoint = u
+	p.Networks = v.Networks
+	return nil
 }
 
 func (g *genCmd) loadConfig() {
@@ -228,6 +296,13 @@ func (g *genCmd) loadConfig() {
 	codec := gocodec.New(&r, nil)
 	err = codec.Encode(res, &g.config)
 	check(err, "failed to decode config from CUE value: %v", err)
+
+	// Now validate that we don't have any networks for file protocol endpoints
+	for ps, conf := range g.config {
+		if conf.Endpoint.Scheme == "file" && len(conf.Networks) > 0 {
+			raise("prestep %v defined a file scheme endpoint %v but provided networks [%v]", ps, conf.Endpoint, conf.Networks)
+		}
+	}
 }
 
 func (r *runner) debugf(format string, args ...interface{}) {
@@ -253,7 +328,6 @@ func (r *runner) loadSchemas() {
 }
 
 func (r *runner) processDir(dir string) {
-
 	g := &guide{
 		dir:    dir,
 		name:   filepath.Base(dir),
@@ -468,25 +542,39 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	for _, ps := range g.Presteps {
 		// TODO: run the presteps concurrently, but add their args in order
 		// last prestep's args last etc
-		args := []string{"go", "run", "-exec", fmt.Sprintf("go run mvdan.cc/dockexec %v", *r.genCmd.fPrestepDockExec), ps.Package}
-		args = append(args, ps.Args...)
-		var stdout, stderr bytes.Buffer
-		prestep := exec.Command(args[0], args[1:]...)
-		prestep.Stdout = &stdout
-		prestep.Stderr = &stderr
-		err := prestep.Run()
-		check(err, "failed to run prestep [%#v]: %v\n%s", prestep.Args, err, stderr.Bytes())
+
+		var jsonBody []byte
+
+		// At this stage we know we have a valid endpoint (because we previously
+		// checked it via a get-version=1 request)
+		conf := r.genCmd.config[ps.Package]
+		if conf.Endpoint.Scheme == "file" {
+			if len(ps.Args) > 0 {
+				raise("prestep %v provides with arguments [%v]: but prestep is configured with a file endpoint", ps.Package, pretty.Sprint(ps.Args))
+			}
+			// Notice this path takes no account of the -docker flag
+			var err error
+			path := conf.Endpoint.Path
+			jsonBody, err = ioutil.ReadFile(path)
+			check(err, "failed to read file endpoint %v (file %v): %v", conf.Endpoint, path, err)
+		} else {
+			jsonBody = r.genCmd.doRequest("POST", conf.Endpoint.String(), conf.Networks, ps.Args) // Do not splat args
+		}
+
+		// TODO: unmarshal jsonBody into a cue.Value, validate against a schema
+		// for valid prestep results then decode via gocodec into out (below)
+
 		var out struct {
 			Vars []string
 		}
-		err = json.Unmarshal(stdout.Bytes(), &out)
-		check(err, "failed to unmarshal output from prestep: %v\n%s", err, stdout.Bytes())
+		err := json.Unmarshal(jsonBody, &out)
+		check(err, "failed to unmarshal output from prestep %v: %v\n%s", ps.Package, err, jsonBody)
 		for _, v := range out.Vars {
 			if !strings.Contains(v, "=") {
 				raise("bad env var received from prestep: %q", v)
 			}
+			g.vars = append(g.vars, v)
 		}
-		g.vars = append(g.vars, out.Vars...)
 	}
 	// Concatenate the bash script
 	toWrite += ls.bashScript
@@ -732,44 +820,26 @@ func (r *runner) loadSteps(g *guide) {
 				args := it.Value().Lookup("Args")
 				_ = args.Decode(&ps.Args)
 			}
-			if ps.Package != "" {
-				// TODO: cache this step; package lookup will not change over the course
-				// of running a guide
+			if ps.Package == "" {
+				raise("Prestep had empty package")
+			}
 
-				// Resolve to a version. The runner of preguide should be doing
-				// so in the context of a module that makes this resolution
-				// possible.
-				var pkg struct {
-					ImportPath string
-					Export     string
-					Module     struct {
-						Version string
-					}
+			if v, ok := r.seenPrestepPkgs[ps.Package]; ok {
+				ps.Version = v
+			} else {
+				// Resolve and endpoint for the package
+				conf, ok := r.genCmd.config[ps.Package]
+				if !ok {
+					raise("no config found for prestep %v", ps.Package)
 				}
-				var stdout, stderr bytes.Buffer
-				list := exec.Command("go", "list", "-export", "-json", ps.Package)
-				list.Stdout = &stdout
-				list.Stderr = &stderr
-				err := list.Run()
-				check(err, "failed to try and list %v: %v\n%s", ps.Package, err, stderr.Bytes())
-				// There should be a single package resolved. If there is more than one
-				// this next step will fail... which is what we want.
-				err = json.Unmarshal(stdout.Bytes(), &pkg)
-				check(err, "failed to decode package: %v; input was\n%s", err, stdout.Bytes())
-
-				if pkg.ImportPath != ps.Package {
-					raise("%v resolved to %v; it should be steady", ps.Package, pkg.ImportPath)
-				}
-
-				if pkg.Module.Version != "" {
-					ps.Version = pkg.Module.Version
+				var version string
+				if conf.Endpoint.Scheme == "file" {
+					version = "file"
 				} else {
-					ps.Version = "devel"
-					buildid := exec.Command("go", "tool", "buildid", pkg.Export)
-					out, err := buildid.CombinedOutput()
-					check(err, "failed to get buildid of package %v via %v: %v\n%s", pkg.ImportPath, pkg.Export, err, out)
-					ps.buildID = strings.TrimSpace(string(out))
+					version = string(r.genCmd.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf.Networks))
 				}
+				r.seenPrestepPkgs[ps.Package] = version
+				ps.Version = version
 			}
 			g.Presteps = append(g.Presteps, &ps)
 		}
@@ -855,6 +925,89 @@ func (r *runner) loadSteps(g *guide) {
 			g.Langs[lang] = ls
 		}
 	}
+}
+
+// doRequest performs the an HTTP request according to the supplied parameters
+// taking into account whether the -docker flag is set. args are JSON encoded.
+//
+// In the special case that url is a file protocol, args is expected to be zero
+// length, and the -docker flag is ignored (that is to say, it is expected the
+// file can be accessed by the current process).
+func (g *genCmd) doRequest(method string, endpoint string, networks []string, args ...interface{}) []byte {
+	var body io.Reader
+	if len(args) > 0 {
+		byts, err := json.Marshal(args[0])
+		check(err, "failed to encode args: %v", err)
+		body = bytes.NewReader(byts)
+	}
+	if *g.fDocker != "" {
+		sself, err := os.Executable()
+		check(err, "failed to derive executable for self: %v", err)
+		self, err := filepath.EvalSymlinks(sself)
+		check(err, "failed to eval symlinks for %v: %v", sself, err)
+
+		createCmd := exec.Command("docker", "create",
+
+			// Don't leave this container around
+			"--rm",
+
+			// Set up "ourselves" as the entrypoint.
+			fmt.Sprintf("--volume=%s:/init", self),
+			"--entrypoint=/init",
+		)
+
+		if v, ok := os.LookupEnv("TESTSCRIPT_COMMAND"); ok {
+			createCmd.Args = append(createCmd.Args, "-e", "TESTSCRIPT_COMMAND="+v)
+		}
+
+		// Add the user-supplied args, after splitting docker flag val into
+		// pieces
+		addArgs, err := split(*g.fDocker)
+		check(err, "failed to split -docker flag into args: %v", err)
+		createCmd.Args = append(createCmd.Args, addArgs...)
+
+		// Now add the arguments to "ourselves"
+		createCmd.Args = append(createCmd.Args, "docker", method, endpoint)
+		if body != nil {
+			byts, err := ioutil.ReadAll(body)
+			check(err, "failed to read from body: %v", err)
+			createCmd.Args = append(createCmd.Args, string(byts))
+		}
+
+		var createStdout, createStderr bytes.Buffer
+		createCmd.Stdout = &createStdout
+		createCmd.Stderr = &createStderr
+
+		err = createCmd.Run()
+		check(err, "failed to run [%v]: %v\n%s", strings.Join(createCmd.Args, " "), err, createStderr.Bytes())
+
+		instance := strings.TrimSpace(createStdout.String())
+
+		if len(networks) > 0 {
+			for _, network := range networks {
+				connectCmd := exec.Command("docker", "network", "connect", network, instance)
+				out, err := connectCmd.CombinedOutput()
+				check(err, "failed to run [%v]: %v\n%s", strings.Join(connectCmd.Args, " "), err, out)
+			}
+		}
+		startCmd := exec.Command("docker", "start", "-a", instance)
+		var startStdout, startStderr bytes.Buffer
+		startCmd.Stdout = &startStdout
+		startCmd.Stderr = &startStderr
+
+		err = startCmd.Run()
+		check(err, "failed to run [%v]: %v\n%s", strings.Join(startCmd.Args, " "), err, startStderr.Bytes())
+
+		return startStdout.Bytes()
+	}
+
+	req, err := http.NewRequest(method, endpoint, body)
+	check(err, "failed to build HTTP request for method %v, url %q: %v", method, endpoint, err)
+	resp, err := http.DefaultClient.Do(req)
+	check(err, "failed to perform HTTP request with args [%v]: %v", args, err)
+	respBody, err := ioutil.ReadAll(resp.Body)
+	check(err, "failed to read response body for request %v: %v", req, err)
+	return respBody
 }
 
 func (r *runner) loadMarkdownFiles(g *guide) {
