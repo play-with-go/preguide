@@ -54,6 +54,8 @@ usage: preguide gen
 
 	  -compat
 	        render old-style PWD code blocks
+	  -config value
+	        CUE-style configuration input; can appear multiple times. See 'cue help inputs'
 	  -image string
 	        the image to use instead of the guide-specified image
 	  -out string
