@@ -13,9 +13,18 @@ package preguide
 	// of cuelang.org/issue/279. Hence we validate in code.
 	Image?: string
 
-	Steps: [string]: en: #Command | #CommandFile | #Upload | #UploadFile
+	Steps: [string]: en: (#Command | #CommandFile | #Upload | #UploadFile) & {
+		StepType: #StepType
+	}
 	Defs: [string]: _
 }
+
+#StepType: int
+
+#StepTypeCommand:     #StepType & 1
+#StepTypeCommandFile: #StepType & 2
+#StepTypeUpload:      #StepType & 3
+#StepTypeUploadFile:  #StepType & 4
 
 #Prestep: {
 	Package: string
@@ -23,23 +32,23 @@ package preguide
 }
 
 #Command: {
-	#IsCommand: true
-	Source:     string
+	StepType: #StepTypeCommand
+	Source:   string
 }
 
 #CommandFile: {
-	#IsCommandFile: true
-	Path:           string
+	StepType: #StepTypeCommandFile
+	Path:     string
 }
 
 #Upload: {
-	#IsUpload: true
-	Target:    string
-	Source:    string
+	StepType: #StepTypeUpload
+	Target:   string
+	Source:   string
 }
 
 #UploadFile: {
-	#IsUpload: true
-	Target:    string
-	Path:      string
+	StepType: #StepTypeUploadFile
+	Target:   string
+	Path:     string
 }
