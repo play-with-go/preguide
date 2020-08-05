@@ -1,6 +1,48 @@
 package preguide
 
+// TODO: keep this in sync with the Go definitions
+#StepType: int
+
+#StepTypeCommand:     #StepType & 1
+#StepTypeCommandFile: #StepType & 2
+#StepTypeUpload:      #StepType & 3
+#StepTypeUploadFile:  #StepType & 4
+
 #Guide: {
+
+	#Step: (#Command | #CommandFile | #Upload | #UploadFile ) & _#stepCommon
+
+	_#stepCommon: {
+		StepType: #StepType
+		...
+	}
+
+	#Command: {
+		_#stepCommon
+		StepType: #StepTypeCommand
+		Source:   string
+	}
+
+	#CommandFile: {
+		_#stepCommon
+		StepType: #StepTypeCommandFile
+		Path:     string
+	}
+
+	#Upload: {
+		_#stepCommon
+		StepType: #StepTypeUpload
+		Target:   string
+		Source:   string
+	}
+
+	#UploadFile: {
+		_#stepCommon
+		StepType: #StepTypeUploadFile
+		Target:   string
+		Path:     string
+	}
+
 	Presteps: [...#Prestep]
 
 	// Delims are the delimiters used in the guide prose and steps
@@ -13,42 +55,22 @@ package preguide
 	// of cuelang.org/issue/279. Hence we validate in code.
 	Image?: string
 
-	Steps: [string]: en: (#Command | #CommandFile | #Upload | #UploadFile) & {
-		StepType: #StepType
-	}
+	Steps: [string]: en: #Step
+
 	Defs: [string]: _
 }
-
-#StepType: int
-
-#StepTypeCommand:     #StepType & 1
-#StepTypeCommandFile: #StepType & 2
-#StepTypeUpload:      #StepType & 3
-#StepTypeUploadFile:  #StepType & 4
 
 #Prestep: {
 	Package: string
 	Args: [...string]
 }
 
-#Command: {
-	StepType: #StepTypeCommand
-	Source:   string
-}
+// The following definitions necessarily reference the nested definitions
+// in #Guide, because those definitions rely on references to Terminals
+// which only makes sense in the context of a #Guide instance
 
-#CommandFile: {
-	StepType: #StepTypeCommandFile
-	Path:     string
-}
-
-#Upload: {
-	StepType: #StepTypeUpload
-	Target:   string
-	Source:   string
-}
-
-#UploadFile: {
-	StepType: #StepTypeUploadFile
-	Target:   string
-	Path:     string
-}
+#Step:        #Guide.#Step
+#Command:     #Guide.#Command
+#CommandFile: #Guide.#CommandFile
+#Upload:      #Guide.#Upload
+#UploadFile:  #Guide.#UploadFile
