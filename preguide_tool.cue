@@ -1,7 +1,6 @@
 package preguide
 
 import (
-	"tool/exec"
 	"tool/file"
 	"tool/os"
 	"strconv"
@@ -16,10 +15,12 @@ if exportCUEDef == false {
 	#CUEDefName: "cueDef"
 }
 
+embedFile: string @tag(embed)
+
 command: embed: {
-	gen: exec.Run & {
-		cmd: ["go", "run", "cuelang.org/go/cmd/cue", "def"]
-		stdout: string
+	gen: file.Read & {
+		filename: embedFile
+		contents: string
 	}
 
 	pkg: os.Getenv & {
@@ -34,7 +35,7 @@ command: embed: {
 		// \(#CUEDefName) is the string quoted output of cue def for the current package. This
 		// constant exists as a workaround until the full intent and capability of
 		// cuelang.org/go/encoding/gocode/... is established.
-		const \(#CUEDefName) = \(strconv.Quote(gen.stdout))
+		const \(#CUEDefName) = \(strconv.Quote(gen.contents))
 
 		"""
 	}
