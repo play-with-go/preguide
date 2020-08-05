@@ -34,6 +34,16 @@ import (
 	"golang.org/x/net/html"
 )
 
+type StepType int64
+
+const (
+	// TODO: keep this in sync with the CUE definitions
+	StepTypeCommand StepType = iota + 1
+	StepTypeCommandFile
+	StepTypeUpload
+	StepTypeUploadFile
+)
+
 type runner struct {
 	*rootCmd
 	genCmd    *genCmd
@@ -900,23 +910,24 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 			}
 
 			var step step
-			switch {
-			case en.Equals(r.commandDef.Unify(en)):
+			st, _ := en.Lookup("StepType").Int64()
+			switch StepType(st) {
+			case StepTypeCommand:
 				source, _ := en.Lookup("Source").String()
 				step, err = commandStepFromString(name, source)
 				check(err, "failed to parse #Command from step %v: %v", name, err)
-			case en.Equals(r.commandFileDef.Unify(en)):
+			case StepTypeCommandFile:
 				path, _ := en.Lookup("Path").String()
 				if !filepath.IsAbs(path) {
 					path = filepath.Join(g.dir, path)
 				}
 				step, err = commandStepFromFile(name, path)
 				check(err, "failed to parse #CommandFile from step %v: %v", name, err)
-			case en.Equals(r.uploadDef.Unify(en)):
+			case StepTypeUpload:
 				target, _ := en.Lookup("Target").String()
 				source, _ := en.Lookup("Source").String()
 				step = uploadStepFromSource(name, source, target)
-			case en.Equals(r.uploadFileDef.Unify(en)):
+			case StepTypeUploadFile:
 				target, _ := en.Lookup("Target").String()
 				path, _ := en.Lookup("Path").String()
 				if !filepath.IsAbs(path) {
