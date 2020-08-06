@@ -38,8 +38,9 @@ package out
 		en: {
 			Steps: {
 				step1: {
-					Name:  "step1"
-					Order: 0
+					Name:     "step1"
+					StepType: 1
+					Order:    0
 					Stmts: [{
 						Negated:  false
 						CmdStr:   "echo -n \"Hello, world!\""

@@ -41,6 +41,10 @@ title: A test with all directives
 # Step 3
 
 <!--step: step3 -->
+
+# Step 4
+
+<!--step: step4 -->
 -- alldirectives/steps.cue --
 package steps
 
@@ -49,24 +53,28 @@ import "github.com/play-with-go/preguide"
 Image: "this_will_never_be_used"
 
 Steps: step1: en: preguide.#Command & { Source: """
-echo "Hello, world!"
+echo "Hello, world! I am a #Command"
 touch blah
 ! false
 ls
 """}
 
-Steps: step2: en: preguide.#CommandFile & { Path: "step2.sh" }
+Steps: step2: en: preguide.#CommandFile & { Path: "step2_commandFile.sh" }
 
 Steps: step3: en: preguide.#Upload & { Target: "/scripts/somewhere.sh", Source: """
 #!/usr/bin/env bash
 
-echo "Hello world"
+echo "Hello, world! I am an #Upload"
 """ }
--- alldirectives/step2.sh --
-echo "Hello from a file"
 
--- alldirectives/step2.sh --
-echo "Hello from a file"
+Steps: step4: en: preguide.#UploadFile & {
+  Target: "/scripts/step2.sh"
+  Path: "step2_uploadFile.sh"
+}
+-- alldirectives/step2_commandFile.sh --
+echo "Hello, world! I am a #CommandFile"
+-- alldirectives/step2_uploadFile.sh --
+echo "Hello, world! I am an #UploadFile"
 -- alldirectives/en.markdown.golden --
 ---
 image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
@@ -76,8 +84,8 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-$ echo "Hello, world!"
-Hello, world!
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
@@ -87,8 +95,8 @@ blah
 # Step 2
 
 ```.term1
-$ echo "Hello from a file"
-Hello from a file
+$ echo "Hello, world! I am a #CommandFile"
+Hello, world! I am a #CommandFile
 ```
 
 # Step 3
@@ -96,7 +104,14 @@ Hello from a file
 ```.term1
 #!/usr/bin/env bash
 
-echo "Hello world"
+echo "Hello, world! I am an #Upload"
+```
+
+# Step 4
+
+```.term1
+echo "Hello, world! I am an #UploadFile"
+
 ```
 -- alldirectives/en.compat.markdown.golden --
 ---
@@ -107,7 +122,7 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-echo "Hello, world!"
+echo "Hello, world! I am a #Command"
 touch blah
 false
 ls
@@ -116,7 +131,7 @@ ls
 # Step 2
 
 ```.term1
-echo "Hello from a file"
+echo "Hello, world! I am a #CommandFile"
 ```
 
 # Step 3
@@ -125,21 +140,34 @@ echo "Hello from a file"
 cat <<EOD > /scripts/somewhere.sh
 #!/usr/bin/env bash
 
-echo "Hello world"
+echo "Hello, world! I am an #Upload"
+EOD
+```
+
+# Step 4
+
+```.term1
+cat <<EOD > /scripts/step2.sh
+echo "Hello, world! I am an #UploadFile"
+
 EOD
 ```
 -- alldirectives/en_testlog.txt.golden --
 Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
-$ echo "Hello, world!"
-Hello, world!
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
 blah
-$ echo "Hello from a file"
-Hello from a file
+$ echo "Hello, world! I am a #CommandFile"
+Hello, world! I am a #CommandFile
 $ cat <<EOD > /scripts/somewhere.sh
 #!/usr/bin/env bash
 
-echo "Hello world"
+echo "Hello, world! I am an #Upload"
+EOD
+$ cat <<EOD > /scripts/step2.sh
+echo "Hello, world! I am an #UploadFile"
+
 EOD

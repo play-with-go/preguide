@@ -30,18 +30,9 @@ import (
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/kr/pretty"
-	"github.com/play-with-go/preguide/out"
+	"github.com/play-with-go/preguide/internal/embed"
+	"github.com/play-with-go/preguide/internal/types"
 	"golang.org/x/net/html"
-)
-
-type StepType int64
-
-const (
-	// TODO: keep this in sync with the CUE definitions
-	StepTypeCommand StepType = iota + 1
-	StepTypeCommandFile
-	StepTypeUpload
-	StepTypeUploadFile
 )
 
 type runner struct {
@@ -323,9 +314,22 @@ func (r *runner) debugf(format string, args ...interface{}) {
 }
 
 func (r *runner) loadSchemas() {
-	preguide, err := r.runtime.Compile("schema.cue", cueDef)
+	overlay := make(map[string]load.Source)
+	for _, asset := range embed.AssetNames() {
+		contents, err := embed.Asset(asset)
+		if err != nil {
+			panic(err)
+		}
+		overlay[filepath.Join("/", asset)] = load.FromBytes(contents)
+	}
+	conf := &load.Config{
+		Dir:     "/",
+		Overlay: overlay,
+	}
+	bps := load.Instances([]string{".", "./out"}, conf)
+	preguide, err := r.runtime.Build(bps[0])
 	check(err, "failed to compile github.com/play-with-go/preguide package: %v", err)
-	preguideOut, err := r.runtime.Compile("schema.cue", out.CUEDef)
+	preguideOut, err := r.runtime.Build(bps[1])
 	check(err, "failed to compile github.com/play-with-go/preguide/out package: %v", err)
 
 	r.guideDef = preguide.LookupDef("#Guide")
@@ -343,7 +347,7 @@ func (r *runner) processDir(dir string) {
 		dir:    dir,
 		name:   filepath.Base(dir),
 		target: *r.genCmd.fOutput,
-		Langs:  make(map[string]*langSteps),
+		Langs:  make(map[types.LangCode]*langSteps),
 		varMap: make(map[string]string),
 	}
 
@@ -542,7 +546,18 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 	}
 
 	var out guide
-	r.encodeGuide(gv, &out)
+	err = gv.Decode(&out)
+	check(err, "failed to decode Guide from out value: %v", err)
+
+	// Now populate the steps slice for each langSteps
+	for _, ls := range out.Langs {
+		for _, step := range ls.Steps {
+			ls.steps = append(ls.steps, step)
+		}
+		sort.Slice(ls.steps, func(i, j int) bool {
+			return ls.steps[i].order() < ls.steps[j].order()
+		})
+	}
 
 	g.outputGuide = &out
 	g.output = gv
@@ -676,65 +691,6 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	}
 }
 
-func (r *runner) encodeGuide(v cue.Value, g *guide) {
-	// TODO: pending a solution to cuelang.org/issue/377 we do this
-	// by hand
-	g.Image, _ = v.Lookup("Image").String()
-	it, _ := v.Lookup("Presteps").List()
-	for it.Next() {
-		var ps guidePrestep
-
-		ps.Package, _ = it.Value().Lookup("Package").String()
-		ps.buildID, _ = it.Value().Lookup("BuildID").String()
-		ps.Version, _ = it.Value().Lookup("Version").String()
-		{
-			args := it.Value().Lookup("Args")
-			_ = args.Decode(&ps.Args)
-		}
-		g.Presteps = append(g.Presteps, &ps)
-	}
-
-	if g.Langs == nil {
-		g.Langs = make(map[string]*langSteps)
-	}
-	iter, _ := v.Lookup("Langs").Fields()
-	for iter.Next() {
-		lang := iter.Label()
-		v := iter.Value()
-		ls := &langSteps{}
-		r.encodeLangSteps(v, ls)
-		g.Langs[lang] = ls
-	}
-}
-
-func (r *runner) encodeLangSteps(v cue.Value, ls *langSteps) {
-	ls.Hash, _ = v.Lookup("Hash").String()
-	if ls.Steps == nil {
-		ls.Steps = make(map[string]step)
-	}
-	iter, _ := v.Lookup("Steps").Fields()
-	for iter.Next() {
-		stepName := iter.Label()
-		v := iter.Value()
-		var s step
-		switch {
-		case r.commandStep.Unify(v).Equals(v):
-			s = &commandStep{}
-		case r.uploadStep.Unify(v).Equals(v):
-			s = &uploadStep{}
-		default:
-			raise("failed to match type of %v", v)
-		}
-		err := r.codec.Encode(v, s)
-		check(err, "failed to re-encode %v for %v", err, v)
-		ls.Steps[stepName] = s
-		ls.steps = append(ls.steps, s)
-	}
-	sort.Slice(ls.steps, func(i, j int) bool {
-		return ls.steps[i].order() < ls.steps[j].order()
-	})
-}
-
 func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	var sb strings.Builder
 	pf := func(format string, args ...interface{}) {
@@ -831,38 +787,33 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 	// below)
 	gv = gv.Unify(r.guideDef)
 	err = gv.Validate()
-	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Steps: %v", gp.ImportPath, err)
+	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Guide: %v", gp.ImportPath, err)
 
-	// Does the guide CUE package validate?
-	err = gv.Validate(cue.Final(), cue.Concrete(true))
-	check(err, "%v does not validate: %v", gp.ImportPath, err)
+	var intGuide types.Guide
+	err = gv.Decode(&intGuide)
+	check(err, "failed to decode guide: %v", err)
 
-	// At this point we know we have a valid guide instance
-	err = gv.Lookup("Delims").Decode(&g.delims)
-	check(err, "failed to decode Delims from %v: %v", gv, err)
+	g.delims = intGuide.Delims
 
-	if stepsV := gv.Lookup("Steps"); stepsV.Exists() {
-		steps, _ := stepsV.Struct()
-
-		g.Image, _ = gv.Lookup("Image").String()
-		if *r.genCmd.fImageOverride != "" {
-			g.Image = *r.genCmd.fImageOverride
-		}
+	g.Image = intGuide.Image
+	if *r.genCmd.fImageOverride != "" {
+		g.Image = *r.genCmd.fImageOverride
+	}
+	if len(intGuide.Steps) > 0 {
 		if g.Image == "" {
 			raise("Image not specified, but we have steps to run")
 		}
-		it, _ := gv.Lookup("Presteps").List()
-		for it.Next() {
-			var ps guidePrestep
-			ps.Package, _ = it.Value().Lookup("Package").String()
-			{
-				args := it.Value().Lookup("Args")
-				_ = args.Decode(&ps.Args)
+
+		// We only investigate the presteps if we have any steps
+		// to run
+		for _, prestep := range intGuide.Presteps {
+			ps := guidePrestep{
+				Package: prestep.Package,
+				Args:    prestep.Args,
 			}
 			if ps.Package == "" {
 				raise("Prestep had empty package")
 			}
-
 			if v, ok := r.seenPrestepPkgs[ps.Package]; ok {
 				ps.Version = v
 			} else {
@@ -882,93 +833,115 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 			}
 			g.Presteps = append(g.Presteps, &ps)
 		}
+	}
 
-		type posStep struct {
-			pos  token.Position
-			step step
-		}
+	seenLangs := make(map[types.LangCode]bool)
 
-		toSort := make(map[string][]posStep)
+	for stepName, langSteps := range intGuide.Steps {
 
-		for i := 0; i < steps.Len(); i++ {
-			fi := steps.Field(i)
-			name := fi.Name
-
-			stepV := fi.Value
-
-			// TODO: add support for multiple languages. For now we know
-			// there will only be "en"
-			lang := "en"
-			en := stepV.Lookup(lang)
-
-			// TODO: when we can move to the new evaluator this will not be necessary
-			// as the position information will have been retained on en
-			pos := gi.Lookup("Steps", name, "en").Pos()
-
-			if pos == (token.Pos{}) {
-				raise("failed to get position information for step %v; did you embed preguide.#Guide?", fi.Name)
+		for _, code := range types.Langs {
+			v, ok := langSteps[code]
+			if !ok {
+				continue
 			}
-
-			var step step
-			st, _ := en.Lookup("StepType").Int64()
-			switch StepType(st) {
-			case StepTypeCommand:
-				source, _ := en.Lookup("Source").String()
-				step, err = commandStepFromString(name, source)
-				check(err, "failed to parse #Command from step %v: %v", name, err)
-			case StepTypeCommandFile:
-				path, _ := en.Lookup("Path").String()
-				if !filepath.IsAbs(path) {
-					path = filepath.Join(g.dir, path)
+			seenLangs[code] = true
+			var s step
+			switch is := v.(type) {
+			case *types.Command:
+				s, err = commandStepFromCommand(stepName, is)
+				check(err, "failed to parse #Command from step %v: %v", stepName, err)
+			case *types.CommandFile:
+				if !filepath.IsAbs(is.Path) {
+					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				step, err = commandStepFromFile(name, path)
-				check(err, "failed to parse #CommandFile from step %v: %v", name, err)
-			case StepTypeUpload:
-				target, _ := en.Lookup("Target").String()
-				source, _ := en.Lookup("Source").String()
-				step = uploadStepFromSource(name, source, target)
-			case StepTypeUploadFile:
-				target, _ := en.Lookup("Target").String()
-				path, _ := en.Lookup("Path").String()
-				if !filepath.IsAbs(path) {
-					path = filepath.Join(g.dir, path)
+				s, err = commandStepFromCommandFile(stepName, is)
+				check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
+			case *types.Upload:
+				s, err = uploadStepFromUpload(stepName, is)
+				check(err, "failed to parse #Upload from step %v: %v", stepName, err)
+			case *types.UploadFile:
+				if !filepath.IsAbs(is.Path) {
+					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				step, err = uploadStepFromFile(name, path, target)
-				check(err, "failed to parse #UploadFile from step %v: %v", name, err)
-			default:
-				panic(fmt.Errorf("unknown type of step: %v", en))
+				s, err = uploadStepFromUploadFile(stepName, is)
+				check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
 			}
-			toSort[lang] = append(toSort[lang], posStep{
-				// TODO: when the FieldInfo position is accurate use that
-				pos:  pos.Position(),
-				step: step,
-			})
-		}
-		for lang := range toSort {
-			g.langs = append(g.langs, lang)
-		}
-		sort.Strings(g.langs)
-		for _, lang := range g.langs {
-			steps := toSort[lang]
-			sort.Slice(steps, func(i, j int) bool {
-				lhs, rhs := steps[i], steps[j]
-				cmp := strings.Compare(lhs.pos.Filename, rhs.pos.Filename)
-				if cmp == 0 {
-					cmp = lhs.pos.Offset - rhs.pos.Offset
-				}
-				return cmp < 0
-			})
-			ls := &langSteps{
-				Steps: make(map[string]step),
+			ls, ok := g.Langs[code]
+			if !ok {
+				ls = newLangSteps()
+				g.Langs[code] = ls
 			}
-			for i, v := range steps {
-				v.step.setorder(i)
-				ls.steps = append(ls.steps, v.step)
-				ls.Steps[v.step.name()] = v.step
-			}
-			g.Langs[lang] = ls
+			ls.Steps[stepName] = s
 		}
 	}
+
+	for code := range seenLangs {
+		g.langs = append(g.langs, code)
+	}
+	sort.Slice(g.langs, func(i, j int) bool {
+		return g.langs[i] < g.langs[j]
+	})
+
+	// Sort according to the order of the steps as declared in the
+	// guide [filename, offset]
+	type stepPosition struct {
+		name string
+		pos  token.Pos
+	}
+	var stepPositions []stepPosition
+	for stepName := range intGuide.Steps {
+		stepPositions = append(stepPositions, stepPosition{
+			name: stepName,
+			pos:  structPos(gi.Lookup("Steps", stepName)),
+		})
+	}
+	sort.Slice(stepPositions, func(i, j int) bool {
+		return posLessThan(stepPositions[i].pos, stepPositions[j].pos)
+	})
+	for _, code := range types.Langs {
+		ls, ok := g.Langs[code]
+		if !ok {
+			continue
+		}
+		for i, sp := range stepPositions {
+			s, ok := ls.Steps[sp.name]
+			if !ok {
+				raise("lang %v does not define step %v; we don't yet support fallback logic", code, sp.name)
+			}
+			ls.steps = append(ls.steps, s)
+			s.setorder(i)
+		}
+	}
+}
+
+// structPos returns the position of the struct value v. This helper
+// is required because of cuelang.org/issues/480
+func structPos(v cue.Value) token.Pos {
+	if v.Err() != nil {
+		raise("asked to find struct position of error value: %v", v.Err())
+	}
+	pos := v.Pos()
+	if pos == (token.Pos{}) {
+		it, err := v.Fields()
+		if err != nil {
+			return token.Pos{}
+		}
+		for it.Next() {
+			fp := structPos(it.Value())
+			if posLessThan(fp, pos) {
+				pos = fp
+			}
+		}
+	}
+	return pos
+}
+
+func posLessThan(lhs, rhs token.Pos) bool {
+	cmp := strings.Compare(lhs.Filename(), rhs.Filename())
+	if cmp == 0 {
+		cmp = lhs.Offset() - rhs.Offset()
+	}
+	return cmp < 0
 }
 
 // doRequest performs the an HTTP request according to the supplied parameters
@@ -1072,10 +1045,10 @@ func (r *runner) loadMarkdownFiles(g *guide) {
 			continue
 		}
 		lang := strings.TrimSuffix(e.Name(), ext)
-		if !languageCodes[lang] {
+		if !types.ValidLangCode(lang) {
 			raise("unknown language code (%q) for %v", lang, path)
 		}
-		g.mdFiles = append(g.mdFiles, g.buildMarkdownFile(path, lang, ext))
+		g.mdFiles = append(g.mdFiles, g.buildMarkdownFile(path, types.LangCode(lang), ext))
 	}
 }
 
@@ -1091,7 +1064,7 @@ type mdFile struct {
 	content     []byte
 	frontMatter map[string]interface{}
 	frontFormat string
-	lang        string
+	lang        types.LangCode
 	ext         string
 	directives  []directive
 }
@@ -1146,7 +1119,7 @@ const (
 	langFrontMatterKey        = "lang"
 )
 
-func (g *guide) buildMarkdownFile(path, lang, ext string) mdFile {
+func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) mdFile {
 	source, err := ioutil.ReadFile(path)
 	check(err, "failed to read %v: %v", path, err)
 

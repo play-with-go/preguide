@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 
+	"github.com/play-with-go/preguide/internal/types"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -15,6 +17,57 @@ type langSteps struct {
 	bashScript string
 	Hash       string
 	steps      []step
+}
+
+func (l *langSteps) UnmarshalJSON(b []byte) error {
+	type noUnmarshal langSteps
+	var v struct {
+		Steps map[string]json.RawMessage
+		*noUnmarshal
+	}
+	v.noUnmarshal = (*noUnmarshal)(l)
+	if err := json.Unmarshal(b, &v); err != nil {
+		return fmt.Errorf("failed to unmarshal langSteps into wrapper: %v", err)
+	}
+	if len(v.Steps) > 0 && l.Steps == nil {
+		l.Steps = make(map[string]step)
+	}
+	for stepName, stepBytes := range v.Steps {
+		s, err := unmarshalStep(stepBytes)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal step for step %v: %v", stepName, err)
+		}
+		l.Steps[stepName] = s
+	}
+	return nil
+}
+
+func unmarshalStep(r json.RawMessage) (step, error) {
+	var discrim struct {
+		StepType StepType
+	}
+	if err := json.Unmarshal(r, &discrim); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal disciminator type: %v", err)
+	}
+	var s step
+	switch discrim.StepType {
+	case StepTypeCommand:
+		s = new(commandStep)
+	case StepTypeUpload:
+		s = new(uploadStep)
+	default:
+		panic(fmt.Errorf("unknown StepType: %v", discrim.StepType))
+	}
+	if err := json.Unmarshal(r, &s); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal %T: %v", s, err)
+	}
+	return s, nil
+}
+
+func newLangSteps() *langSteps {
+	return &langSteps{
+		Steps: make(map[string]step),
+	}
 }
 
 type step interface {
@@ -28,10 +81,16 @@ type step interface {
 
 type commandStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
-	Name  string
-	Order int
+	StepType StepType
+	Name     string
+	Order    int
 
 	Stmts []*commandStmt
+}
+
+func newCommandStep(cs commandStep) *commandStep {
+	cs.StepType = StepTypeCommand
+	return &cs
 }
 
 func (c *commandStep) name() string {
@@ -56,11 +115,11 @@ type commandStmt struct {
 	sanitisers []sanitiser
 }
 
-// commandStepFromString takes a string value that is a sequence of shell
+// commandStepFromCommand takes a string value that is a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case s cannot be parsed
-func commandStepFromString(name string, s string) (*commandStep, error) {
-	r := strings.NewReader(s)
+func commandStepFromCommand(name string, s *types.Command) (*commandStep, error) {
+	r := strings.NewReader(s.Source)
 	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse command string %q: %v", s, err)
@@ -68,18 +127,18 @@ func commandStepFromString(name string, s string) (*commandStep, error) {
 	return commadStepFromSyntaxFile(name, f)
 }
 
-// commandStepFromFile takes a path to a file that contains a sequence of shell
+// commandStepFromCommandFile takes a path to a file that contains a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case path cannot be read or parsed
-func commandStepFromFile(name string, path string) (*commandStep, error) {
-	byts, err := ioutil.ReadFile(path)
+func commandStepFromCommandFile(name string, s *types.CommandFile) (*commandStep, error) {
+	byts, err := ioutil.ReadFile(s.Path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v: %v", path, err)
+		return nil, fmt.Errorf("failed to read %v: %v", s.Path, err)
 	}
 	r := bytes.NewReader(byts)
 	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse commands from %v: %v", path, err)
+		return nil, fmt.Errorf("failed to parse commands from %v: %v", s.Path, err)
 	}
 	return commadStepFromSyntaxFile(name, f)
 }
@@ -88,7 +147,9 @@ func commandStepFromFile(name string, path string) (*commandStep, error) {
 // commandStep with the individual statements, or an error in case any of the
 // statements cannot be printed as string values
 func commadStepFromSyntaxFile(name string, f *syntax.File) (*commandStep, error) {
-	res := &commandStep{}
+	res := newCommandStep(commandStep{
+		StepType: StepTypeCommand,
+	})
 	res.Name = name
 	printer := syntax.NewPrinter()
 	sm := sanitiserMatcher{
@@ -164,11 +225,17 @@ func (c *commandStep) renderTestLog(w io.Writer) {
 
 type uploadStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
-	Name  string
-	Order int
+	StepType StepType
+	Name     string
+	Order    int
 
 	Source string
 	Target string
+}
+
+func newUploadStep(u uploadStep) *uploadStep {
+	u.StepType = StepTypeUpload
+	return &u
 }
 
 func (u *uploadStep) name() string {
@@ -183,24 +250,25 @@ func (u *uploadStep) setorder(i int) {
 	u.Order = i
 }
 
-func uploadStepFromSource(name string, source, target string) *uploadStep {
-	return &uploadStep{
+func uploadStepFromUpload(name string, u *types.Upload) (*uploadStep, error) {
+	res := newUploadStep(uploadStep{
 		Name:   name,
-		Source: source,
-		Target: target,
-	}
+		Source: u.Source,
+		Target: u.Target,
+	})
+	return res, nil
 }
 
-func uploadStepFromFile(name string, path, target string) (*uploadStep, error) {
-	byts, err := ioutil.ReadFile(target)
+func uploadStepFromUploadFile(name string, u *types.UploadFile) (*uploadStep, error) {
+	byts, err := ioutil.ReadFile(u.Path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v: %v", path, err)
+		return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
 	}
-	res := &uploadStep{
+	res := newUploadStep(uploadStep{
 		Name:   name,
 		Source: string(byts),
-		Target: target,
-	}
+		Target: u.Target,
+	})
 	return res, nil
 }
 
