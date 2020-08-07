@@ -99,8 +99,9 @@ package out
 		en: {
 			Steps: {
 				step1: {
-					Name:  "step1"
-					Order: 0
+					Name:     "step1"
+					StepType: 1
+					Order:    0
 					Stmts: [{
 						Negated:  false
 						CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
@@ -109,7 +110,7 @@ package out
 					}]
 				}
 			}
-			Hash: "773ab4b40ee9adb99a636a05d674b043c2ec5e5a3196c5af864d14217e29b784"
+			Hash: "fbace3e0fb12dce4275c15a124c3bba5a104f78f0788c63fe1def0d35801e274"
 		}
 	}
 }

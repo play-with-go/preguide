@@ -11,7 +11,16 @@ import (
 	"text/template"
 
 	"cuelang.org/go/cue"
+	"github.com/play-with-go/preguide/internal/types"
 	"gopkg.in/yaml.v2"
+)
+
+type StepType int64
+
+const (
+	// TODO: keep this in sync with the CUE definitions
+	StepTypeCommand StepType = iota + 1
+	StepTypeUpload
 )
 
 type guide struct {
@@ -20,12 +29,12 @@ type guide struct {
 	target string
 
 	mdFiles []mdFile
-	langs   []string
+	langs   []types.LangCode
 
 	Presteps []*guidePrestep
 
 	Image string
-	Langs map[string]*langSteps
+	Langs map[types.LangCode]*langSteps
 
 	instance    *cue.Instance
 	outinstance *cue.Instance
@@ -41,10 +50,10 @@ type guide struct {
 	delims [2]string
 }
 
+// Embed *types.Prestep once we have a solution to cuelang.org/issue/376
 type guidePrestep struct {
 	Package string
 	Version string
-	buildID string
 	Args    []string
 }
 

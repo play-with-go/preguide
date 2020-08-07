@@ -1,35 +1,44 @@
 package out
 
+import "github.com/play-with-go/preguide"
+
 #GuideOutput: {
 	Presteps: [...#Prestep]
 	Image: string
-	Langs: #Langs
+
+	Langs: [preguide.#Language]: #LangSteps
+
 	Defs: [string]: _
 }
 
-#Prestep: {
-	Package: string
-	Version: string
-	BuildID: string
-	Args: [...string]
+_#stepCommon: {
+	StepType: #StepType
+	Name:     string
+	Order:    int
+	...
 }
 
-#Langs: {
-	en: #LangSteps
+// TODO: keep this in sync with the Go definitions
+#StepType: int
+
+#StepTypeCommand: #StepType & 1
+#StepTypeUpload:  #StepType & 2
+
+#Prestep: {
+	Package: string
+	Args: [...string]
+	Version: string
 }
 
 #LangSteps: {
-	Hash:  string
-	Steps: #Steps
+	Hash: string
+	Steps: [string]: #Step
 }
 
-#Steps: {
-	[string]: #CommandStep | #UploadStep
-}
+#Step: (#CommandStep | #UploadStep) & _#stepCommon
 
 #CommandStep: {
-	Name:  string
-	Order: int
+	_#stepCommon
 	Stmts: [...#Stmt]
 }
 
@@ -41,8 +50,7 @@ package out
 }
 
 #UploadStep: {
-	Name:   string
-	Order:  int
+	_#stepCommon
 	Source: string
 	Target: string
 }
