@@ -16,11 +16,15 @@ const (
 )
 
 type Guide struct {
-	Delims   [2]string
-	Presteps []*Prestep
-	Image    string
-	Steps    map[string]LangSteps
-	Defs     map[string]interface{}
+	Delims    [2]string
+	Presteps  []*Prestep
+	Steps     map[string]LangSteps
+	Terminals map[string]*Terminal
+	Defs      map[string]interface{}
+}
+
+type Terminal struct {
+	Image string
 }
 
 type Prestep struct {
@@ -92,6 +96,7 @@ type Step interface {
 
 type Command struct {
 	StepTypeVal StepType `json:"StepType"`
+	Terminal    string
 	Source      string
 }
 
@@ -103,6 +108,7 @@ func (c *Command) StepType() StepType {
 
 type CommandFile struct {
 	StepTypeVal StepType `json:"StepType"`
+	Terminal    string
 	Path        string
 }
 
@@ -114,6 +120,7 @@ func (c *CommandFile) StepType() StepType {
 
 type Upload struct {
 	StepTypeVal StepType `json:"StepType"`
+	Terminal    string
 	Target      string
 	Source      string
 }
@@ -126,6 +133,7 @@ func (c *Upload) StepType() StepType {
 
 type UploadFile struct {
 	StepTypeVal StepType `json:"StepType"`
+	Terminal    string
 	Target      string
 	Path        string
 }

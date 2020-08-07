@@ -401,9 +401,7 @@ func (r *runner) validateStepAndRefDirs(g *guide) (stepCount int) {
 
 	stepDirCount := 0
 	for _, mdf := range g.mdFiles {
-		if g.Image != "" {
-			mdf.frontMatter[dockerImageFrontMatterKey] = g.Image
-		}
+		mdf.frontMatter[guideFrontMatterKey] = g.name
 
 		// TODO: improve language steps fallback
 		ls, ok := g.Langs[mdf.lang]
@@ -630,16 +628,24 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	err = ioutil.WriteFile(sf, []byte(toWrite), 0777)
 	check(err, "failed to write temporary script to %v: %v", sf, err)
 
-	imageCheck := exec.Command("docker", "inspect", g.Image)
+	// Whilst we know we have a single terminal, we can use the g.Image() hack
+	// of finding the image for that single terminal. We we support multiple
+	// terminals we will need to move away from that hack
+	image := g.Image()
+	if *r.genCmd.fImageOverride != "" {
+		image = *r.genCmd.fImageOverride
+	}
+
+	imageCheck := exec.Command("docker", "inspect", image)
 	out, err := imageCheck.CombinedOutput()
 	if err != nil {
 		if *r.genCmd.fPullImage == pullImageMissing {
-			r.debugf("failed to find docker image %v (%v); will attempt pull", g.Image, err)
-			pull := exec.Command("docker", "pull", g.Image)
+			r.debugf("failed to find docker image %v (%v); will attempt pull", image, err)
+			pull := exec.Command("docker", "pull", image)
 			out, err = pull.CombinedOutput()
-			check(err, "failed to find docker image %v; also failed to pull it: %v\n%s", g.Image, err, out)
+			check(err, "failed to find docker image %v; also failed to pull it: %v\n%s", image, err, out)
 		} else {
-			raise("failed to find docker image %v (%v); either pull this image manually or use -pull=missing", g.Image, err)
+			raise("failed to find docker image %v (%v); either pull this image manually or use -pull=missing", image, err)
 		}
 	}
 
@@ -651,7 +657,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	for _, v := range g.vars {
 		cmd.Args = append(cmd.Args, "-e", v)
 	}
-	cmd.Args = append(cmd.Args, g.Image, "/scripts/script.sh")
+	cmd.Args = append(cmd.Args, image, "/scripts/script.sh")
 	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 
@@ -692,6 +698,43 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 }
 
 func (r *runner) buildBashFile(g *guide, ls *langSteps) {
+	// TODO when we come to support multiple terminals this will need to be
+	// rethought. Perhaps something along the following lines:
+	//
+	// * Create a special bash script per terminal
+	//
+	// * The order of steps is defined by the natural source order of step
+	// names. That is to say, the first time a step declaration is encountered
+	// determines that step's position in the order of all steps
+	//
+	// * The control flow between terminals is managed by blocking bash. This
+	// seems doable with a read call, and a kill -SIGINT to the bash process
+	// then interrupts that
+	//
+	// * We only need to block a given terminal at the "edge" of handover
+	// between terminals
+	//
+	// * We can determine the process ID of the special bash script by echo-ing
+	// $$ at the start of the special script.
+	//
+	// * This means we will need to attach stdout, stderr and stdin to each of
+	// the docker run instances for each terminal. This is fine because it
+	// opens the door for us being able to supply input over stdin should this
+	// ever be necessary
+	//
+	// * Question is how to deal with blocking calls, e.g. running an http
+	// server. Support this initially by not allowing background processes or
+	// builtins (because with builtins there is no child process). Then
+	// interpreting a special kill or <Ctrl-c> command to kill the current
+	// (because there can only be one) blocked process. Then continuing to the
+	// next "block"
+	//
+	// * How to identify these blocking calls? Well, so long as we don't support
+	// background processes then the next call _must_ be a <Ctrl-c> (even if
+	// that is the last command in a script), otherwise that script cannot make
+	// progress or return. This might be sufficient an indicator for now.
+	//
+
 	var sb strings.Builder
 	pf := func(format string, args ...interface{}) {
 		fmt.Fprintf(&sb, format, args...)
@@ -710,7 +753,7 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	hf("prestep: %s\n", pretty.Sprint(g.Presteps))
 	// We write the docker image to the hash, because if the user want to ensure
 	// reproducibility they should specify the full digest.
-	hf("image: %v\n", g.Image)
+	hf("image: %v\n", g.Image())
 	pf("#!/usr/bin/env bash\n")
 	for _, step := range ls.steps {
 		switch step := step.(type) {
@@ -795,15 +838,30 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 
 	g.delims = intGuide.Delims
 
-	g.Image = intGuide.Image
-	if *r.genCmd.fImageOverride != "" {
-		g.Image = *r.genCmd.fImageOverride
+	type termPosition struct {
+		name string
+		pos  token.Pos
 	}
-	if len(intGuide.Steps) > 0 {
-		if g.Image == "" {
-			raise("Image not specified, but we have steps to run")
-		}
+	var termPositions []termPosition
+	if len(intGuide.Terminals) > 1 {
+		raise("we don't currently support multiple terminals")
+	}
+	for n := range intGuide.Terminals {
+		termPositions = append(termPositions, termPosition{
+			name: n,
+			pos:  structPos(gv.Lookup("Terminals", n)),
+		})
+	}
+	sort.Slice(termPositions, func(i, j int) bool {
+		return posLessThan(termPositions[i].pos, termPositions[j].pos)
+	})
+	for _, tp := range termPositions {
+		n := tp.name
+		t := intGuide.Terminals[n]
+		g.Terminals = append(g.Terminals, newTerminal(n, t))
+	}
 
+	if len(intGuide.Steps) > 0 {
 		// We only investigate the presteps if we have any steps
 		// to run
 		for _, prestep := range intGuide.Presteps {
@@ -1116,6 +1174,7 @@ const (
 	refDirectivePrefix        = "ref:"
 	outrefDirectivePrefix     = "outref:"
 	dockerImageFrontMatterKey = "image"
+	guideFrontMatterKey       = "guide"
 	langFrontMatterKey        = "lang"
 )
 

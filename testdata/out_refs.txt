@@ -31,7 +31,9 @@ package guide
 
 import "github.com/play-with-go/preguide"
 
-Image: "this_will_never_be_used"
+Terminals: term1: preguide.#Guide.#Terminal & {
+       Image: "this_will_never_be_used"
+}
 
 Defs: world: "world"
 
@@ -51,7 +53,7 @@ Defs: {
 }
 -- defs/en.md.golden --
 ---
-image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+guide: defs
 lang: en
 title: A test with defs
 ---

@@ -9,12 +9,15 @@ import "github.com/play-with-go/preguide"
 	Langs: [preguide.#Language]: #LangSteps
 
 	Defs: [string]: _
+
+	Terminals: [...#Terminal]
 }
 
 _#stepCommon: {
 	StepType: #StepType
 	Name:     string
 	Order:    int
+	Terminal: string
 	...
 }
 
@@ -40,6 +43,11 @@ _#stepCommon: {
 #CommandStep: {
 	_#stepCommon
 	Stmts: [...#Stmt]
+}
+
+#Terminal: {
+	Name:  string
+	Image: string
 }
 
 #Stmt: {

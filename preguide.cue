@@ -1,5 +1,7 @@
 package preguide
 
+import "list"
+
 // TODO: keep this in sync with the Go definitions
 #StepType: int
 
@@ -14,6 +16,7 @@ package preguide
 
 	_#stepCommon: {
 		StepType: #StepType
+		Terminal: string
 		...
 	}
 
@@ -43,6 +46,11 @@ package preguide
 		Path:     string
 	}
 
+	#Terminal: {
+		// Image is the Docker image that will be used for the terminal session
+		Image: string
+	}
+
 	Presteps: [...#Prestep]
 
 	// Delims are the delimiters used in the guide prose and steps
@@ -50,12 +58,21 @@ package preguide
 	// of the environment variable ABC therefore looks like "{{ .ABC }}"
 	Delims: *["{{", "}}"] | [string, string]
 
-	// Images are optional because a guide does not need to have
-	// any steps. However, we can't make this conditional on len(Steps) because
-	// of cuelang.org/issue/279. Hence we validate in code.
-	Image?: string
-
 	Steps: [string]: [#Language]: #Step
+
+	// TODO: remove post upgrade to latest CUE? Because at that point
+	// the defaulting in #TerminalName will work
+	Steps: [string]: en: {
+		Terminal: *#TerminalNames[0] | string
+	}
+
+	// TODO: remove post upgrade to latest CUE? Because at that point
+	// the use of or() will work, which will give a better error message
+	#TerminalNames: [ for k, _ in Terminals {k}]
+	#ok: true & and([ for s in Steps {list.Contains(#TerminalNames, s.en.Terminal)}])
+
+	// Terminals defines the required remote VMs for a given guide
+	Terminals: [string]: #Terminal
 
 	Defs: [string]: _
 }

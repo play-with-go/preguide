@@ -33,8 +33,9 @@ type guide struct {
 
 	Presteps []*guidePrestep
 
-	Image string
 	Langs map[types.LangCode]*langSteps
+
+	Terminals []*terminal
 
 	instance    *cue.Instance
 	outinstance *cue.Instance
@@ -48,6 +49,27 @@ type guide struct {
 	// delims are the text/template delimiters for guide prose and
 	// step variable expansion
 	delims [2]string
+}
+
+// TODO drop this when we support multiple terminals
+func (g *guide) Image() string {
+	return g.Terminals[0].Image
+}
+
+// Embed *types.Terminal once we have a solution to cuelang.org/issue/376
+type terminal struct {
+	Name  string
+	Image string
+}
+
+func newTerminal(name string, t *types.Terminal) *terminal {
+	res := &terminal{
+		Name: name,
+	}
+	if t != nil {
+		res.Image = t.Image
+	}
+	return res
 }
 
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376
@@ -164,11 +186,9 @@ func (r *runner) process(g *guide) {
 func (r *runner) generateTestLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
-		fmt.Fprintf(&buf, "Image: %v\n", g.Image)
+		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
 		if len(g.Presteps) > 0 {
-			byts, err := json.MarshalIndent(g.Presteps, "", "  ")
-			check(err, "failed to marshal prestep: %v", err)
-			fmt.Fprintf(&buf, "Presteps: %s\n", byts)
+			fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
 		}
 		for _, step := range ls.steps {
 			step.renderTestLog(&buf)
@@ -177,6 +197,13 @@ func (r *runner) generateTestLog(g *guide) {
 		err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
 		check(err, "failed to write testlog output to %v: %v", logFilePath, err)
 	}
+}
+
+func mustJSONMarshalIndent(i interface{}) []byte {
+	byts, err := json.MarshalIndent(i, "", "  ")
+	check(err, "failed to marshal prestep: %v", err)
+	return byts
+
 }
 
 func (g *guide) sanitiseVars(s string) string {

@@ -90,14 +90,16 @@ Presteps: [preguide.#Prestep & {
 	Args: ["Hello, world!"]
 }]
 
-Image: "this_will_never_be_used"
+Terminals: term1: preguide.#Guide.#Terminal & {
+       Image: "this_will_never_be_used"
+}
 
 Steps: step1: en: preguide.#Command & {Source: """
 echo "The answer is: $GREETING!"
 """}
 -- prestep/en.markdown.golden --
 ---
-image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+guide: prestep
 lang: en
 title: A test with all directives
 ---
@@ -108,7 +110,12 @@ $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 ```
 -- prestep/en_testlog.txt.golden --
-Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Terminals: [
+  {
+    "Name": "term1",
+    "Image": "this_will_never_be_used"
+  }
+]
 Presteps: [
   {
     "Package": "github.com/blah",
@@ -122,7 +129,7 @@ $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 -- prestep/en.markdown.other.golden --
 ---
-image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+guide: prestep
 lang: en
 title: A test with all directives
 ---
@@ -133,7 +140,12 @@ $ echo "The answer is: $GREETING!"
 The answer is: !
 ```
 -- prestep/en_testlog.txt.other.golden --
-Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Terminals: [
+  {
+    "Name": "term1",
+    "Image": "this_will_never_be_used"
+  }
+]
 Presteps: [
   {
     "Package": "github.com/blah",

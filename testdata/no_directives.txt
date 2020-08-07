@@ -14,6 +14,7 @@ cmp _output/_posts/nodirectives.md nodirectives/en.md.golden
 This is a test
 -- nodirectives/en.md.golden --
 ---
+guide: nodirectives
 lang: en
 ---
 # Heading 1
