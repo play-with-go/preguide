@@ -44,7 +44,7 @@ package guide
 
 import "github.com/play-with-go/preguide"
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
@@ -65,12 +65,12 @@ package guide
 
 import "github.com/play-with-go/preguide"
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Terminals: term2: preguide.#Guide.#Terminal & {
+Terminals: term2: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
@@ -91,7 +91,7 @@ package guide
 
 import "github.com/play-with-go/preguide"
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 	Scenarios: go116: Image: "this_will_never_be_used"
@@ -121,7 +121,7 @@ package guide
 
 import "github.com/play-with-go/preguide"
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }

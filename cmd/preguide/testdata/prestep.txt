@@ -92,15 +92,17 @@ import "github.com/play-with-go/preguide"
 
 Presteps: [preguide.#Prestep & {
 	Package: "github.com/blah"
-	Path: "/somewhere"
-	Args: ["Hello, world!"]
+	Path:    "/somewhere"
+	Args: {
+		Message: "Hello, world!"
+	}
 }]
 
 Scenarios: go115: preguide.#Scenario & {
 	Description: "Go 1.15"
 }
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
@@ -138,9 +140,9 @@ Presteps: [
   {
     "Package": "github.com/blah",
     "Path": "/somewhere",
-    "Args": [
-      "Hello, world!"
-    ],
+    "Args": {
+      "Message": "Hello, world!"
+    },
     "Version": "1",
     "Variables": [
       "GREETING"
@@ -179,9 +181,9 @@ Presteps: [
   {
     "Package": "github.com/blah",
     "Path": "/somewhere",
-    "Args": [
-      "Hello, world!"
-    ],
+    "Args": {
+      "Message": "Hello, world!"
+    },
     "Version": "2",
     "Variables": [
       "GREETING"
@@ -229,7 +231,9 @@ func main() {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		var args []string
+		var args struct {
+			Message string
+		}
 		dec := json.NewDecoder(r.Body)
 		if err := dec.Decode(&args); err != nil {
 			panic(err)
@@ -237,7 +241,7 @@ func main() {
 		var out struct {
 			Vars []string
 		}
-		val := args[0]
+		val := args.Message
 		if version != "1" {
 			val = "other"
 		}
@@ -297,18 +301,14 @@ func getVersion() string {
 package script_prestep
 
 myguide: {
-	Scenarios: [{
-		Name:        "go115"
-		Description: "Go 1.15"
-	}]
-	Networks: []
-	Env: []
-	Presteps: [{
-		Path:    "/somewhere"
-		Package: "github.com/blah"
-		Args: ["Hello, world!"]
-	}]
 	Delims: ["{{", "}}"]
+	Presteps: [{
+		Package: "github.com/blah"
+		Path:    "/somewhere"
+		Args: {
+			Message: "Hello, world!"
+		}
+	}]
 	Terminals: [{
 		Name:        "term1"
 		Description: "The main terminal"
@@ -318,5 +318,11 @@ myguide: {
 			}
 		}
 	}]
+	Scenarios: [{
+		Name:        "go115"
+		Description: "Go 1.15"
+	}]
+	Networks: []
+	Env: []
 }
 

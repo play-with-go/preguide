@@ -1408,7 +1408,13 @@ func (gc *genCmd) writeGuideStructures() {
 	v, err := gc.codec.Decode(structures)
 	check(err, "failed to decode guide structures to CUE value: %v", err)
 	// Now do a sanity check against the schema
-	err = v.Unify(gc.schemas.GuideStructures).Validate()
+
+	// TODO: remove roundtrip to syntax post fix for cuelang.org/issue/530
+	vn, _ := format.Node(v.Syntax())
+	i2, _ := gc.runtime.Compile("hello.cue", vn)
+	v2 := i2.Value()
+
+	err = v2.Unify(gc.schemas.GuideStructures).Validate()
 	check(err, "failed to validate guide structures against schema: %v", err)
 	pkgName := *gc.fPackage
 	if pkgName == "" {

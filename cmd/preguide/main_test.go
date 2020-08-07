@@ -52,6 +52,8 @@ func TestScripts(t *testing.T) {
 
 	selfBuild := buildSelf(t)
 
+	var m sync.Mutex
+
 	p := testscript.Params{
 		UpdateScripts: *fUpdateScripts,
 		Dir:           filepath.Join("testdata"),
@@ -84,7 +86,11 @@ func TestScripts(t *testing.T) {
 			// if we _didn't_ import the preguide packages as part of a guide's
 			// CUE package we would not be able to validate, code complete etc
 			// independent of running preguide itself (which isn't ideal)
+			//
+			// TODO: remove use of a lock once cuelang.org/issues/460 is resolved
+			m.Lock()
 			err = modInit(env.WorkDir)
+			m.Unlock()
 			check(err, "failed to mod init: %v", err)
 
 			// Always generate an output directory to save typing in each script
