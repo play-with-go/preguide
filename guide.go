@@ -79,7 +79,10 @@ type guidePrestep struct {
 	Args    []string
 }
 
-func (r *runner) process(g *guide) {
+// writeGuideOutput writes the markdown files of output for a guide
+// that result from the combination of the configuration and input
+// to a guide.
+func (r *runner) writeGuideOutput(g *guide) {
 	if len(g.mdFiles) != 1 || g.mdFiles[0].lang != "en" {
 		raise("we only support English language guides for now")
 	}
@@ -183,7 +186,8 @@ func (r *runner) process(g *guide) {
 	}
 }
 
-func (r *runner) generateTestLog(g *guide) {
+// writeLog writes a
+func (r *runner) writeLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
@@ -191,11 +195,11 @@ func (r *runner) generateTestLog(g *guide) {
 			fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
 		}
 		for _, step := range ls.steps {
-			step.renderTestLog(&buf)
+			step.renderLog(&buf)
 		}
-		logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_testlog.txt", lang))
+		logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", lang))
 		err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
-		check(err, "failed to write testlog output to %v: %v", logFilePath, err)
+		check(err, "failed to write log output to %v: %v", logFilePath, err)
 	}
 }
 

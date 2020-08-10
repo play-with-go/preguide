@@ -103,3 +103,10 @@ import "list"
 #CommandFile: #Guide.#CommandFile
 #Upload:      #Guide.#Upload
 #UploadFile:  #Guide.#UploadFile
+
+#GenConfig: [string]: #PrestepConfig
+
+#PrestepConfig: {
+	Endpoint: string
+	Networks: [...string]
+}

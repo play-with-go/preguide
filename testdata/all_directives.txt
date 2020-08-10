@@ -5,26 +5,26 @@ preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/alldirectives.markdown alldirectives/en.markdown.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
+cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
 cmp _output/_posts/alldirectives.markdown alldirectives/en.markdown.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
+cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
 
 # Verify that when skipping the cache we get the same output
 preguide gen -skipcache -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/alldirectives.markdown alldirectives/en.markdown.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
+cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
 
 # Verify that -compat works as expected
 preguide gen -compat -out _output
 cmp _output/_posts/alldirectives.markdown alldirectives/en.compat.markdown.golden
-cmp alldirectives/en_testlog.txt alldirectives/en_testlog.txt.golden
+cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
 
 -- alldirectives/en.markdown --
 ---
@@ -154,7 +154,7 @@ echo "Hello, world! I am an #UploadFile"
 
 EOD
 ```
--- alldirectives/en_testlog.txt.golden --
+-- alldirectives/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

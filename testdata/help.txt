@@ -58,6 +58,8 @@ usage: preguide gen
 	        render old-style PWD code blocks
 	  -config value
 	        CUE-style configuration input; can appear multiple times. See 'cue help inputs'
+	  -dir string
+	        the directory within which to run preguide (default ".")
 	  -docker string
 	        run prestep requests in a docker container configured by the arguments passed to this flag
 	  -image string

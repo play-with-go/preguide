@@ -77,7 +77,7 @@ type step interface {
 	setorder(int)
 	render(io.Writer)
 	renderCompat(io.Writer)
-	renderTestLog(io.Writer)
+	renderLog(io.Writer)
 }
 
 type commandStep struct {
@@ -219,7 +219,7 @@ func (c *commandStep) renderCompat(w io.Writer) {
 	fmt.Fprintf(w, "```")
 }
 
-func (c *commandStep) renderTestLog(w io.Writer) {
+func (c *commandStep) renderLog(w io.Writer) {
 	if len(c.Stmts) > 0 {
 		var stmt *commandStmt
 		for _, stmt = range c.Stmts {
@@ -301,6 +301,6 @@ func (u *uploadStep) renderCompat(w io.Writer) {
 	fmt.Fprintf(w, "```")
 }
 
-func (u *uploadStep) renderTestLog(w io.Writer) {
+func (u *uploadStep) renderLog(w io.Writer) {
 	fmt.Fprintf(w, "$ cat <<EOD > %v\n%s\nEOD\n", u.Target, u.Source)
 }

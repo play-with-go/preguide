@@ -8,7 +8,7 @@ preguide gen -config conf.cue -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/prestep_text.markdown prestep_text/en.markdown.golden
-cmp prestep_text/en_testlog.txt prestep_text/en_testlog.txt.golden
+cmp prestep_text/en_log.txt prestep_text/en_log.txt.golden
 
 -- prestep.txt --
 {
@@ -55,7 +55,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 ```
--- prestep_text/en_testlog.txt.golden --
+-- prestep_text/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
