@@ -73,6 +73,7 @@ func newLangSteps() *langSteps {
 type step interface {
 	name() string
 	order() int
+	terminal() string
 	setorder(int)
 	render(io.Writer)
 	renderCompat(io.Writer)
@@ -84,6 +85,7 @@ type commandStep struct {
 	StepType StepType
 	Name     string
 	Order    int
+	Terminal string
 
 	Stmts []*commandStmt
 }
@@ -99,6 +101,10 @@ func (c *commandStep) name() string {
 
 func (c *commandStep) order() int {
 	return c.Order
+}
+
+func (c *commandStep) terminal() string {
+	return c.Terminal
 }
 
 func (c *commandStep) setorder(i int) {
@@ -124,7 +130,11 @@ func commandStepFromCommand(name string, s *types.Command) (*commandStep, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse command string %q: %v", s, err)
 	}
-	return commadStepFromSyntaxFile(name, f)
+	res := newCommandStep(commandStep{
+		Name:     name,
+		Terminal: s.Terminal,
+	})
+	return commadStepFromSyntaxFile(res, f)
 }
 
 // commandStepFromCommandFile takes a path to a file that contains a sequence of shell
@@ -140,17 +150,18 @@ func commandStepFromCommandFile(name string, s *types.CommandFile) (*commandStep
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse commands from %v: %v", s.Path, err)
 	}
-	return commadStepFromSyntaxFile(name, f)
+	res := newCommandStep(commandStep{
+		Name:     name,
+		Terminal: s.Terminal,
+	})
+	return commadStepFromSyntaxFile(res, f)
 }
 
 // commadStepFromSyntaxFile takes a *mvdan.cc/sh/syntax.File and returns a
 // commandStep with the individual statements, or an error in case any of the
 // statements cannot be printed as string values
-func commadStepFromSyntaxFile(name string, f *syntax.File) (*commandStep, error) {
-	res := newCommandStep(commandStep{
-		StepType: StepTypeCommand,
-	})
-	res.Name = name
+func commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*commandStep, error) {
+	res.StepType = StepTypeCommand
 	printer := syntax.NewPrinter()
 	sm := sanitiserMatcher{
 		printer: printer,
@@ -228,6 +239,7 @@ type uploadStep struct {
 	StepType StepType
 	Name     string
 	Order    int
+	Terminal string
 
 	Source string
 	Target string
@@ -244,6 +256,10 @@ func (u *uploadStep) name() string {
 
 func (u *uploadStep) order() int {
 	return u.Order
+}
+
+func (u *uploadStep) terminal() string {
+	return u.Terminal
 }
 
 func (u *uploadStep) setorder(i int) {

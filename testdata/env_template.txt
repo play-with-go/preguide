@@ -57,14 +57,16 @@ Presteps: [preguide.#Prestep & {
 	Package: "github.com/blah"
 }]
 
-Image: "this_will_never_be_used"
+Terminals: term1: preguide.#Guide.#Terminal & {
+       Image: "this_will_never_be_used"
+}
 
 Steps: step1: en: preguide.#Command & {Source: """
 echo -n "The answer is: {{.GREETING}}!"
 """}
 -- env_template/en.markdown.golden --
 ---
-image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+guide: env_template
 lang: en
 title: A test with all directives
 ---
@@ -75,7 +77,12 @@ $ echo -n "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 ```
 -- env_template/en_testlog.txt.golden --
-Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Terminals: [
+  {
+    "Name": "term1",
+    "Image": "this_will_never_be_used"
+  }
+]
 Presteps: [
   {
     "Package": "github.com/blah",
@@ -94,13 +101,17 @@ package out
 		Args: []
 		Version: "file"
 	}]
-	Image: "playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123"
+	Terminals: [{
+		Name:  "term1"
+		Image: "this_will_never_be_used"
+	}]
 	Langs: {
 		en: {
 			Steps: {
 				step1: {
 					Name:     "step1"
 					StepType: 1
+					Terminal: "term1"
 					Order:    0
 					Stmts: [{
 						Negated:  false
@@ -110,13 +121,13 @@ package out
 					}]
 				}
 			}
-			Hash: "fbace3e0fb12dce4275c15a124c3bba5a104f78f0788c63fe1def0d35801e274"
+			Hash: "d206481babb24557204404af2c88fe064e05d8696b90c89ed192b47b6f8cf9f6"
 		}
 	}
 }
 -- env_template/en.markdown.raw.golden --
 ---
-image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+guide: env_template
 lang: en
 title: A test with all directives
 ---
@@ -127,7 +138,12 @@ $ echo -n "The answer is: Hello, world!!"
 The answer is: Hello, world!!
 ```
 -- env_template/en_testlog.txt.raw.golden --
-Image: playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123
+Terminals: [
+  {
+    "Name": "term1",
+    "Image": "this_will_never_be_used"
+  }
+]
 Presteps: [
   {
     "Package": "github.com/blah",
