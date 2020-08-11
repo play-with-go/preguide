@@ -104,7 +104,7 @@ import "list"
 #Upload:      #Guide.#Upload
 #UploadFile:  #Guide.#UploadFile
 
-#GenConfig: [string]: #PrestepConfig
+#PrestepServiceConfig: [string]: #PrestepConfig
 
 #PrestepConfig: {
 	Endpoint: string
