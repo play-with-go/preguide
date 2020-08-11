@@ -73,6 +73,10 @@ type runner struct {
 	// (because a change in the preguide binary should result in a cache miss)
 	buildInfo string
 
+	// guides is the set of guides that we successfully processed, gathered as
+	// part of processDir
+	guides []*guide
+
 	// Definitions used in the course of validating config, input and
 	// re-reading output
 	confDef        cue.Value

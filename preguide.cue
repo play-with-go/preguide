@@ -112,8 +112,11 @@ import "list"
 #Upload:      #Guide.#Upload
 #UploadFile:  #Guide.#UploadFile
 
+// #PrestepServiceConfig is a mapping from prestep package path to endpoint
+// configuration.
 #PrestepServiceConfig: [string]: #PrestepConfig
 
+// #PrestepConfig is the endpoint configuration for a prestep
 #PrestepConfig: {
 	Endpoint: string
 	Networks: [...string]

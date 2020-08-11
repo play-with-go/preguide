@@ -18,6 +18,7 @@ preguide gen -out _output
 ! stderr .+
 cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
 cmp prestep/en_log.txt prestep/en_log.txt.golden
+cmp gen_guide_structures.cue gen_guide_structures.cue.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
@@ -239,4 +240,17 @@ func main() {
 		panic(err)
 	}
 	<-idleConnsClosed
+}
+-- gen_guide_structures.cue.golden --
+{
+	prestep: {
+		Presteps: [{
+			Package: "github.com/blah"
+			Args: ["Hello, world!"]
+		}]
+		Terminals: [{
+			Name:  "term1"
+			Image: "this_will_never_be_used"
+		}]
+	}
 }

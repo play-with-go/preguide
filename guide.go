@@ -31,11 +31,11 @@ type guide struct {
 	mdFiles []mdFile
 	langs   []types.LangCode
 
-	Presteps []*guidePrestep
+	// Embed guideStructure once we have a solution to cuelang.org/issue/376
+	Presteps  []*guidePrestep
+	Terminals []*types.Terminal
 
 	Langs map[types.LangCode]*langSteps
-
-	Terminals []*types.Terminal
 
 	instance    *cue.Instance
 	outinstance *cue.Instance
@@ -49,6 +49,11 @@ type guide struct {
 	// delims are the text/template delimiters for guide prose and
 	// step variable expansion
 	delims [2]string
+}
+
+type guideStructure struct {
+	Presteps  []*types.Prestep
+	Terminals []*types.Terminal
 }
 
 // TODO drop this when we support multiple terminals

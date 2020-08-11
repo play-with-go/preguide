@@ -19,14 +19,9 @@ var _out_out_cue = []byte(`package out
 import "github.com/play-with-go/preguide"
 
 #GuideOutput: {
-	Presteps: [...#Prestep]
-	Image: string
-
+	#GuideStructure
 	Langs: [preguide.#Language]: #LangSteps
-
-	Defs: [string]: _
-
-	Terminals: [...#Terminal]
+	Defs: [string]:              _
 }
 
 _#stepCommon: {
@@ -77,6 +72,16 @@ _#stepCommon: {
 	_#stepCommon
 	Source: string
 	Target: string
+}
+
+// GuideStructures maps a guide name to its #GuideStructure
+#GuideStructures: [string]: #GuideStructure
+
+// A #GuideStructure defines the prestep and terminal
+// structure of a guide.
+#GuideStructure: {
+	Terminals: [...#Terminal]
+	Presteps: [...#Prestep]
 }
 `)
 
@@ -198,8 +203,11 @@ import "list"
 #Upload:      #Guide.#Upload
 #UploadFile:  #Guide.#UploadFile
 
+// #PrestepServiceConfig is a mapping from prestep package path to endpoint
+// configuration.
 #PrestepServiceConfig: [string]: #PrestepConfig
 
+// #PrestepConfig is the endpoint configuration for a prestep
 #PrestepConfig: {
 	Endpoint: string
 	Networks: [...string]

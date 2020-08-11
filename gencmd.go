@@ -167,6 +167,7 @@ func (r *runner) runGen(args []string) error {
 		}
 		r.processDir(filepath.Join(dir, e.Name()))
 	}
+	r.writeGuideStructures()
 	return nil
 }
 
@@ -243,7 +244,8 @@ func (r *runner) loadConfig() {
 }
 
 // processDir processes the guide (CUE package and markdown files) found in
-// dir.  See the documentation for genCmd for more details.
+// dir. See the documentation for genCmd for more details. Returns a guide if
+// markdown files are found and successfully processed, else nil.
 func (r *runner) processDir(dir string) {
 	g := &guide{
 		dir:    dir,
@@ -305,7 +307,10 @@ func (r *runner) processDir(dir string) {
 	r.validateOutRefsDirs(g)
 
 	r.writeGuideOutput(g)
+
 	r.writeLog(g)
+
+	r.guides = append(r.guides, g)
 }
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
@@ -1202,54 +1207,35 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 	return res
 }
 
+// writeGuideStructures writes an instance of
+// github.com/play-with-go/preguide/out.#GuideStructures to the working
+// directory. This config can then be used directly by a controller for the
+// guides found in that directory.
+func (r *runner) writeGuideStructures() {
+	structures := make(map[string]guideStructure)
+	for _, guide := range r.guides {
+		s := guideStructure{
+			Terminals: guide.Terminals,
+		}
+		for _, ps := range guide.Presteps {
+			s.Presteps = append(s.Presteps, &types.Prestep{
+				Package: ps.Package,
+				Args:    ps.Args,
+			})
+		}
+		structures[guide.name] = s
+	}
+	v, err := r.codec.Decode(structures)
+	check(err, "failed to decode guide structures to CUE value: %v", err)
+	syn, err := format.Node(v.Syntax())
+	check(err, "failed to convert guide structures to CUE syntax: %v", err)
+	outPath := filepath.Join(*r.genCmd.fDir, "gen_guide_structures.cue")
+	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
+	check(err, "failed to write guide structures output to %v: %v", outPath, err)
+}
+
 func (r *runner) debugf(format string, args ...interface{}) {
 	if *r.fDebug {
 		fmt.Fprintf(os.Stderr, format, args...)
 	}
-}
-
-type chunker struct {
-	b   string
-	e   string
-	buf []byte
-	p   int
-	ep  int
-	lp  int
-}
-
-func newChunker(b []byte, beg, end string) *chunker {
-	return &chunker{
-		buf: b,
-		b:   beg,
-		e:   end,
-	}
-}
-
-func (c *chunker) next() (bool, error) {
-	find := func(key string) bool {
-		p := bytes.Index(c.buf, []byte(key))
-		if p == -1 {
-			return false
-		}
-		c.lp = c.p
-		c.p = c.ep + p
-		c.ep += p + len(key)
-		c.buf = c.buf[p+len(key):]
-		return true
-	}
-	if !find(c.b) {
-		return false, nil
-	}
-	if !find(c.e) {
-		return false, fmt.Errorf("failed to find end %q terminator", c.e)
-	}
-	return true, nil
-}
-
-func (c *chunker) pos() int {
-	return c.lp
-}
-
-func (c *chunker) end() int {
-	return c.ep
 }
