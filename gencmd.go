@@ -38,7 +38,7 @@ import (
 // of markdown files of prose, one per language, that reference directives
 // defined in a CUE package located in d. The markdown files and CUE package
 // represent the input to the gen command. The gen command is configured by
-// CUE-specified configuration that follows the #GenConfig schema.
+// CUE-specified configuration that follows the #PrestepServiceConfig schema.
 //
 // The gen command processes each directory d in turn. gen tries to evaluate a
 // CUE package ./d/out to determine whether a guide's steps need to be re-run.
@@ -60,13 +60,14 @@ import (
 //
 // Hence for now we adopt the simple approach of dual-maintaining Go types and
 // CUE definitions for configuration types
-// (github.com/play-with-go/preguide.genConfig ->
-// github.com/play-with-go/preguide.#GenConfig), the input types
+// (github.com/play-with-go/preguide/internal/types.PrestepServiceConfig ->
+// github.com/play-with-go/preguide.#PrestepServiceConfig), the input types
 // (github.com/play-with-go/preguide/internal/types ->
 // github.com/play-with-go/preguide) and the output types
 // (github.com/play-with-go/preguide -> github.com/play-with-go/preguide/out).
-// Theoretically we could code generate from genConfig -> #GenConfig, however
-// it's not really worth it given we are dual-maintaining the rest already.
+// Theoretically we could code generate from
+// internal/types.PrestepServiceConfig -> #PrestepServiceConfig, however it's
+// not really worth it given we are dual-maintaining the rest already.
 //
 // Given that we cannot automatically extract CUE definitions from Go types,
 // there is then a gap when it comes to runtime validation of
@@ -96,7 +97,7 @@ type genCmd struct {
 
 	// config is parse configuration that results from unifying all the provided
 	// config (which can be multiple CUE inputs)
-	config types.GenConfig
+	config types.PrestepServiceConfig
 }
 
 func newGenCmd() *genCmd {
@@ -196,7 +197,7 @@ func (r *runner) loadSchemas() {
 		return v
 	}
 
-	r.confDef = mustFind(preguide.LookupDef("#GenConfig"))
+	r.confDef = mustFind(preguide.LookupDef("#PrestepServiceConfig"))
 	r.guideDef = mustFind(preguide.LookupDef("#Guide"))
 	r.commandDef = mustFind(preguide.LookupDef("#Command"))
 	r.commandFileDef = mustFind(preguide.LookupDef("#CommandFile"))
@@ -208,8 +209,8 @@ func (r *runner) loadSchemas() {
 }
 
 // loadConfig loads the configuration that drives the gen command. This
-// configuration is described by the genConfig type, which is maintained
-// as the #GenConfig CUE definition.
+// configuration is described by the PrestepServiceConfig type, which is
+// maintained as the #PrestepServiceConfig CUE definition.
 func (r *runner) loadConfig() {
 	if len(r.genCmd.fConfigs) == 0 {
 		return

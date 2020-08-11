@@ -6,19 +6,22 @@ import (
 	"net/url"
 )
 
-// genConfig defines a mapping between the prestep pkg (which is essentially the
+// PrestepServiceConfig defines a mapping between the prestep pkg (which is essentially the
 // unique identifier for a prestep) and config for that prestep. For example,
 // github.com/play-with-go/gitea will map to an endpoint that explains where that
 // prestep can be "found". The Networks value represents a (non-production) config
 // that describes which Docker networks the request should be made within.
-type GenConfig map[string]*PrestepConfig
+type PrestepServiceConfig map[string]*ServiceConfig
 
-type PrestepConfig struct {
+// ServiceConfig defines a URL endpoint where a prestep can be accessed. It
+// also defines optional Docker networks to join when this service is accessed
+// by preguide in a development mode.
+type ServiceConfig struct {
 	Endpoint *url.URL
 	Networks []string
 }
 
-func (p *PrestepConfig) UnmarshalJSON(b []byte) error {
+func (p *ServiceConfig) UnmarshalJSON(b []byte) error {
 	var v struct {
 		Endpoint string
 		Networks []string
