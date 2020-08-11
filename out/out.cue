@@ -3,14 +3,9 @@ package out
 import "github.com/play-with-go/preguide"
 
 #GuideOutput: {
-	Presteps: [...#Prestep]
-	Image: string
-
+	#GuideStructure
 	Langs: [preguide.#Language]: #LangSteps
-
-	Defs: [string]: _
-
-	Terminals: [...#Terminal]
+	Defs: [string]:              _
 }
 
 _#stepCommon: {
@@ -61,4 +56,14 @@ _#stepCommon: {
 	_#stepCommon
 	Source: string
 	Target: string
+}
+
+// GuideStructures maps a guide name to its #GuideStructure
+#GuideStructures: [string]: #GuideStructure
+
+// A #GuideStructure defines the prestep and terminal
+// structure of a guide.
+#GuideStructure: {
+	Terminals: [...#Terminal]
+	Presteps: [...#Prestep]
 }

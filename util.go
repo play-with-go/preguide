@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
@@ -67,4 +68,55 @@ var markdownFile = regexp.MustCompile(`.(md|mkdn?|mdown|markdown)$`)
 func isMarkdown(name string) (string, bool) {
 	ext := markdownFile.FindString(name)
 	return ext, ext != ""
+}
+
+// A chunker is an iterator that allows walking over a []byte input, with steps
+// for each block found, where a block is identified by a start and end []byte
+// sequence. For preguide the start and end blocks are <!-- and -->
+// respectively, and the input is the guide prose that contains these
+// directives.
+type chunker struct {
+	b   string
+	e   string
+	buf []byte
+	p   int
+	ep  int
+	lp  int
+}
+
+func newChunker(b []byte, beg, end string) *chunker {
+	return &chunker{
+		buf: b,
+		b:   beg,
+		e:   end,
+	}
+}
+
+func (c *chunker) next() (bool, error) {
+	find := func(key string) bool {
+		p := bytes.Index(c.buf, []byte(key))
+		if p == -1 {
+			return false
+		}
+		c.lp = c.p
+		c.p = c.ep + p
+		c.ep += p + len(key)
+		c.buf = c.buf[p+len(key):]
+		return true
+	}
+	if !find(c.b) {
+		return false, nil
+	}
+	if !find(c.e) {
+		return false, fmt.Errorf("failed to find end %q terminator", c.e)
+	}
+	return true, nil
+}
+
+func (c *chunker) pos() int {
+	return c.lp
+}
+
+func (c *chunker) end() int {
+	return c.ep
 }
