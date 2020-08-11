@@ -844,15 +844,18 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	// TODO when we come to support multiple terminals this will need to be
 	// rethought. Perhaps something along the following lines:
 	//
-	// * Create a special bash script per terminal
+	// * We in effect create a special bash script per terminal. But we don't
+	// write that script and then run it in one shot, we instead use docker
+	// run -i and have bash read from stdin. This way we can control the order
+	// of events between terminals.
+	//
+	// * The stdout and stderr of the docker run process should be the same
+	// value (per os/exec) so that we get correctly interleaved stdout and
+	// stderr
 	//
 	// * The order of steps is defined by the natural source order of step
 	// names. That is to say, the first time a step declaration is encountered
 	// determines that step's position in the order of all steps
-	//
-	// * The control flow between terminals is managed by blocking bash. This
-	// seems doable with a read call, and a kill -SIGINT to the bash process
-	// then interrupts that
 	//
 	// * We only need to block a given terminal at the "edge" of handover
 	// between terminals
@@ -860,10 +863,8 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	// * We can determine the process ID of the special bash script by echo-ing
 	// $$ at the start of the special script.
 	//
-	// * This means we will need to attach stdout, stderr and stdin to each of
-	// the docker run instances for each terminal. This is fine because it
-	// opens the door for us being able to supply input over stdin should this
-	// ever be necessary
+	// * This is fine because it opens the door for us being able to supply
+	// input over stdin should this ever be necessary
 	//
 	// * Question is how to deal with blocking calls, e.g. running an http
 	// server. Support this initially by not allowing background processes or
@@ -876,6 +877,10 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 	// background processes then the next call _must_ be a <Ctrl-c> (even if
 	// that is the last command in a script), otherwise that script cannot make
 	// progress or return. This might be sufficient an indicator for now.
+	//
+	// * As part of this we should not expect a blocking call to echo the
+	// final code fence until we kill it, and vice versa: a non-blocking call
+	// should output the code fence (so we should wait until we see it)
 	//
 
 	var sb strings.Builder
