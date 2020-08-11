@@ -212,7 +212,7 @@ func (c *commandStep) renderCompat(w io.Writer) {
 		}
 		// Output a trailing newline if the last block of output did not include one
 		// otherwise the closing code block fence will not render properly
-		if stmt.Output[len(stmt.Output)-1] != '\n' {
+		if stmt.Output != "" && stmt.Output[len(stmt.Output)-1] != '\n' {
 			fmt.Fprintf(w, "\n")
 		}
 	}
@@ -228,7 +228,7 @@ func (c *commandStep) renderLog(w io.Writer) {
 		}
 		// Output a trailing newline if the last block of output did not include one
 		// otherwise the closing code block fence will not render properly
-		if stmt.Output[len(stmt.Output)-1] != '\n' {
+		if stmt.Output != "" && stmt.Output[len(stmt.Output)-1] != '\n' {
 			fmt.Fprintf(w, "\n")
 		}
 	}
