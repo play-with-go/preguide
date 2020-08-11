@@ -6,7 +6,7 @@ preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/sanitise.markdown sanitise/en.markdown.golden
-cmp sanitise/en_testlog.txt sanitise/en_testlog.txt.golden
+cmp sanitise/en_log.txt sanitise/en_log.txt.golden
 
 -- go.mod --
 module mod.com/init
@@ -72,7 +72,7 @@ $ git commit -am 'Initial commit'
  1 file changed, 1 insertion(+)
  create mode 100644 README
 ```
--- sanitise/en_testlog.txt.golden --
+-- sanitise/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

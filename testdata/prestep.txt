@@ -17,14 +17,14 @@ preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
-cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
+cmp prestep/en_log.txt prestep/en_log.txt.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
 cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
-cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
+cmp prestep/en_log.txt prestep/en_log.txt.golden
 
 # Verify that changing the prestep causes a new output
 cp version.2 version
@@ -32,7 +32,7 @@ preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/prestep.markdown prestep/en.markdown.other.golden
-cmp prestep/en_testlog.txt prestep/en_testlog.txt.other.golden
+cmp prestep/en_log.txt prestep/en_log.txt.other.golden
 
 # Now do docker tests by running the server in a docker container.
 # Because this involves running ourselves, we need to set the
@@ -44,7 +44,7 @@ preguide gen -docker $PREGUIDE_IMAGE_OVERRIDE -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
-cmp prestep/en_testlog.txt prestep/en_testlog.txt.golden
+cmp prestep/en_log.txt prestep/en_log.txt.golden
 
 -- go.mod --
 module mod.com/init
@@ -109,7 +109,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 ```
--- prestep/en_testlog.txt.golden --
+-- prestep/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
@@ -139,7 +139,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: !
 ```
--- prestep/en_testlog.txt.other.golden --
+-- prestep/en_log.txt.other.golden --
 Terminals: [
   {
     "Name": "term1",

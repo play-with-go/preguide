@@ -6,7 +6,7 @@ preguide gen -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/_posts/sanitise.markdown sanitise/en.markdown.golden
-cmp sanitise/en_testlog.txt sanitise/en_testlog.txt.golden
+cmp sanitise/en_log.txt sanitise/en_log.txt.golden
 
 -- sanitise/en.markdown --
 ---
@@ -100,7 +100,7 @@ Hello, world... from the test!
 PASS
 ok  	_/home/gopher	0.042s
 ```
--- sanitise/en_testlog.txt.golden --
+-- sanitise/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
