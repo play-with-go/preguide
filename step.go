@@ -124,14 +124,14 @@ type commandStmt struct {
 // commandStepFromCommand takes a string value that is a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case s cannot be parsed
-func commandStepFromCommand(name string, s *types.Command) (*commandStep, error) {
+func commandStepFromCommand(s *types.Command) (*commandStep, error) {
 	r := strings.NewReader(s.Source)
 	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse command string %q: %v", s, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:     name,
+		Name:     s.Name,
 		Terminal: s.Terminal,
 	})
 	return commadStepFromSyntaxFile(res, f)
@@ -140,7 +140,7 @@ func commandStepFromCommand(name string, s *types.Command) (*commandStep, error)
 // commandStepFromCommandFile takes a path to a file that contains a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case path cannot be read or parsed
-func commandStepFromCommandFile(name string, s *types.CommandFile) (*commandStep, error) {
+func commandStepFromCommandFile(s *types.CommandFile) (*commandStep, error) {
 	byts, err := ioutil.ReadFile(s.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", s.Path, err)
@@ -151,7 +151,7 @@ func commandStepFromCommandFile(name string, s *types.CommandFile) (*commandStep
 		return nil, fmt.Errorf("failed to parse commands from %v: %v", s.Path, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:     name,
+		Name:     s.Name,
 		Terminal: s.Terminal,
 	})
 	return commadStepFromSyntaxFile(res, f)
@@ -266,22 +266,22 @@ func (u *uploadStep) setorder(i int) {
 	u.Order = i
 }
 
-func uploadStepFromUpload(name string, u *types.Upload) (*uploadStep, error) {
+func uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
 	res := newUploadStep(uploadStep{
-		Name:   name,
+		Name:   u.Name,
 		Source: u.Source,
 		Target: u.Target,
 	})
 	return res, nil
 }
 
-func uploadStepFromUploadFile(name string, u *types.UploadFile) (*uploadStep, error) {
+func uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
 	byts, err := ioutil.ReadFile(u.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
 	}
 	res := newUploadStep(uploadStep{
-		Name:   name,
+		Name:   u.Name,
 		Source: string(byts),
 		Target: u.Target,
 	})

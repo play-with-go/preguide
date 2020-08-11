@@ -24,6 +24,7 @@ type Guide struct {
 }
 
 type Terminal struct {
+	Name  string
 	Image string
 }
 
@@ -97,6 +98,7 @@ type Step interface {
 type Command struct {
 	StepTypeVal StepType `json:"StepType"`
 	Terminal    string
+	Name        string
 	Source      string
 }
 
@@ -109,6 +111,7 @@ func (c *Command) StepType() StepType {
 type CommandFile struct {
 	StepTypeVal StepType `json:"StepType"`
 	Terminal    string
+	Name        string
 	Path        string
 }
 
@@ -121,6 +124,7 @@ func (c *CommandFile) StepType() StepType {
 type Upload struct {
 	StepTypeVal StepType `json:"StepType"`
 	Terminal    string
+	Name        string
 	Target      string
 	Source      string
 }
@@ -134,6 +138,7 @@ func (c *Upload) StepType() StepType {
 type UploadFile struct {
 	StepTypeVal StepType `json:"StepType"`
 	Terminal    string
+	Name        string
 	Target      string
 	Path        string
 }
