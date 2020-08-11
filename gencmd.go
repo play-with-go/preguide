@@ -398,7 +398,7 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 	for _, tp := range termPositions {
 		n := tp.name
 		t := intGuide.Terminals[n]
-		g.Terminals = append(g.Terminals, newTerminal(n, t))
+		g.Terminals = append(g.Terminals, t)
 	}
 
 	if len(intGuide.Steps) > 0 {
@@ -446,22 +446,22 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 			var s step
 			switch is := v.(type) {
 			case *types.Command:
-				s, err = commandStepFromCommand(stepName, is)
+				s, err = commandStepFromCommand(is)
 				check(err, "failed to parse #Command from step %v: %v", stepName, err)
 			case *types.CommandFile:
 				if !filepath.IsAbs(is.Path) {
 					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				s, err = commandStepFromCommandFile(stepName, is)
+				s, err = commandStepFromCommandFile(is)
 				check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
 			case *types.Upload:
-				s, err = uploadStepFromUpload(stepName, is)
+				s, err = uploadStepFromUpload(is)
 				check(err, "failed to parse #Upload from step %v: %v", stepName, err)
 			case *types.UploadFile:
 				if !filepath.IsAbs(is.Path) {
 					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				s, err = uploadStepFromUploadFile(stepName, is)
+				s, err = uploadStepFromUploadFile(is)
 				check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
 			}
 			ls, ok := g.Langs[code]

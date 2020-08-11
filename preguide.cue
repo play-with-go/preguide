@@ -15,6 +15,7 @@ import "list"
 	#Step: (#Command | #CommandFile | #Upload | #UploadFile ) & _#stepCommon
 
 	_#stepCommon: {
+		Name:     string
 		StepType: #StepType
 		Terminal: string
 		...
@@ -48,6 +49,7 @@ import "list"
 
 	#Terminal: {
 		// Image is the Docker image that will be used for the terminal session
+		Name:  string
 		Image: string
 	}
 
@@ -60,10 +62,12 @@ import "list"
 
 	Steps: [string]: [#Language]: #Step
 
-	// TODO: remove post upgrade to latest CUE? Because at that point
-	// the defaulting in #TerminalName will work
-	Steps: [string]: en: {
+	Steps: [name=string]: [#Language]: {
+		// TODO: remove post upgrade to latest CUE? Because at that point
+		// the defaulting in #TerminalName will work
 		Terminal: *#TerminalNames[0] | string
+
+		Name: name
 	}
 
 	// TODO: remove post upgrade to latest CUE? Because at that point
@@ -73,6 +77,10 @@ import "list"
 
 	// Terminals defines the required remote VMs for a given guide
 	Terminals: [string]: #Terminal
+
+	Terminals: [name=string]: {
+		Name: name
+	}
 
 	Defs: [string]: _
 }

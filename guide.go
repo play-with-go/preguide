@@ -35,7 +35,7 @@ type guide struct {
 
 	Langs map[types.LangCode]*langSteps
 
-	Terminals []*terminal
+	Terminals []*types.Terminal
 
 	instance    *cue.Instance
 	outinstance *cue.Instance
@@ -54,22 +54,6 @@ type guide struct {
 // TODO drop this when we support multiple terminals
 func (g *guide) Image() string {
 	return g.Terminals[0].Image
-}
-
-// Embed *types.Terminal once we have a solution to cuelang.org/issue/376
-type terminal struct {
-	Name  string
-	Image string
-}
-
-func newTerminal(name string, t *types.Terminal) *terminal {
-	res := &terminal{
-		Name: name,
-	}
-	if t != nil {
-		res.Image = t.Image
-	}
-	return res
 }
 
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376
