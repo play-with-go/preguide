@@ -224,7 +224,7 @@ func modInit(dir string) (err error) {
 
 	// TODO this approach is not particularly robust. But doesn't really matter
 	// because with CUE modules the problem will go away
-	bps := load.Instances([]string{".", "./out"}, nil)
+	bps := load.Instances([]string{"github.com/play-with-go/preguide", "github.com/play-with-go/preguide/out"}, nil)
 	for _, bp := range bps {
 		pkgRootBits := []string{modDir, "pkg"}
 		pkgRootBits = append(pkgRootBits, strings.Split(bp.Module, "/")...)
