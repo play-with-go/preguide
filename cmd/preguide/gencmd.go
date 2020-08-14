@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/ast"
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/parser"
@@ -94,6 +95,10 @@ type genCmd struct {
 	fPullImage     *string
 	fDocker        *string
 	fRaw           *bool
+	fPackage       *string
+
+	// dir is the absolute path of the working directory specified by -dir
+	dir string
 
 	// config is parse configuration that results from unifying all the provided
 	// config (which can be multiple CUE inputs)
@@ -115,6 +120,7 @@ func newGenCmd(r *runner) *genCmd {
 		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
 		res.fDocker = fs.String("docker", os.Getenv("PREGUIDE_DOCKER"), "run prestep requests in a docker container configured by the arguments passed to this flag")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
+		res.fPackage = fs.String("package", "", "the CUE package name to use for the generated guide structure file")
 	})
 	return res
 }
@@ -132,12 +138,15 @@ func (gc *genCmd) usageErr(format string, args ...interface{}) usageErr {
 
 // runGen is the implementation of the gen command.
 func (gc *genCmd) run(args []string) error {
+	var err error
 	if err := gc.fs.Parse(args); err != nil {
 		return gc.usageErr("failed to parse flags: %v", err)
 	}
 	if gc.fOutput == nil || *gc.fOutput == "" {
 		return gc.usageErr("target directory must be specified")
 	}
+	gc.dir, err = filepath.Abs(*gc.fDir)
+	check(err, "failed to derive absolute directory from %q: %v", *gc.fDir, err)
 
 	// Fallback to env-supplied config if no values supplied via -config flag
 	if len(gc.fConfigs) == 0 {
@@ -1191,7 +1200,18 @@ func (gc *genCmd) writeGuideStructures() {
 	}
 	v, err := gc.codec.Decode(structures)
 	check(err, "failed to decode guide structures to CUE value: %v", err)
-	syn, err := format.Node(v.Syntax())
+	s := v.Syntax().(*ast.StructLit)
+	f := &ast.File{}
+	pkgName := *gc.fPackage
+	if pkgName == "" {
+		pkgName = filepath.Base(gc.dir)
+		pkgName = strings.ReplaceAll(pkgName, "-", "_")
+	}
+	f.Decls = append(f.Decls, &ast.Package{
+		Name: ast.NewIdent(pkgName),
+	})
+	f.Decls = append(f.Decls, s.Elts...)
+	syn, err := format.Node(f)
 	check(err, "failed to convert guide structures to CUE syntax: %v", err)
 	outPath := filepath.Join(*gc.fDir, "gen_guide_structures.cue")
 	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
