@@ -27,7 +27,6 @@ import (
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/kr/pretty"
-	"github.com/play-with-go/preguide/internal/embed"
 	"github.com/play-with-go/preguide/internal/types"
 	"golang.org/x/net/html"
 )
@@ -80,6 +79,7 @@ import (
 // github.com/play-with-go/preguide and github.com/play-with-go/preguide/out
 // CUE packages using go-bindata.
 type genCmd struct {
+	*runner
 	fs *flag.FlagSet
 
 	// See the initialisation of the flag fields for comments on their purpose
@@ -100,8 +100,10 @@ type genCmd struct {
 	config types.PrestepServiceConfig
 }
 
-func newGenCmd() *genCmd {
-	res := &genCmd{}
+func newGenCmd(r *runner) *genCmd {
+	res := &genCmd{
+		runner: r,
+	}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
 		fs.Var(stringFlagList{&res.fConfigs}, "config", "CUE-style configuration input; can appear multiple times. See 'cue help inputs'")
@@ -124,37 +126,37 @@ usage: preguide gen
 %s`[1:], g.flagDefaults)
 }
 
-func (g *genCmd) usageErr(format string, args ...interface{}) usageErr {
-	return usageErr{fmt.Errorf(format, args...), g}
+func (gc *genCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), gc}
 }
 
 // runGen is the implementation of the gen command.
-func (r *runner) runGen(args []string) error {
-	if err := r.genCmd.fs.Parse(args); err != nil {
-		return r.genCmd.usageErr("failed to parse flags: %v", err)
+func (gc *genCmd) run(args []string) error {
+	if err := gc.fs.Parse(args); err != nil {
+		return gc.usageErr("failed to parse flags: %v", err)
 	}
-	if r.genCmd.fOutput == nil || *r.genCmd.fOutput == "" {
-		return r.genCmd.usageErr("target directory must be specified")
+	if gc.fOutput == nil || *gc.fOutput == "" {
+		return gc.usageErr("target directory must be specified")
 	}
 
 	// Fallback to env-supplied config if no values supplied via -config flag
-	if len(r.genCmd.fConfigs) == 0 {
+	if len(gc.fConfigs) == 0 {
 		envVals := strings.Split(os.Getenv("PREGUIDE_CONFIG"), ":")
 		for _, v := range envVals {
 			v = strings.TrimSpace(v)
 			if v != "" {
-				r.genCmd.fConfigs = append(r.genCmd.fConfigs, v)
+				gc.fConfigs = append(gc.fConfigs, v)
 			}
 		}
 	}
 
-	r.loadSchemas()
+	gc.loadSchemas()
 
-	r.loadConfig()
+	gc.loadConfig()
 
 	// Read the source directory and process each guide (directory)
-	dir, err := filepath.Abs(*r.genCmd.fDir)
-	check(err, "failed to make path %q absolute: %v", *r.genCmd.fDir, err)
+	dir, err := filepath.Abs(*gc.fDir)
+	check(err, "failed to make path %q absolute: %v", *gc.fDir, err)
 	es, err := ioutil.ReadDir(dir)
 	check(err, "failed to read directory %v: %v", dir, err)
 	for _, e := range es {
@@ -165,78 +167,40 @@ func (r *runner) runGen(args []string) error {
 		if strings.HasPrefix(e.Name(), ".") || strings.HasPrefix(e.Name(), "_") || e.Name() == "testdata" {
 			continue
 		}
-		r.processDir(filepath.Join(dir, e.Name()))
+		gc.processDir(filepath.Join(dir, e.Name()))
 	}
-	r.writeGuideStructures()
+	gc.writeGuideStructures()
 	return nil
-}
-
-// loadSchemas loads the CUE schemas (definitions) we require to validate the
-// configuration, input and output to preguide gen. The load process uses a CUE
-// overlay wrapped around the the go-bindata generated embedding.
-func (r *runner) loadSchemas() {
-	overlay := make(map[string]load.Source)
-	for _, asset := range embed.AssetNames() {
-		contents, err := embed.Asset(asset)
-		if err != nil {
-			panic(err)
-		}
-		overlay[filepath.Join("/", asset)] = load.FromBytes(contents)
-	}
-	conf := &load.Config{
-		Dir:     "/",
-		Overlay: overlay,
-	}
-	bps := load.Instances([]string{".", "./out"}, conf)
-	preguide, err := r.runtime.Build(bps[0])
-	check(err, "failed to compile github.com/play-with-go/preguide package: %v", err)
-	preguideOut, err := r.runtime.Build(bps[1])
-	check(err, "failed to compile github.com/play-with-go/preguide/out package: %v", err)
-
-	mustFind := func(v cue.Value) cue.Value {
-		check(v.Err(), "failed to find definition: %v", v)
-		return v
-	}
-
-	r.confDef = mustFind(preguide.LookupDef("#PrestepServiceConfig"))
-	r.guideDef = mustFind(preguide.LookupDef("#Guide"))
-	r.commandDef = mustFind(preguide.LookupDef("#Command"))
-	r.commandFileDef = mustFind(preguide.LookupDef("#CommandFile"))
-	r.uploadDef = mustFind(preguide.LookupDef("#Upload"))
-	r.uploadFileDef = mustFind(preguide.LookupDef("#UploadFile"))
-	r.guideOutDef = mustFind(preguideOut.LookupDef("#GuideOutput"))
-	r.commandStep = mustFind(preguideOut.LookupDef("#CommandStep"))
-	r.uploadStep = mustFind(preguideOut.LookupDef("#UploadStep"))
 }
 
 // loadConfig loads the configuration that drives the gen command. This
 // configuration is described by the PrestepServiceConfig type, which is
 // maintained as the #PrestepServiceConfig CUE definition.
-func (r *runner) loadConfig() {
-	if len(r.genCmd.fConfigs) == 0 {
+func (gc *genCmd) loadConfig() {
+	if len(gc.fConfigs) == 0 {
 		return
 	}
 
 	// res will hold the config result
 	var res cue.Value
 
-	bis := load.Instances(r.genCmd.fConfigs, nil)
+	bis := load.Instances(gc.fConfigs, nil)
 	for i, bi := range bis {
-		inst, err := r.runtime.Build(bi)
-		check(err, "failed to load config from %v: %v", r.genCmd.fConfigs[i], err)
+		inst, err := gc.runtime.Build(bi)
+		check(err, "failed to load config from %v: %v", gc.fConfigs[i], err)
 		res = res.Unify(inst.Value())
 	}
 
-	res = r.confDef.Unify(res)
+	res = gc.confDef.Unify(res)
 	err := res.Validate()
 	check(err, "failed to validate input config: %v", err)
 
 	// Now we can extract the config from the CUE
-	err = r.codec.Encode(res, &r.genCmd.config)
+	err = gc.codec.Encode(res, &gc.config)
 	check(err, "failed to decode config from CUE value: %v", err)
 
 	// Now validate that we don't have any networks for file protocol endpoints
-	for ps, conf := range r.genCmd.config {
+	for ps, conf := range gc.config {
 		if conf.Endpoint.Scheme == "file" && len(conf.Networks) > 0 {
 			raise("prestep %v defined a file scheme endpoint %v but provided networks [%v]", ps, conf.Endpoint, conf.Networks)
 		}
@@ -246,31 +210,31 @@ func (r *runner) loadConfig() {
 // processDir processes the guide (CUE package and markdown files) found in
 // dir. See the documentation for genCmd for more details. Returns a guide if
 // markdown files are found and successfully processed, else nil.
-func (r *runner) processDir(dir string) {
+func (gc *genCmd) processDir(dir string) {
 	g := &guide{
 		dir:    dir,
 		name:   filepath.Base(dir),
-		target: *r.genCmd.fOutput,
+		target: *gc.fOutput,
 		Langs:  make(map[types.LangCode]*langSteps),
 		varMap: make(map[string]string),
 	}
 
-	r.loadMarkdownFiles(g)
+	gc.loadMarkdownFiles(g)
 	if len(g.mdFiles) == 0 {
 		return
 	}
 
-	r.validateAndLoadsSteps(g)
+	gc.validateAndLoadsSteps(g)
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
 	// mode, we do want to try and load the out CUE package; this is
 	// in effect like the Go build cache check.
-	if !*r.genCmd.fRaw {
-		r.loadOutput(g, false)
+	if !*gc.fRaw {
+		gc.loadOutput(g, false)
 	}
 
-	stepCount := r.validateStepAndRefDirs(g)
+	stepCount := gc.validateStepAndRefDirs(g)
 
 	// If we have any steps to run, for each language build a bash file that
 	// represents the script to run. Then check whether the hash representing
@@ -282,12 +246,12 @@ func (r *runner) processDir(dir string) {
 		outputLoadRequired := false
 		for _, l := range g.langs {
 			ls := g.Langs[l]
-			r.buildBashFile(g, ls)
-			if !*r.genCmd.fSkipCache {
+			gc.buildBashFile(g, ls)
+			if !*gc.fSkipCache {
 				if out := g.outputGuide; out != nil {
 					if ols := out.Langs[l]; ols != nil {
 						if ols.Hash == ls.Hash {
-							r.debugf("cache hit for %v: will not re-run script\n", l)
+							gc.debugf("cache hit for %v: will not re-run script\n", l)
 							ls.Steps = ols.Steps
 							ls.steps = ols.steps
 							continue
@@ -296,26 +260,26 @@ func (r *runner) processDir(dir string) {
 				}
 			}
 			outputLoadRequired = true
-			r.runBashFile(g, ls)
+			gc.runBashFile(g, ls)
 		}
-		r.writeOutPackage(g)
-		if !*r.genCmd.fRaw && (outputLoadRequired || g.outputGuide == nil) {
-			r.loadOutput(g, true)
+		gc.writeOutPackage(g)
+		if !*gc.fRaw && (outputLoadRequired || g.outputGuide == nil) {
+			gc.loadOutput(g, true)
 		}
 	}
 
-	r.validateOutRefsDirs(g)
+	gc.validateOutRefsDirs(g)
 
-	r.writeGuideOutput(g)
+	gc.writeGuideOutput(g)
 
-	r.writeLog(g)
+	gc.writeLog(g)
 
-	r.guides = append(r.guides, g)
+	gc.guides = append(gc.guides, g)
 }
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
 // files are named according to isMarkdown, e.g en.markdown.
-func (r *runner) loadMarkdownFiles(g *guide) {
+func (gc *genCmd) loadMarkdownFiles(g *guide) {
 	es, err := ioutil.ReadDir(g.dir)
 	check(err, "failed to read directory %v: %v", g.dir, err)
 
@@ -345,7 +309,7 @@ func (r *runner) loadMarkdownFiles(g *guide) {
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (r *runner) validateAndLoadsSteps(g *guide) {
+func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -359,7 +323,7 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
-	gi, err := r.runtime.Build(gp)
+	gi, err := gc.runtime.Build(gp)
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
 
 	g.instance = gi
@@ -373,7 +337,7 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 	// We derive dv here because default values will be available via that
 	// where required, but will not have source information (which is required
 	// below)
-	gv = gv.Unify(r.guideDef)
+	gv = gv.Unify(gc.guideDef)
 	err = gv.Validate()
 	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Guide: %v", gp.ImportPath, err)
 
@@ -417,11 +381,11 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 			if ps.Package == "" {
 				raise("Prestep had empty package")
 			}
-			if v, ok := r.seenPrestepPkgs[ps.Package]; ok {
+			if v, ok := gc.seenPrestepPkgs[ps.Package]; ok {
 				ps.Version = v
 			} else {
 				// Resolve and endpoint for the package
-				conf, ok := r.genCmd.config[ps.Package]
+				conf, ok := gc.config[ps.Package]
 				if !ok {
 					raise("no config found for prestep %v", ps.Package)
 				}
@@ -429,9 +393,9 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 				if conf.Endpoint.Scheme == "file" {
 					version = "file"
 				} else {
-					version = string(r.genCmd.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf.Networks))
+					version = string(gc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf.Networks))
 				}
-				r.seenPrestepPkgs[ps.Package] = version
+				gc.seenPrestepPkgs[ps.Package] = version
 				ps.Version = version
 			}
 			g.Presteps = append(g.Presteps, &ps)
@@ -532,7 +496,7 @@ func (r *runner) validateAndLoadsSteps(g *guide) {
 // or not, the out package may not exist (first time that preguide has been
 // run for example). However, if we then go on to run the steps (cache miss),
 // we then re-load the output in order to validate the outref directives.
-func (r *runner) loadOutput(g *guide, fail bool) {
+func (gc *genCmd) loadOutput(g *guide, fail bool) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -547,7 +511,7 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 		return
 	}
 
-	gi, err := r.runtime.Build(gp)
+	gi, err := gc.runtime.Build(gp)
 	if err != nil {
 		if fail {
 			raise("failed to build %v: %v", gp.ImportPath, err)
@@ -558,7 +522,7 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	if err := gv.Unify(r.guideOutDef).Validate(); err != nil {
+	if err := gv.Unify(gc.guideOutDef).Validate(); err != nil {
 		if fail {
 			raise("failed to validate %v against out schema: %v", gp.ImportPath, err)
 		}
@@ -589,7 +553,7 @@ func (r *runner) loadOutput(g *guide, fail bool) {
 // files are valid. That is, they resolve to either a named step of a reference
 // directive. Out reference directives (e.g. <!-- outref: cmdoutput -->) are
 // checked later (once we are guaranteed the out CUE package exists).
-func (r *runner) validateStepAndRefDirs(g *guide) (stepCount int) {
+func (gc *genCmd) validateStepAndRefDirs(g *guide) (stepCount int) {
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
 
@@ -656,7 +620,7 @@ func (r *runner) validateStepAndRefDirs(g *guide) (stepCount int) {
 // This second pass of checking the outrefs specifically is required because
 // only at this stage in the processing of a guide can we be guaranteed that
 // the out package exists (and hence any outref directives) resolve.
-func (r *runner) validateOutRefsDirs(g *guide) {
+func (gc *genCmd) validateOutRefsDirs(g *guide) {
 	for _, mdf := range g.mdFiles {
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
@@ -687,8 +651,8 @@ func (r *runner) validateOutRefsDirs(g *guide) {
 	}
 }
 
-func (r *runner) writeOutPackage(g *guide) {
-	enc := gocodec.New(&r.runtime, nil)
+func (gc *genCmd) writeOutPackage(g *guide) {
+	enc := gocodec.New(&gc.runner.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
 	byts, err := format.Node(v.Syntax())
@@ -696,7 +660,7 @@ func (r *runner) writeOutPackage(g *guide) {
 	check(err, "failed to format CUE output: %v", err)
 
 	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
-	if *r.genCmd.fRaw {
+	if *gc.fRaw {
 		fmt.Printf("%s", out)
 		return
 	}
@@ -709,7 +673,7 @@ func (r *runner) writeOutPackage(g *guide) {
 	check(err, "failed to write output to %v: %v", outFilePath, err)
 }
 
-func (r *runner) runBashFile(g *guide, ls *langSteps) {
+func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 	// Now run the pre-step if there is one
 	var toWrite string
 	for _, ps := range g.Presteps {
@@ -720,7 +684,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 
 		// At this stage we know we have a valid endpoint (because we previously
 		// checked it via a get-version=1 request)
-		conf := r.genCmd.config[ps.Package]
+		conf := gc.config[ps.Package]
 		if conf.Endpoint.Scheme == "file" {
 			if len(ps.Args) > 0 {
 				raise("prestep %v provides with arguments [%v]: but prestep is configured with a file endpoint", ps.Package, pretty.Sprint(ps.Args))
@@ -731,7 +695,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 			jsonBody, err = ioutil.ReadFile(path)
 			check(err, "failed to read file endpoint %v (file %v): %v", conf.Endpoint, path, err)
 		} else {
-			jsonBody = r.genCmd.doRequest("POST", conf.Endpoint.String(), conf.Networks, ps.Args) // Do not splat args
+			jsonBody = gc.doRequest("POST", conf.Endpoint.String(), conf.Networks, ps.Args) // Do not splat args
 		}
 
 		// TODO: unmarshal jsonBody into a cue.Value, validate against a schema
@@ -779,15 +743,15 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	// of finding the image for that single terminal. We we support multiple
 	// terminals we will need to move away from that hack
 	image := g.Image()
-	if *r.genCmd.fImageOverride != "" {
-		image = *r.genCmd.fImageOverride
+	if *gc.fImageOverride != "" {
+		image = *gc.fImageOverride
 	}
 
 	imageCheck := exec.Command("docker", "inspect", image)
 	out, err := imageCheck.CombinedOutput()
 	if err != nil {
-		if *r.genCmd.fPullImage == pullImageMissing {
-			r.debugf("failed to find docker image %v (%v); will attempt pull", image, err)
+		if *gc.fPullImage == pullImageMissing {
+			gc.debugf("failed to find docker image %v (%v); will attempt pull", image, err)
 			pull := exec.Command("docker", "pull", image)
 			out, err = pull.CombinedOutput()
 			check(err, "failed to find docker image %v; also failed to pull it: %v\n%s", image, err, out)
@@ -808,7 +772,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 
-	r.debugf("output from [%v]:\n%s", strings.Join(cmd.Args, " "), out)
+	gc.debugf("output from [%v]:\n%s", strings.Join(cmd.Args, " "), out)
 
 	walk := out
 	slurp := func(end []byte) (res string) {
@@ -831,7 +795,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 				}
 				walk = walk[len(fence):]
 				stmt.Output = slurp(fence)
-				if !*r.genCmd.fRaw {
+				if !*gc.fRaw {
 					for _, s := range append(stmt.sanitisers, g.sanitiseVars) {
 						stmt.Output = s(stmt.Output)
 					}
@@ -846,7 +810,7 @@ func (r *runner) runBashFile(g *guide, ls *langSteps) {
 
 // buildBashFile creates a bash file to run for the language-specific steps of
 // a guide.
-func (r *runner) buildBashFile(g *guide, ls *langSteps) {
+func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 	// TODO when we come to support multiple terminals this will need to be
 	// rethought. Perhaps something along the following lines:
 	//
@@ -898,7 +862,7 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 		fmt.Fprintf(h, format, args...)
 	}
 	// Write the module info for github.com/play-with-go/preguide
-	hf("preguide: %#v\n", r.buildInfo)
+	hf("preguide: %#v\n", gc.buildInfo)
 	// We write the Presteps information to the hash, and only run the pre-step
 	// if we have a cache miss and come to run the bash file. Note that
 	// this _includes_ the buildID (hence the use of pretty.Sprint rather
@@ -949,7 +913,7 @@ func (r *runner) buildBashFile(g *guide, ls *langSteps) {
 			panic(fmt.Errorf("can't yet handle steps of type %T", step))
 		}
 	}
-	r.debugf("Bash script:\n%v", sb.String())
+	gc.debugf("Bash script:\n%v", sb.String())
 	ls.bashScript = sb.String()
 	ls.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
@@ -1211,9 +1175,9 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 // github.com/play-with-go/preguide/out.#GuideStructures to the working
 // directory. This config can then be used directly by a controller for the
 // guides found in that directory.
-func (r *runner) writeGuideStructures() {
+func (gc *genCmd) writeGuideStructures() {
 	structures := make(map[string]guideStructure)
-	for _, guide := range r.guides {
+	for _, guide := range gc.guides {
 		s := guideStructure{
 			Terminals: guide.Terminals,
 		}
@@ -1225,17 +1189,11 @@ func (r *runner) writeGuideStructures() {
 		}
 		structures[guide.name] = s
 	}
-	v, err := r.codec.Decode(structures)
+	v, err := gc.codec.Decode(structures)
 	check(err, "failed to decode guide structures to CUE value: %v", err)
 	syn, err := format.Node(v.Syntax())
 	check(err, "failed to convert guide structures to CUE syntax: %v", err)
-	outPath := filepath.Join(*r.genCmd.fDir, "gen_guide_structures.cue")
+	outPath := filepath.Join(*gc.fDir, "gen_guide_structures.cue")
 	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
 	check(err, "failed to write guide structures output to %v: %v", outPath, err)
-}
-
-func (r *runner) debugf(format string, args ...interface{}) {
-	if *r.fDebug {
-		fmt.Fprintf(os.Stderr, format, args...)
-	}
 }

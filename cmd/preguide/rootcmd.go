@@ -25,6 +25,7 @@ type cmd interface {
 }
 
 type rootCmd struct {
+	*runner
 	fs           *flag.FlagSet
 	flagDefaults string
 	fDebug       *bool
@@ -53,8 +54,10 @@ func newFlagSet(name string, setupFlags func(*flag.FlagSet)) string {
 	return strings.Join(lines, "\n")
 }
 
-func newRootCmd() *rootCmd {
-	res := &rootCmd{}
+func newRootCmd(r *runner) *rootCmd {
+	res := &rootCmd{
+		runner: r,
+	}
 	res.flagDefaults = newFlagSet("preguide", func(fs *flag.FlagSet) {
 		res.fs = fs
 		res.fDebug = fs.Bool("debug", false, "include debug output")

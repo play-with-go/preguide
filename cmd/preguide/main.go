@@ -21,10 +21,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime/debug"
 
 	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/load"
 	"cuelang.org/go/encoding/gocode/gocodec"
+	"github.com/play-with-go/preguide/internal/embed"
 )
 
 func main() { os.Exit(main1()) }
@@ -32,11 +35,11 @@ func main() { os.Exit(main1()) }
 func main1() int {
 	r := newRunner()
 
-	r.rootCmd = newRootCmd()
-	r.genCmd = newGenCmd()
-	r.initCmd = newInitCmd()
+	r.rootCmd = newRootCmd(r)
+	r.genCmd = newGenCmd(r)
+	r.initCmd = newInitCmd(r)
 	r.helpCmd = newHelpCmd(r)
-	r.dockerCmd = newDockerCmd()
+	r.dockerCmd = newDockerCmd(r)
 
 	err := r.mainerr()
 	if err == nil {
@@ -118,13 +121,13 @@ func (r *runner) mainerr() (err error) {
 	cmd := args[0]
 	switch cmd {
 	case "gen":
-		return r.runGen(args[1:])
+		return r.genCmd.run(args[1:])
 	case "init":
-		return r.runInit(args[1:])
+		return r.initCmd.run(args[1:])
 	case "docker":
-		return r.runDocker(args[1:])
+		return r.dockerCmd.run(args[1:])
 	case "help":
-		return r.runHelp(args[1:])
+		return r.helpCmd.run(args[1:])
 	default:
 		return r.rootCmd.usageErr("unknown command: " + cmd)
 	}
@@ -152,5 +155,49 @@ func (r *runner) readBuildInfo() {
 		}
 	} else {
 		r.buildInfo = bi.Main.Version + " " + bi.Main.Sum
+	}
+}
+
+// loadSchemas loads the CUE schemas (definitions) we require to validate the
+// configuration, input and output to preguide gen. The load process uses a CUE
+// overlay wrapped around the the go-bindata generated embedding.
+func (r *runner) loadSchemas() {
+	overlay := make(map[string]load.Source)
+	for _, asset := range embed.AssetNames() {
+		contents, err := embed.Asset(asset)
+		if err != nil {
+			panic(err)
+		}
+		overlay[filepath.Join("/", asset)] = load.FromBytes(contents)
+	}
+	conf := &load.Config{
+		Dir:     "/",
+		Overlay: overlay,
+	}
+	bps := load.Instances([]string{".", "./out"}, conf)
+	preguide, err := r.runtime.Build(bps[0])
+	check(err, "failed to compile github.com/play-with-go/preguide package: %v", err)
+	preguideOut, err := r.runtime.Build(bps[1])
+	check(err, "failed to compile github.com/play-with-go/preguide/out package: %v", err)
+
+	mustFind := func(v cue.Value) cue.Value {
+		check(v.Err(), "failed to find definition: %v", v)
+		return v
+	}
+
+	r.confDef = mustFind(preguide.LookupDef("#PrestepServiceConfig"))
+	r.guideDef = mustFind(preguide.LookupDef("#Guide"))
+	r.commandDef = mustFind(preguide.LookupDef("#Command"))
+	r.commandFileDef = mustFind(preguide.LookupDef("#CommandFile"))
+	r.uploadDef = mustFind(preguide.LookupDef("#Upload"))
+	r.uploadFileDef = mustFind(preguide.LookupDef("#UploadFile"))
+	r.guideOutDef = mustFind(preguideOut.LookupDef("#GuideOutput"))
+	r.commandStep = mustFind(preguideOut.LookupDef("#CommandStep"))
+	r.uploadStep = mustFind(preguideOut.LookupDef("#UploadStep"))
+}
+
+func (r *runner) debugf(format string, args ...interface{}) {
+	if *r.fDebug {
+		fmt.Fprintf(os.Stderr, format, args...)
 	}
 }
