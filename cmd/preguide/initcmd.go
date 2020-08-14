@@ -6,29 +6,32 @@ import (
 )
 
 type initCmd struct {
+	*runner
 	fs           *flag.FlagSet
 	flagDefaults string
 }
 
-func newInitCmd() *initCmd {
-	res := &initCmd{}
+func newInitCmd(r *runner) *initCmd {
+	res := &initCmd{
+		runner: r,
+	}
 	res.flagDefaults = newFlagSet("preguide init", func(fs *flag.FlagSet) {
 		res.fs = fs
 	})
 	return res
 }
 
-func (i *initCmd) usage() string {
+func (ic *initCmd) usage() string {
 	return fmt.Sprintf(`
 usage: preguide init
 
-%s`[1:], i.flagDefaults)
+%s`[1:], ic.flagDefaults)
 }
 
-func (i *initCmd) usageErr(format string, args ...interface{}) usageErr {
-	return usageErr{fmt.Errorf(format, args...), i}
+func (ic *initCmd) usageErr(format string, args ...interface{}) usageErr {
+	return usageErr{fmt.Errorf(format, args...), ic}
 }
 
-func (r *runner) runInit(args []string) error {
+func (ic *initCmd) run(args []string) error {
 	return nil
 }
