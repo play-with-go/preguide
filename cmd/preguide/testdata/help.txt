@@ -66,6 +66,8 @@ usage: preguide gen
 	        the image to use instead of the guide-specified image
 	  -out string
 	        the target directory for generation
+	  -package string
+	        the CUE package name to use for the generated guide structure file
 	  -pull string
 	        try and docker pull image if missing
 	  -raw

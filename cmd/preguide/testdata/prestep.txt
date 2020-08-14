@@ -242,15 +242,16 @@ func main() {
 	<-idleConnsClosed
 }
 -- gen_guide_structures.cue.golden --
-{
-	prestep: {
-		Presteps: [{
-			Package: "github.com/blah"
-			Args: ["Hello, world!"]
-		}]
-		Terminals: [{
-			Name:  "term1"
-			Image: "this_will_never_be_used"
-		}]
-	}
+package script_prestep
+
+prestep: {
+	Presteps: [{
+		Package: "github.com/blah"
+		Args: ["Hello, world!"]
+	}]
+	Terminals: [{
+		Name:  "term1"
+		Image: "this_will_never_be_used"
+	}]
 }
+
