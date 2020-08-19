@@ -5,7 +5,7 @@ import "github.com/SchemaStore/schemastore/src/schemas/json"
 test: json.#Workflow & {
 	name: "Test"
 	env: {
-		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.14.6@sha256:b3690d0dc29edfe2d740d3632175da32bc7301b8bec994060c11deaf99c71123"
+		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.15@sha256:7bf7788bb2291af0830a8c62cf38e3bfbd8b0d53e5435531458c8f77bd3efaeb"
 		PREGUIDE_PULL_IMAGE:     "missing"
 	}
 	on: {
@@ -17,7 +17,7 @@ test: json.#Workflow & {
 			"fail-fast": false
 			matrix: {
 				os: ["ubuntu-latest"]
-				go_version: ["go1.14.4"]
+				go_version: ["1.15"]
 			}
 		}
 		"runs-on": "${{ matrix.os }}"
@@ -27,7 +27,7 @@ test: json.#Workflow & {
 		}, {
 			name: "Install Go"
 			uses: "actions/setup-go@v2"
-			with: "go-version": "${{ matrix.go-version }}"
+			with: "go-version": "${{ matrix.go_version }}"
 		}, {
 			name: "Verify"
 			run:  "go mod verify"

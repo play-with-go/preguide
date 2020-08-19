@@ -210,8 +210,13 @@ func (gc *genCmd) loadConfig() {
 
 	// Now validate that we don't have any networks for file protocol endpoints
 	for ps, conf := range gc.config {
-		if conf.Endpoint.Scheme == "file" && len(conf.Networks) > 0 {
-			raise("prestep %v defined a file scheme endpoint %v but provided networks [%v]", ps, conf.Endpoint, conf.Networks)
+		if conf.Endpoint.Scheme == "file" {
+			if len(conf.Env) > 0 {
+				raise("prestep %v defined a file scheme endpoint %v but provided additional environment variables [%v]", ps, conf.Endpoint, conf.Env)
+			}
+			if len(conf.Networks) > 0 {
+				raise("prestep %v defined a file scheme endpoint %v but provided networks [%v]", ps, conf.Endpoint, conf.Networks)
+			}
 		}
 	}
 }
@@ -402,7 +407,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 				if conf.Endpoint.Scheme == "file" {
 					version = "file"
 				} else {
-					version = string(gc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf.Networks))
+					version = string(gc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
 				}
 				gc.seenPrestepPkgs[ps.Package] = version
 				ps.Version = version
@@ -704,7 +709,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 			jsonBody, err = ioutil.ReadFile(path)
 			check(err, "failed to read file endpoint %v (file %v): %v", conf.Endpoint, path, err)
 		} else {
-			jsonBody = gc.doRequest("POST", conf.Endpoint.String(), conf.Networks, ps.Args) // Do not splat args
+			jsonBody = gc.doRequest("POST", conf.Endpoint.String(), conf, ps.Args) // Do not splat args
 		}
 
 		// TODO: unmarshal jsonBody into a cue.Value, validate against a schema
@@ -963,7 +968,7 @@ func posLessThan(lhs, rhs token.Pos) bool {
 // In the special case that url is a file protocol, args is expected to be zero
 // length, and the -docker flag is ignored (that is to say, it is expected the
 // file can be accessed by the current process).
-func (g *genCmd) doRequest(method string, endpoint string, networks []string, args ...interface{}) []byte {
+func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
 		byts, err := json.Marshal(args[0])
@@ -985,6 +990,9 @@ func (g *genCmd) doRequest(method string, endpoint string, networks []string, ar
 			fmt.Sprintf("--volume=%s:/init", self),
 			"--entrypoint=/init",
 		)
+		for _, e := range conf.Env {
+			createCmd.Args = append(createCmd.Args, "-e", e)
+		}
 
 		if v, ok := os.LookupEnv("TESTSCRIPT_COMMAND"); ok {
 			createCmd.Args = append(createCmd.Args, "-e", "TESTSCRIPT_COMMAND="+v)
@@ -1013,12 +1021,10 @@ func (g *genCmd) doRequest(method string, endpoint string, networks []string, ar
 
 		instance := strings.TrimSpace(createStdout.String())
 
-		if len(networks) > 0 {
-			for _, network := range networks {
-				connectCmd := exec.Command("docker", "network", "connect", network, instance)
-				out, err := connectCmd.CombinedOutput()
-				check(err, "failed to run [%v]: %v\n%s", strings.Join(connectCmd.Args, " "), err, out)
-			}
+		for _, network := range conf.Networks {
+			connectCmd := exec.Command("docker", "network", "connect", network, instance)
+			out, err := connectCmd.CombinedOutput()
+			check(err, "failed to run [%v]: %v\n%s", strings.Join(connectCmd.Args, " "), err, out)
 		}
 		startCmd := exec.Command("docker", "start", "-a", instance)
 		var startStdout, startStderr bytes.Buffer

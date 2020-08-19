@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
 
-source "${BASH_SOURCE%/*}/common.bash"
+set -eu -o pipefail
+shopt -s inherit_errexit
+
+source "${BASH_SOURCE%/*}/env_common.bash"
 source "${BASH_SOURCE%/*}/image.bash"
 
-export="$2"
-alias="$3"
-
-if [ "$export" = "" ]
-then
-	export="export"
-fi
-
-if [ "$alias" = "" ]
-then
-	alias="alias"
-fi
-
-echo $export PREGUIDE_IMAGE_OVERRIDE="$preguide_image_override"
-echo $export PREGUIDE_DOCKER="$preguide_image_override"
+$export PREGUIDE_IMAGE_OVERRIDE "$preguide_image_override"
+$export PREGUIDE_DOCKER "$preguide_image_override"
