@@ -18,12 +18,14 @@ type PrestepServiceConfig map[string]*ServiceConfig
 // by preguide in a development mode.
 type ServiceConfig struct {
 	Endpoint *url.URL
+	Env      []string
 	Networks []string
 }
 
 func (p *ServiceConfig) UnmarshalJSON(b []byte) error {
 	var v struct {
 		Endpoint string
+		Env      []string
 		Networks []string
 	}
 	if err := json.Unmarshal(b, &v); err != nil {
@@ -34,6 +36,7 @@ func (p *ServiceConfig) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("failed to parse URL from prestepConfig Endpoint %q: %v", v.Endpoint, err)
 	}
 	p.Endpoint = u
+	p.Env = v.Env
 	p.Networks = v.Networks
 	return nil
 }

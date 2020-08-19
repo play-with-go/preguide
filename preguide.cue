@@ -119,5 +119,13 @@ import "list"
 // #PrestepConfig is the endpoint configuration for a prestep
 #PrestepConfig: {
 	Endpoint: string
+
+	// Env defines the list of docker environment values (values that can be
+	// passed to docker run's -e flag) that are passed when a prestep is run
+	// via docker
+	Env: [...string]
+
+	// Env defines the list of docker networks that should be joined when
+	// a prestep is run via docker
 	Networks: [...string]
 }

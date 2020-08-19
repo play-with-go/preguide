@@ -10,6 +10,9 @@ envsubst conf.cue conf.docker.cue
 
 # Set config via env var so we can skip using a flag each time
 env PREGUIDE_CONFIG=conf.cue
+env SOMETHING=something
+
+env
 
 # Intial run
 cp version.1 version
@@ -58,6 +61,7 @@ go 1.12
 -- conf.docker.cue --
 "github.com/blah": {
 	Endpoint: "http://server:8080"
+	Env: ["SOMETHING"]
 	Networks: ["$PRESTEP_NETWORK"]
 }
 -- version.1 --
