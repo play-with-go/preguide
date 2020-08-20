@@ -30,7 +30,8 @@ type Terminal struct {
 
 type Prestep struct {
 	Package string
-	Args    []string
+	Path    string
+	Args    interface{}
 }
 
 type LangCode string

@@ -86,8 +86,9 @@ Terminals: [
 Presteps: [
   {
     "Package": "github.com/blah",
-    "Version": "file",
-    "Args": []
+    "Path": "/",
+    "Args": null,
+    "Version": "file"
   }
 ]
 $ echo -n "The answer is: {{.GREETING}}!"
@@ -97,8 +98,8 @@ package out
 
 {
 	Presteps: [{
+		Path:    "/"
 		Package: "github.com/blah"
-		Args: []
 		Version: "file"
 	}]
 	Terminals: [{
@@ -121,7 +122,7 @@ package out
 					}]
 				}
 			}
-			Hash: "d206481babb24557204404af2c88fe064e05d8696b90c89ed192b47b6f8cf9f6"
+			Hash: "e384e16d11c80cfcfb50e1d696cea47f20f9fc6cbcd96bbcd8bdc73184842ff2"
 		}
 	}
 }
@@ -147,8 +148,9 @@ Terminals: [
 Presteps: [
   {
     "Package": "github.com/blah",
-    "Version": "file",
-    "Args": []
+    "Path": "/",
+    "Args": null,
+    "Version": "file"
   }
 ]
 $ echo -n "The answer is: {{.GREETING}}!"

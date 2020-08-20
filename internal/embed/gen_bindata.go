@@ -40,6 +40,7 @@ _#stepCommon: {
 
 #Prestep: {
 	Package: string
+	Path:    string
 	Args: [...string]
 	Version: string
 }
@@ -178,7 +179,8 @@ import "list"
 
 #Prestep: {
 	Package: string
-	Args: [...string]
+	Path:    *"/" | string
+	Args:    *null | _
 }
 
 // TODO: keep in sync with Go code

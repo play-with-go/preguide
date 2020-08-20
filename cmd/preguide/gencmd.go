@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -390,6 +391,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 		for _, prestep := range intGuide.Presteps {
 			ps := guidePrestep{
 				Package: prestep.Package,
+				Path:    prestep.Path,
 				Args:    prestep.Args,
 			}
 			if ps.Package == "" {
@@ -700,8 +702,8 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		// checked it via a get-version=1 request)
 		conf := gc.config[ps.Package]
 		if conf.Endpoint.Scheme == "file" {
-			if len(ps.Args) > 0 {
-				raise("prestep %v provides with arguments [%v]: but prestep is configured with a file endpoint", ps.Package, pretty.Sprint(ps.Args))
+			if ps.Args != nil {
+				raise("prestep %v (path %v) provides arguments [%v]: but prestep is configured with a file endpoint", ps.Package, ps.Path, pretty.Sprint(ps.Args))
 			}
 			// Notice this path takes no account of the -docker flag
 			var err error
@@ -709,7 +711,9 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 			jsonBody, err = ioutil.ReadFile(path)
 			check(err, "failed to read file endpoint %v (file %v): %v", conf.Endpoint, path, err)
 		} else {
-			jsonBody = gc.doRequest("POST", conf.Endpoint.String(), conf, ps.Args) // Do not splat args
+			u := *conf.Endpoint
+			u.Path = path.Join(u.Path, ps.Path)
+			jsonBody = gc.doRequest("POST", u.String(), conf, ps.Args)
 		}
 
 		// TODO: unmarshal jsonBody into a cue.Value, validate against a schema
@@ -971,9 +975,13 @@ func posLessThan(lhs, rhs token.Pos) bool {
 func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
-		byts, err := json.Marshal(args[0])
-		check(err, "failed to encode args: %v", err)
-		body = bytes.NewReader(byts)
+		var w bytes.Buffer
+		enc := json.NewEncoder(&w)
+		for i, arg := range args {
+			err := enc.Encode(arg)
+			check(err, "failed to encode arg %v (%v): %v", i, pretty.Sprint(arg), err)
+		}
+		body = &w
 	}
 	if *g.fDocker != "" {
 		sself, err := os.Executable()
@@ -1041,6 +1049,9 @@ func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceCo
 	check(err, "failed to build HTTP request for method %v, url %q: %v", method, endpoint, err)
 	resp, err := http.DefaultClient.Do(req)
 	check(err, "failed to perform HTTP request with args [%v]: %v", args, err)
+	if resp.StatusCode/100 != 2 {
+		raise("got non-success status code (%v) with args [%v]", resp.StatusCode, args)
+	}
 	respBody, err := ioutil.ReadAll(resp.Body)
 	check(err, "failed to read response body for request %v: %v", req, err)
 	return respBody
@@ -1199,6 +1210,7 @@ func (gc *genCmd) writeGuideStructures() {
 		for _, ps := range guide.Presteps {
 			s.Presteps = append(s.Presteps, &types.Prestep{
 				Package: ps.Package,
+				Path:    ps.Path,
 				Args:    ps.Args,
 			})
 		}
