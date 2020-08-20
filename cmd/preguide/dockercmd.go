@@ -59,7 +59,7 @@ func (dc *dockerCmd) run(args []string) error {
 	req, err := http.NewRequest(method, url, body)
 	check(err, "failed to build a new request for a %v to %v: %v", method, url, err)
 	resp, err := http.DefaultClient.Do(req)
-	check(err, "failed to execute %v: %v", req, err)
+	check(err, "failed to execute %v on %v: %v", req.Method, req.URL, err)
 	if resp.StatusCode/100 != 2 {
 		raise("got non-success status code (%v) with args [%v]", resp.StatusCode, args)
 	}

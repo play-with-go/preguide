@@ -60,7 +60,7 @@ func newRootCmd(r *runner) *rootCmd {
 	}
 	res.flagDefaults = newFlagSet("preguide", func(fs *flag.FlagSet) {
 		res.fs = fs
-		res.fDebug = fs.Bool("debug", false, "include debug output")
+		res.fDebug = fs.Bool("debug", false, "print debug output to os.Stderr")
 	})
 	return res
 }

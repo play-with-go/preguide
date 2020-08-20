@@ -32,7 +32,7 @@ Use "preguide help <command>" for more information about a command.
 preguide defines the following flags:
 
 	  -debug
-	        include debug output
+	        print debug output to os.Stderr
 -- missing_command.txt --
 missing command
 Usage of preguide:
@@ -50,7 +50,7 @@ Use "preguide help <command>" for more information about a command.
 preguide defines the following flags:
 
 	  -debug
-	        include debug output
+	        print debug output to os.Stderr
 -- gen_command_help.txt --
 usage: preguide gen
 
