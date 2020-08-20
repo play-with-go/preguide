@@ -896,7 +896,7 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 	// this _includes_ the buildID (hence the use of pretty.Sprint rather
 	// than JSON), whereas in the log we use JSON to _not_ include the
 	// buildID
-	hf("prestep: %s\n", pretty.Sprint(g.Presteps))
+	hf("prestep: %s\n", mustJSONMarshalIndent(g.Presteps))
 	// We write the docker image to the hash, because if the user want to ensure
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image())
