@@ -97,6 +97,7 @@ type genCmd struct {
 	fDocker        *string
 	fRaw           *bool
 	fPackage       *string
+	fDebugCache    *bool
 
 	// dir is the absolute path of the working directory specified by -dir
 	dir string
@@ -122,6 +123,7 @@ func newGenCmd(r *runner) *genCmd {
 		res.fDocker = fs.String("docker", os.Getenv("PREGUIDE_DOCKER"), "run prestep requests in a docker container configured by the arguments passed to this flag")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 		res.fPackage = fs.String("package", "", "the CUE package name to use for the generated guide structure file")
+		res.fDebugCache = fs.Bool("debugcache", false, "write a human-readable time-stamp-named file of the guide cache check to the current directory")
 	})
 	return res
 }
@@ -876,8 +878,16 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 		fmt.Fprintf(&sb, format, args...)
 	}
 	h := sha256.New()
+	var out io.Writer = h
+	if *gc.fDebugCache {
+		now := time.Now().UTC()
+		debugFileName := fmt.Sprintf("%v_%v_%v.txt", g.name, now.Format("20060102_150405"), now.Nanosecond())
+		debugFile, err := os.OpenFile(debugFileName, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
+		check(err, "failed to create cache debug file %v: %v", debugFileName, err)
+		out = io.MultiWriter(out, debugFile)
+	}
 	hf := func(format string, args ...interface{}) {
-		fmt.Fprintf(h, format, args...)
+		fmt.Fprintf(out, format, args...)
 	}
 	// Write the module info for github.com/play-with-go/preguide
 	hf("preguide: %#v\n", gc.buildInfo)
