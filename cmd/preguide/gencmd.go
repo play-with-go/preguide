@@ -982,7 +982,7 @@ func posLessThan(lhs, rhs token.Pos) bool {
 // In the special case that url is a file protocol, args is expected to be zero
 // length, and the -docker flag is ignored (that is to say, it is expected the
 // file can be accessed by the current process).
-func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceConfig, args ...interface{}) []byte {
+func (gc *genCmd) doRequest(method string, endpoint string, conf *types.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
 		var w bytes.Buffer
@@ -993,7 +993,7 @@ func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceCo
 		}
 		body = &w
 	}
-	if *g.fDocker != "" {
+	if *gc.fDocker != "" {
 		sself, err := os.Executable()
 		check(err, "failed to derive executable for self: %v", err)
 		self, err := filepath.EvalSymlinks(sself)
@@ -1018,7 +1018,7 @@ func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceCo
 
 		// Add the user-supplied args, after splitting docker flag val into
 		// pieces
-		addArgs, err := split(*g.fDocker)
+		addArgs, err := split(*gc.fDocker)
 		check(err, "failed to split -docker flag into args: %v", err)
 		createCmd.Args = append(createCmd.Args, addArgs...)
 
@@ -1034,6 +1034,7 @@ func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceCo
 		createCmd.Stdout = &createStdout
 		createCmd.Stderr = &createStderr
 
+		gc.debugf("about to run command> %v\n", createCmd)
 		err = createCmd.Run()
 		check(err, "failed to run [%v]: %v\n%s", strings.Join(createCmd.Args, " "), err, createStderr.Bytes())
 
@@ -1041,6 +1042,7 @@ func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceCo
 
 		for _, network := range conf.Networks {
 			connectCmd := exec.Command("docker", "network", "connect", network, instance)
+			gc.debugf("about to run command> %v\n", connectCmd)
 			out, err := connectCmd.CombinedOutput()
 			check(err, "failed to run [%v]: %v\n%s", strings.Join(connectCmd.Args, " "), err, out)
 		}
@@ -1049,6 +1051,7 @@ func (g *genCmd) doRequest(method string, endpoint string, conf *types.ServiceCo
 		startCmd.Stdout = &startStdout
 		startCmd.Stderr = &startStderr
 
+		gc.debugf("about to run command> %v\n", startCmd)
 		err = startCmd.Run()
 		check(err, "failed to run [%v]: %v\n%s", strings.Join(startCmd.Args, " "), err, startStderr.Bytes())
 
