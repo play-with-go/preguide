@@ -87,7 +87,8 @@ import "list"
 
 #Prestep: {
 	Package: string
-	Args: [...string]
+	Path:    *"/" | string
+	Args:    *null | _
 }
 
 // TODO: keep in sync with Go code

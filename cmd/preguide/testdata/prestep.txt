@@ -92,6 +92,7 @@ import "github.com/play-with-go/preguide"
 
 Presteps: [preguide.#Prestep & {
 	Package: "github.com/blah"
+	Path: "/somewhere"
 	Args: ["Hello, world!"]
 }]
 
@@ -124,10 +125,11 @@ Terminals: [
 Presteps: [
   {
     "Package": "github.com/blah",
-    "Version": "1",
+    "Path": "/somewhere",
     "Args": [
       "Hello, world!"
-    ]
+    ],
+    "Version": "1"
   }
 ]
 $ echo "The answer is: $GREETING!"
@@ -154,10 +156,11 @@ Terminals: [
 Presteps: [
   {
     "Package": "github.com/blah",
-    "Version": "2",
+    "Path": "/somewhere",
     "Args": [
       "Hello, world!"
-    ]
+    ],
+    "Version": "2"
   }
 ]
 $ echo "The answer is: $GREETING!"
@@ -182,23 +185,23 @@ func main() {
 	signals := make(chan os.Signal)
 	signal.Notify(signals)
 
+	// Version information
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			err := recover()
-			if err != nil {
-				buf := make([]byte, 1<<20)
-				n := runtime.Stack(buf, true)
-				fmt.Fprintf(os.Stderr, "panic: %v\n\n%s", err, buf[:n])
-				os.Exit(1)
-			}
-		}()
-		f, err := ioutil.ReadFile("version")
-		if err != nil {
-			panic(err)
+		defer panicExit()
+		version := getVersion()
+		if r.Method != "GET" || r.URL.Query().Get("get-version") != "1" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
-		version := strings.TrimSpace(string(f))
-		if r.URL.Query().Get("get-version") == "1" {
-			fmt.Fprintf(w, "%v", version)
+		fmt.Fprintf(w, "%v", version)
+	})
+
+	// The "method" we support
+	http.HandleFunc("/somewhere", func(w http.ResponseWriter, r *http.Request) {
+		defer panicExit()
+		version := getVersion()
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		var args []string
@@ -245,11 +248,30 @@ func main() {
 	}
 	<-idleConnsClosed
 }
+
+func panicExit() {
+	err := recover()
+	if err != nil {
+		buf := make([]byte, 1<<20)
+		n := runtime.Stack(buf, true)
+		fmt.Fprintf(os.Stderr, "panic: %v\n\n%s", err, buf[:n])
+		os.Exit(1)
+	}
+}
+
+func getVersion() string {
+	f, err := ioutil.ReadFile("version")
+	if err != nil {
+		panic(err)
+	}
+	return strings.TrimSpace(string(f))
+}
 -- gen_guide_structures.cue.golden --
 package script_prestep
 
 prestep: {
 	Presteps: [{
+		Path:    "/somewhere"
 		Package: "github.com/blah"
 		Args: ["Hello, world!"]
 	}]

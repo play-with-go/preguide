@@ -64,8 +64,9 @@ func (g *guide) Image() string {
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376
 type guidePrestep struct {
 	Package string
+	Path    string
+	Args    interface{}
 	Version string
-	Args    []string
 }
 
 // writeGuideOutput writes the markdown files of output for a guide

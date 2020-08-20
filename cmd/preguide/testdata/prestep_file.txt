@@ -65,8 +65,9 @@ Terminals: [
 Presteps: [
   {
     "Package": "github.com/blah",
-    "Version": "file",
-    "Args": []
+    "Path": "/",
+    "Args": null,
+    "Version": "file"
   }
 ]
 $ echo "The answer is: $GREETING!"
