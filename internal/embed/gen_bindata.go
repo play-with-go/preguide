@@ -41,7 +41,7 @@ _#stepCommon: {
 #Prestep: {
 	Package: string
 	Path:    string
-	Args: [...string]
+	Args:    _
 	Version: string
 }
 
