@@ -22,6 +22,7 @@ import "github.com/play-with-go/preguide"
 	#GuideStructure
 	Langs: [preguide.#Language]: #LangSteps
 	Defs: [string]:              _
+	Networks: [...string]
 }
 
 _#stepCommon: {
@@ -144,6 +145,11 @@ import "list"
 		Name:  string
 		Image: string
 	}
+
+	// Networks is the list of docker networks to connect to whilst running
+	// this guide. Defaults to the list of networks specified for presteps
+	// (once we have a solution for cuelang.org/issues/473)
+	Networks: [...string]
 
 	Presteps: [...#Prestep]
 

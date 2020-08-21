@@ -363,6 +363,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 	check(err, "failed to decode guide: %v", err)
 
 	g.delims = intGuide.Delims
+	g.Networks = intGuide.Networks
 
 	type termPosition struct {
 		name string
@@ -1219,6 +1220,7 @@ func (gc *genCmd) writeGuideStructures() {
 	for _, guide := range gc.guides {
 		s := guideStructure{
 			Terminals: guide.Terminals,
+			Networks:  guide.Networks,
 		}
 		for _, ps := range guide.Presteps {
 			s.Presteps = append(s.Presteps, &types.Prestep{

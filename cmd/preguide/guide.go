@@ -34,6 +34,7 @@ type guide struct {
 	// Embed guideStructure once we have a solution to cuelang.org/issue/376
 	Presteps  []*guidePrestep
 	Terminals []*types.Terminal
+	Networks  []string
 
 	Langs map[types.LangCode]*langSteps
 
@@ -54,6 +55,7 @@ type guide struct {
 type guideStructure struct {
 	Presteps  []*types.Prestep
 	Terminals []*types.Terminal
+	Networks  []string
 }
 
 // TODO drop this when we support multiple terminals
