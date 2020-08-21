@@ -97,6 +97,7 @@ The answer is: {{.GREETING}}!
 package out
 
 {
+	Networks: []
 	Presteps: [{
 		Path:    "/"
 		Package: "github.com/blah"

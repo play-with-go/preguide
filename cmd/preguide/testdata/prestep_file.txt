@@ -32,6 +32,8 @@ package steps
 
 import "github.com/play-with-go/preguide"
 
+Networks: ["test"]
+
 Presteps: [preguide.#Prestep & {
 	Package: "github.com/blah"
 }]

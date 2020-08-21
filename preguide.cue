@@ -53,6 +53,11 @@ import "list"
 		Image: string
 	}
 
+	// Networks is the list of docker networks to connect to whilst running
+	// this guide. Defaults to the list of networks specified for presteps
+	// (once we have a solution for cuelang.org/issues/473)
+	Networks: [...string]
+
 	Presteps: [...#Prestep]
 
 	// Delims are the delimiters used in the guide prose and steps

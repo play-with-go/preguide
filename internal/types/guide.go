@@ -21,6 +21,7 @@ type Guide struct {
 	Steps     map[string]LangSteps
 	Terminals map[string]*Terminal
 	Defs      map[string]interface{}
+	Networks  []string
 }
 
 type Terminal struct {

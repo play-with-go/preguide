@@ -6,6 +6,7 @@ import "github.com/play-with-go/preguide"
 	#GuideStructure
 	Langs: [preguide.#Language]: #LangSteps
 	Defs: [string]:              _
+	Networks: [...string]
 }
 
 _#stepCommon: {

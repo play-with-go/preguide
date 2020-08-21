@@ -35,6 +35,7 @@ echo -n "Hello, world!"
 package out
 
 {
+	Networks: []
 	Terminals: [{
 		Name:  "term1"
 		Image: "this_will_never_be_used"
