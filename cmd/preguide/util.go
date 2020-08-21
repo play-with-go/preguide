@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -119,4 +121,73 @@ func (c *chunker) pos() int {
 
 func (c *chunker) end() int {
 	return c.ep
+}
+
+// dockerRunnner is a convenience type used to wrap the three call
+// dance required to run a docker container with multiple
+// networks attached
+type dockerRunnner struct {
+	gc         *genCmd
+	DockerArgs []string
+	Env        []string
+	Path       string
+	Args       []string
+	Stdin      io.Reader
+	Stdout     io.Writer
+	Stderr     io.Writer
+	Networks   []string
+}
+
+func newDockerRunner(gc *genCmd, networks []string, args ...string) *dockerRunnner {
+	return &dockerRunnner{
+		gc:       gc,
+		Networks: append([]string{}, networks...),
+		Args:     append([]string{}, args...),
+	}
+}
+
+func (dr *dockerRunnner) Run() error {
+	createCmd := exec.Command("docker", "create")
+	createCmd.Env = dr.Env
+	createCmd.Args = append(createCmd.Args, dr.Args...)
+	var createStdout, createStderr bytes.Buffer
+	createCmd.Stdout = &createStdout
+	createCmd.Stderr = &createStderr
+
+	dr.gc.debugf("about to run command> %v\n", createCmd)
+	if err := createCmd.Run(); err != nil {
+		return fmt.Errorf("failed %v: %v\n%s", createCmd, err, createStderr.Bytes())
+	}
+
+	instance := strings.TrimSpace(createStdout.String())
+
+	for _, network := range dr.Networks {
+		connectCmd := exec.Command("docker", "network", "connect", network, instance)
+		dr.gc.debugf("about to run command> %v\n", connectCmd)
+		if out, err := connectCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed %v: %v\n%s", connectCmd, err, out)
+		}
+	}
+
+	startCmd := exec.Command("docker", "start", "-a", instance)
+	startCmd.Stdin = dr.Stdin
+	startCmd.Stdout = dr.Stdout
+	startCmd.Stderr = dr.Stderr
+
+	dr.gc.debugf("about to run command> %v\n", startCmd)
+	return startCmd.Run()
+}
+
+func (dr *dockerRunnner) CombinedOutput() ([]byte, error) {
+	if dr.Stdout != nil {
+		return nil, fmt.Errorf("cmd Stdout already set")
+	}
+	if dr.Stderr != nil {
+		return nil, fmt.Errorf("cmd Sderr already set")
+	}
+	var comb bytes.Buffer
+	dr.Stdout = &comb
+	dr.Stderr = &comb
+	err := dr.Run()
+	return comb.Bytes(), err
 }

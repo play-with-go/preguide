@@ -781,7 +781,8 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		}
 	}
 
-	cmd := exec.Command("docker", "run", "--rm",
+	cmd := newDockerRunner(gc, g.Networks,
+		"--rm",
 		"-v", fmt.Sprintf("%v:/scripts", td),
 		"-e", fmt.Sprintf("USER_UID=%v", os.Geteuid()),
 		"-e", fmt.Sprintf("USER_GID=%v", os.Getegid()),
@@ -1000,63 +1001,45 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *types.ServiceC
 		self, err := filepath.EvalSymlinks(sself)
 		check(err, "failed to eval symlinks for %v: %v", sself, err)
 
-		createCmd := exec.Command("docker", "create",
-
+		cmd := newDockerRunner(gc, conf.Networks,
 			// Don't leave this container around
 			"--rm",
 
-			// Set up "ourselves" as the entrypoint.
+			// Set up "ourselves" as init which we then run
+			// as a command (so as not to clobber the entrypoint
+			// defined on the image)
 			fmt.Sprintf("--volume=%s:/init", self),
-			"--entrypoint=/init",
 		)
 		for _, e := range conf.Env {
-			createCmd.Args = append(createCmd.Args, "-e", e)
+			cmd.Args = append(cmd.Args, "-e", e)
 		}
 
 		if v, ok := os.LookupEnv("TESTSCRIPT_COMMAND"); ok {
-			createCmd.Args = append(createCmd.Args, "-e", "TESTSCRIPT_COMMAND="+v)
+			cmd.Args = append(cmd.Args, "-e", "TESTSCRIPT_COMMAND="+v)
 		}
 
 		// Add the user-supplied args, after splitting docker flag val into
 		// pieces
 		addArgs, err := split(*gc.fDocker)
 		check(err, "failed to split -docker flag into args: %v", err)
-		createCmd.Args = append(createCmd.Args, addArgs...)
+		cmd.Args = append(cmd.Args, addArgs...)
 
 		// Now add the arguments to "ourselves"
-		createCmd.Args = append(createCmd.Args, "docker", method, endpoint)
+		cmd.Args = append(cmd.Args, "/init", "docker", method, endpoint)
 		if body != nil {
 			byts, err := ioutil.ReadAll(body)
 			check(err, "failed to read from body: %v", err)
-			createCmd.Args = append(createCmd.Args, string(byts))
+			cmd.Args = append(cmd.Args, string(byts))
 		}
 
-		var createStdout, createStderr bytes.Buffer
-		createCmd.Stdout = &createStdout
-		createCmd.Stderr = &createStderr
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
 
-		gc.debugf("about to run command> %v\n", createCmd)
-		err = createCmd.Run()
-		check(err, "failed to run [%v]: %v\n%s", strings.Join(createCmd.Args, " "), err, createStderr.Bytes())
+		err = cmd.Run()
+		check(err, "failed to docker run %v: %v\n%s", strings.Join(cmd.Args, " "), err, stderr.Bytes())
 
-		instance := strings.TrimSpace(createStdout.String())
-
-		for _, network := range conf.Networks {
-			connectCmd := exec.Command("docker", "network", "connect", network, instance)
-			gc.debugf("about to run command> %v\n", connectCmd)
-			out, err := connectCmd.CombinedOutput()
-			check(err, "failed to run [%v]: %v\n%s", strings.Join(connectCmd.Args, " "), err, out)
-		}
-		startCmd := exec.Command("docker", "start", "-a", instance)
-		var startStdout, startStderr bytes.Buffer
-		startCmd.Stdout = &startStdout
-		startCmd.Stderr = &startStderr
-
-		gc.debugf("about to run command> %v\n", startCmd)
-		err = startCmd.Run()
-		check(err, "failed to run [%v]: %v\n%s", strings.Join(startCmd.Args, " "), err, startStderr.Bytes())
-
-		return startStdout.Bytes()
+		return stdout.Bytes()
 	}
 
 	req, err := http.NewRequest(method, endpoint, body)
