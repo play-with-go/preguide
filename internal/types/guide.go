@@ -20,13 +20,24 @@ type Guide struct {
 	Presteps  []*Prestep
 	Steps     map[string]LangSteps
 	Terminals map[string]*Terminal
+	Scenarios map[string]*Scenario
 	Defs      map[string]interface{}
 	Networks  []string
 	Env       []string
 }
 
+type Scenario struct {
+	Name        string
+	Description string
+}
+
 type Terminal struct {
-	Name  string
+	Name        string
+	Description string
+	Scenarios   map[string]*TerminalScenario
+}
+
+type TerminalScenario struct {
 	Image string
 }
 
