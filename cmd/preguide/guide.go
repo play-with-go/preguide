@@ -35,6 +35,7 @@ type guide struct {
 	Presteps  []*guidePrestep
 	Terminals []*types.Terminal
 	Networks  []string
+	Env       []string
 
 	Langs map[types.LangCode]*langSteps
 
@@ -56,6 +57,7 @@ type guideStructure struct {
 	Presteps  []*types.Prestep
 	Terminals []*types.Terminal
 	Networks  []string
+	Env       []string
 }
 
 // TODO drop this when we support multiple terminals

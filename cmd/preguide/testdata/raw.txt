@@ -24,6 +24,8 @@ import "github.com/play-with-go/preguide"
 // fail, because of the unification with preguide.#Guide)
 preguide.#Guide
 
+Env: ["A=B"]
+
 Terminals: term1: preguide.#Guide.#Terminal & {
        Image: "this_will_never_be_used"
 }
@@ -36,6 +38,7 @@ package out
 
 {
 	Networks: []
+	Env: ["A=B"]
 	Terminals: [{
 		Name:  "term1"
 		Image: "this_will_never_be_used"

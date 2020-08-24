@@ -270,7 +270,6 @@ func getVersion() string {
 package script_prestep
 
 prestep: {
-	Networks: []
 	Presteps: [{
 		Path:    "/somewhere"
 		Package: "github.com/blah"
