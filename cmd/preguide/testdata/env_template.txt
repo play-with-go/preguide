@@ -98,6 +98,7 @@ package out
 
 {
 	Networks: []
+	Env: []
 	Presteps: [{
 		Path:    "/"
 		Package: "github.com/blah"

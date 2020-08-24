@@ -22,6 +22,7 @@ type Guide struct {
 	Terminals map[string]*Terminal
 	Defs      map[string]interface{}
 	Networks  []string
+	Env       []string
 }
 
 type Terminal struct {

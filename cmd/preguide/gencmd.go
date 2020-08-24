@@ -364,6 +364,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 
 	g.delims = intGuide.Delims
 	g.Networks = intGuide.Networks
+	g.Env = intGuide.Env
 
 	type termPosition struct {
 		name string
@@ -781,13 +782,16 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		}
 	}
 
-	cmd := newDockerRunner(gc, g.Networks,
+	cmd := gc.newDockerRunner(g.Networks,
 		"--rm",
 		"-v", fmt.Sprintf("%v:/scripts", td),
 		"-e", fmt.Sprintf("USER_UID=%v", os.Geteuid()),
 		"-e", fmt.Sprintf("USER_GID=%v", os.Getegid()),
 	)
 	for _, v := range g.vars {
+		cmd.Args = append(cmd.Args, "-e", v)
+	}
+	for _, v := range g.Env {
 		cmd.Args = append(cmd.Args, "-e", v)
 	}
 	cmd.Args = append(cmd.Args, image, "/scripts/script.sh")
@@ -1001,7 +1005,7 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *types.ServiceC
 		self, err := filepath.EvalSymlinks(sself)
 		check(err, "failed to eval symlinks for %v: %v", sself, err)
 
-		cmd := newDockerRunner(gc, conf.Networks,
+		cmd := gc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
 
@@ -1203,7 +1207,6 @@ func (gc *genCmd) writeGuideStructures() {
 	for _, guide := range gc.guides {
 		s := guideStructure{
 			Terminals: guide.Terminals,
-			Networks:  guide.Networks,
 		}
 		for _, ps := range guide.Presteps {
 			s.Presteps = append(s.Presteps, &types.Prestep{
@@ -1232,4 +1235,78 @@ func (gc *genCmd) writeGuideStructures() {
 	outPath := filepath.Join(*gc.fDir, "gen_guide_structures.cue")
 	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
 	check(err, "failed to write guide structures output to %v: %v", outPath, err)
+}
+
+// dockerRunnner is a convenience type used to wrap the three call
+// dance required to run a docker container with multiple
+// networks attached
+type dockerRunnner struct {
+	gc *genCmd
+
+	// DockerArgs are the flags to pass to each docker command
+	DockerArgs []string
+
+	// Env is the environment passed to each docker command
+	Env []string
+
+	Path     string
+	Args     []string
+	Stdin    io.Reader
+	Stdout   io.Writer
+	Stderr   io.Writer
+	Networks []string
+}
+
+func (gc *genCmd) newDockerRunner(networks []string, args ...string) *dockerRunnner {
+	return &dockerRunnner{
+		gc:       gc,
+		Networks: append([]string{}, networks...),
+		Args:     append([]string{}, args...),
+	}
+}
+
+func (dr *dockerRunnner) Run() error {
+	createCmd := exec.Command("docker", "create")
+	createCmd.Env = dr.Env
+	createCmd.Args = append(createCmd.Args, dr.Args...)
+	var createStdout, createStderr bytes.Buffer
+	createCmd.Stdout = &createStdout
+	createCmd.Stderr = &createStderr
+
+	dr.gc.debugf("about to run command> %v\n", createCmd)
+	if err := createCmd.Run(); err != nil {
+		return fmt.Errorf("failed %v: %v\n%s", createCmd, err, createStderr.Bytes())
+	}
+
+	instance := strings.TrimSpace(createStdout.String())
+
+	for _, network := range dr.Networks {
+		connectCmd := exec.Command("docker", "network", "connect", network, instance)
+		dr.gc.debugf("about to run command> %v\n", connectCmd)
+		if out, err := connectCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed %v: %v\n%s", connectCmd, err, out)
+		}
+	}
+
+	startCmd := exec.Command("docker", "start", "-a", instance)
+	startCmd.Stdin = dr.Stdin
+	startCmd.Stdout = dr.Stdout
+	startCmd.Stderr = dr.Stderr
+
+	dr.gc.debugf("about to run command> %v\n", startCmd)
+	return startCmd.Run()
+}
+
+func (dr *dockerRunnner) CombinedOutput() ([]byte, error) {
+	if dr.Stdout != nil {
+		return nil, fmt.Errorf("cmd Stdout already set")
+	}
+	if dr.Stderr != nil {
+		return nil, fmt.Errorf("cmd Sderr already set")
+	}
+	var comb bytes.Buffer
+	dr.Stdout = &comb
+	dr.Stderr = &comb
+	err := dr.Run()
+	return comb.Bytes(), err
 }
