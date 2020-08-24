@@ -50,8 +50,13 @@ package steps
 
 import "github.com/play-with-go/preguide"
 
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
 Terminals: term1: preguide.#Guide.#Terminal & {
-       Image: "this_will_never_be_used"
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
 Steps: step0: en: preguide.#Command & { Source: """
@@ -163,7 +168,12 @@ EOD
 Terminals: [
   {
     "Name": "term1",
-    "Image": "this_will_never_be_used"
+    "Description": "The main terminal",
+    "Scenarios": {
+      "go115": {
+        "Image": "this_will_never_be_used"
+      }
+    }
   }
 ]
 $ mkdir nooutput

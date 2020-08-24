@@ -43,8 +43,18 @@ _#stepCommon: {
 	Stmts: [...#Stmt]
 }
 
+#Scenario: {
+	Name:        string
+	Description: string
+}
+
 #Terminal: {
-	Name:  string
+	Name:        string
+	Description: string
+	Scenarios: [string]: #TerminalScenario
+}
+
+#TerminalScenario: {
 	Image: string
 }
 
@@ -68,5 +78,6 @@ _#stepCommon: {
 // structure of a guide.
 #GuideStructure: {
 	Terminals: [...#Terminal]
+	Scenarios: [...#Scenario]
 	Presteps: [...#Prestep]
 }

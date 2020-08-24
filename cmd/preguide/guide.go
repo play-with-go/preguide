@@ -34,6 +34,7 @@ type guide struct {
 	// Embed guideStructure once we have a solution to cuelang.org/issue/376
 	Presteps  []*guidePrestep
 	Terminals []*types.Terminal
+	Scenarios []*types.Scenario
 	Networks  []string
 	Env       []string
 
@@ -56,13 +57,20 @@ type guide struct {
 type guideStructure struct {
 	Presteps  []*types.Prestep
 	Terminals []*types.Terminal
+	Scenarios []*types.Scenario
 	Networks  []string
 	Env       []string
 }
 
 // TODO drop this when we support multiple terminals
 func (g *guide) Image() string {
-	return g.Terminals[0].Image
+	if got := len(g.Terminals[0].Scenarios); got != 1 {
+		panic(fmt.Errorf("expected just 1 scenario, saw %v", got))
+	}
+	for _, v := range g.Terminals[0].Scenarios {
+		return v.Image
+	}
+	panic("should not be here")
 }
 
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376

@@ -59,8 +59,18 @@ _#stepCommon: {
 	Stmts: [...#Stmt]
 }
 
+#Scenario: {
+	Name:        string
+	Description: string
+}
+
 #Terminal: {
-	Name:  string
+	Name:        string
+	Description: string
+	Scenarios: [string]: #TerminalScenario
+}
+
+#TerminalScenario: {
 	Image: string
 }
 
@@ -84,6 +94,7 @@ _#stepCommon: {
 // structure of a guide.
 #GuideStructure: {
 	Terminals: [...#Terminal]
+	Scenarios: [...#Scenario]
 	Presteps: [...#Prestep]
 }
 `)
@@ -142,19 +153,21 @@ import "list"
 	}
 
 	#Terminal: {
-		// Image is the Docker image that will be used for the terminal session
-		Name:  string
+		Name:        string
+		Description: string
+		Scenarios: [string]: #TerminalScenario
+	}
+
+	#TerminalScenario: {
 		Image: string
 	}
 
 	// Networks is the list of docker networks to connect to when running
-	// this guide. Defaults to the list of networks specified for presteps
-	// (once we have a solution for cuelang.org/issues/473)
+	// this guide.
 	Networks: [...string]
 
 	// Env is the environment to pass to docker containers when running
-	// this guide. Defaults to the list of networks specified for presteps
-	// (once we have a solution for cuelang.org/issues/473)
+	// this guide.
 	Env: [...string]
 
 	Presteps: [...#Prestep]
@@ -174,10 +187,23 @@ import "list"
 		Name: name
 	}
 
+	// Scenarios define the various images under which this guide will be
+	// run
+	Scenarios: [string]: #Scenario
+	Scenarios: [name=string]: {
+		Name: name
+	}
+
+	_#ScenarioName: or([ for name, _ in Scenarios {name}])
+
+	for scenario, _ in Scenarios for terminal, _ in Terminals {
+		Terminals: "\(terminal)": Scenarios: "\(scenario)": #TerminalScenario
+	}
+
 	// TODO: remove post upgrade to latest CUE? Because at that point
 	// the use of or() will work, which will give a better error message
 	#TerminalNames: [ for k, _ in Terminals {k}]
-	#ok: true & and([ for s in Steps {list.Contains(#TerminalNames, s.en.Terminal)}])
+	#ok: true & and([ for s in Steps for l in s {list.Contains(#TerminalNames, l.Terminal)}])
 
 	// Terminals defines the required remote VMs for a given guide
 	Terminals: [string]: #Terminal
@@ -187,6 +213,11 @@ import "list"
 	}
 
 	Defs: [string]: _
+}
+
+#Scenario: {
+	Name:        string
+	Description: string
 }
 
 #Prestep: {
@@ -233,6 +264,17 @@ import "list"
 	// this prestep.
 	Env: [...string]
 }
+
+// Post upgrade to latest CUE we have a number of things to change/test, with /
+// reference to https://gist.github.com/myitcv/399ed50f792b49ae7224ee5cb3e504fa#file-304b02e-cue
+//
+// 1. Move to the use of #TerminalName (probably hidden) as a type for a terminal's
+// name in _#stepCommon
+// 2. Try and move to the advanced definition of Steps: [string]: [lang] to be the
+// disjunction of #Step or [scenario]: #Step
+// 3. Ensure that a step's name can be defaulted for this advanced definition (i.e.
+// that if a step is specified at the language level its name defaults, but also
+// if it is specified at the scenario level)
 `)
 
 func preguide_cue() ([]byte, error) {
