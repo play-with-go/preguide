@@ -3,7 +3,9 @@ package out
 import "github.com/play-with-go/preguide"
 
 #GuideOutput: {
-	#GuideStructure
+	Presteps: [...#Prestep]
+	Terminals: [...#Terminal]
+	Scenarios: [...#Scenario]
 	Langs: [preguide.#Language]: #LangSteps
 	Defs: [string]:              _
 	Networks: [...string]
@@ -75,9 +77,14 @@ _#stepCommon: {
 #GuideStructures: [string]: #GuideStructure
 
 // A #GuideStructure defines the prestep and terminal
-// structure of a guide.
+// structure of a guide. Note there is some overlap here
+// with the #GuideOutput type above... perhaps we can
+// conslidate at some point. The main difference is that
+// GuideStructure is a function of the input types.
 #GuideStructure: {
-	Terminals: [...#Terminal]
-	Scenarios: [...#Scenario]
-	Presteps: [...#Prestep]
+	Presteps: [...preguide.#Prestep]
+	Terminals: [...preguide.#Terminal]
+	Scenarios: [...preguide.#Scenario]
+	Networks: [...string]
+	Env: [...string]
 }

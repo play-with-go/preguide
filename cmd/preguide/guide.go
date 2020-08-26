@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"cuelang.org/go/cue"
+	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/types"
 	"gopkg.in/yaml.v2"
 )
@@ -33,8 +34,8 @@ type guide struct {
 
 	// Embed guideStructure once we have a solution to cuelang.org/issue/376
 	Presteps  []*guidePrestep
-	Terminals []*types.Terminal
-	Scenarios []*types.Scenario
+	Terminals []*preguide.Terminal
+	Scenarios []*preguide.Scenario
 	Networks  []string
 	Env       []string
 
@@ -52,14 +53,6 @@ type guide struct {
 	// delims are the text/template delimiters for guide prose and
 	// step variable expansion
 	delims [2]string
-}
-
-type guideStructure struct {
-	Presteps  []*types.Prestep
-	Terminals []*types.Terminal
-	Scenarios []*types.Scenario
-	Networks  []string
-	Env       []string
 }
 
 // TODO drop this when we support multiple terminals

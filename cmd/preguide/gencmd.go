@@ -29,6 +29,7 @@ import (
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/kr/pretty"
+	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/types"
 	"golang.org/x/net/html"
 )
@@ -104,7 +105,7 @@ type genCmd struct {
 
 	// config is parse configuration that results from unifying all the provided
 	// config (which can be multiple CUE inputs)
-	config types.PrestepServiceConfig
+	config preguide.PrestepServiceConfig
 }
 
 func newGenCmd(r *runner) *genCmd {
@@ -162,7 +163,8 @@ func (gc *genCmd) run(args []string) error {
 		}
 	}
 
-	gc.loadSchemas()
+	gc.runner.schemas, err = preguide.LoadSchemas(&gc.runtime)
+	check(err, "failed to load schemas: %v", err)
 
 	gc.loadConfig()
 
@@ -203,7 +205,7 @@ func (gc *genCmd) loadConfig() {
 		res = res.Unify(inst.Value())
 	}
 
-	res = gc.confDef.Unify(res)
+	res = gc.schemas.PrestepServiceConfig.Unify(res)
 	err := res.Validate()
 	check(err, "failed to validate input config: %v", err)
 
@@ -354,7 +356,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 	// We derive dv here because default values will be available via that
 	// where required, but will not have source information (which is required
 	// below)
-	gv = gv.Unify(gc.guideDef)
+	gv = gv.Unify(gc.schemas.Guide)
 	err = gv.Validate()
 	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Guide: %v", gp.ImportPath, err)
 
@@ -542,7 +544,7 @@ func (gc *genCmd) loadOutput(g *guide, fail bool) {
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	if err := gv.Unify(gc.guideOutDef).Validate(); err != nil {
+	if err := gv.Unify(gc.schemas.GuideOutput).Validate(); err != nil {
 		if fail {
 			raise("failed to validate %v against out schema: %v", gp.ImportPath, err)
 		}
@@ -988,7 +990,7 @@ func posLessThan(lhs, rhs token.Pos) bool {
 // In the special case that url is a file protocol, args is expected to be zero
 // length, and the -docker flag is ignored (that is to say, it is expected the
 // file can be accessed by the current process).
-func (gc *genCmd) doRequest(method string, endpoint string, conf *types.ServiceConfig, args ...interface{}) []byte {
+func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
 		var w bytes.Buffer
@@ -1203,13 +1205,16 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 // directory. This config can then be used directly by a controller for the
 // guides found in that directory.
 func (gc *genCmd) writeGuideStructures() {
-	structures := make(map[string]guideStructure)
+	structures := make(map[string]preguide.GuideStructure)
 	for _, guide := range gc.guides {
-		s := guideStructure{
+		s := preguide.GuideStructure{
 			Terminals: guide.Terminals,
+			Networks:  guide.Networks,
+			Scenarios: guide.Scenarios,
+			Env:       guide.Env,
 		}
 		for _, ps := range guide.Presteps {
-			s.Presteps = append(s.Presteps, &types.Prestep{
+			s.Presteps = append(s.Presteps, &preguide.Prestep{
 				Package: ps.Package,
 				Path:    ps.Path,
 				Args:    ps.Args,
