@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/play-with-go/preguide"
 )
 
 type StepType int64
@@ -17,34 +19,13 @@ const (
 
 type Guide struct {
 	Delims    [2]string
-	Presteps  []*Prestep
+	Presteps  []*preguide.Prestep
 	Steps     map[string]LangSteps
-	Terminals map[string]*Terminal
-	Scenarios map[string]*Scenario
+	Terminals map[string]*preguide.Terminal
+	Scenarios map[string]*preguide.Scenario
 	Defs      map[string]interface{}
 	Networks  []string
 	Env       []string
-}
-
-type Scenario struct {
-	Name        string
-	Description string
-}
-
-type Terminal struct {
-	Name        string
-	Description string
-	Scenarios   map[string]*TerminalScenario
-}
-
-type TerminalScenario struct {
-	Image string
-}
-
-type Prestep struct {
-	Package string
-	Path    string
-	Args    interface{}
 }
 
 type LangCode string

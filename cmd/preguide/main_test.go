@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"cuelang.org/go/cue/load"
+	"github.com/play-with-go/preguide/internal/util"
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
 )
@@ -55,7 +56,7 @@ func TestScripts(t *testing.T) {
 			"createdockernetwork": createdockernetwork,
 		},
 		Setup: func(env *testscript.Env) (err error) {
-			defer handleKnown(&err)
+			defer util.HandleKnown(&err)
 
 			// Remove pre-existing temp dir
 			currTmp := filepath.Join(env.WorkDir, "tmp")
@@ -209,7 +210,7 @@ func buildSelf(t *testing.T) string {
 // modInit establishes a temporary CUE module in dir and ensures the preguide
 // CUE packages are vendored within that module
 func modInit(dir string) (err error) {
-	defer handleKnown(&err)
+	defer util.HandleKnown(&err)
 	fi, err := os.Stat(dir)
 	if err != nil || !fi.IsDir() {
 		return fmt.Errorf("%v is not a directory: %v", dir, err)
