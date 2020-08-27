@@ -81,6 +81,7 @@ title: A test with all directives
 $ echo -n "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 ```
+<script>let pageGuide="env_template"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- env_template/en_log.txt.golden --
 Terminals: [
   {
@@ -107,6 +108,10 @@ The answer is: {{.GREETING}}!
 package out
 
 {
+	Scenarios: [{
+		Name:        "go115"
+		Description: "Go 1.15"
+	}]
 	Networks: []
 	Env: []
 	Presteps: [{
@@ -155,6 +160,7 @@ title: A test with all directives
 $ echo -n "The answer is: Hello, world!!"
 The answer is: Hello, world!!
 ```
+<script>let pageGuide="env_template"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- env_template/en_log.txt.raw.golden --
 Terminals: [
   {

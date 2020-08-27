@@ -125,6 +125,7 @@ echo "Hello, world! I am an #Upload"
 echo "Hello, world! I am an #UploadFile"
 
 ```
+<script>let pageGuide="alldirectives"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- alldirectives/en.compat.markdown.golden --
 ---
 guide: alldirectives
@@ -164,6 +165,7 @@ echo "Hello, world! I am an #UploadFile"
 
 EOD
 ```
+<script>let pageGuide="alldirectives"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- alldirectives/en_log.txt.golden --
 Terminals: [
   {

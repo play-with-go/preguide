@@ -367,6 +367,9 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 	g.delims = intGuide.Delims
 	g.Networks = intGuide.Networks
 	g.Env = intGuide.Env
+	for _, s := range intGuide.Scenarios {
+		g.Scenarios = append(g.Scenarios, s)
+	}
 
 	type termPosition struct {
 		name string
@@ -1119,6 +1122,7 @@ const (
 	dockerImageFrontMatterKey = "image"
 	guideFrontMatterKey       = "guide"
 	langFrontMatterKey        = "lang"
+	scnearioFrontMatterKey    = "scenario"
 )
 
 func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) mdFile {

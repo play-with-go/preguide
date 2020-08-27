@@ -86,3 +86,4 @@ blah
 Here we talk about the second of those commands,
 `false`.
 
+<script>let pageGuide="defs"; let pageLanguage="en"; let pageScenario="go115";</script>

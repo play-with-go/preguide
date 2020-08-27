@@ -120,6 +120,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 ```
+<script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep/en_log.txt.golden --
 Terminals: [
   {
@@ -156,6 +157,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: !
 ```
+<script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep/en_log.txt.other.golden --
 Terminals: [
   {
@@ -285,6 +287,10 @@ func getVersion() string {
 package script_prestep
 
 prestep: {
+	Scenarios: [{
+		Name:        "go115"
+		Description: "Go 1.15"
+	}]
 	Networks: []
 	Env: []
 	Presteps: [{
