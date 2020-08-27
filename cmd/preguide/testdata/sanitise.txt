@@ -81,6 +81,7 @@ func main() {
 	fmt.Println("Hello, world!")
 }
 ```
+{:data-upload-path="hello.go" data-upload-src="cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQ==" data-upload-term="term1"}
 
 # Create test file
 
@@ -96,6 +97,7 @@ func TestHello(t *testing.T) {
 	fmt.Println("Hello, world... from the test!")
 }
 ```
+{:data-upload-path="hello_test.go" data-upload-src="cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKCSJ0ZXN0aW5nIgopCgpmdW5jIFRlc3RIZWxsbyh0ICp0ZXN0aW5nLlQpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQuLi4gZnJvbSB0aGUgdGVzdCEiKQp9" data-upload-term="term1"}
 
 # Test
 

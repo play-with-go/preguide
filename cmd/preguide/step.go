@@ -262,9 +262,10 @@ func (u *uploadStep) setorder(i int) {
 
 func uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
 	res := newUploadStep(uploadStep{
-		Name:   u.Name,
-		Source: u.Source,
-		Target: u.Target,
+		Name:     u.Name,
+		Terminal: u.Terminal,
+		Source:   u.Source,
+		Target:   u.Target,
 	})
 	return res, nil
 }
@@ -275,21 +276,27 @@ func uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
 		return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
 	}
 	res := newUploadStep(uploadStep{
-		Name:   u.Name,
-		Source: string(byts),
-		Target: u.Target,
+		Name:     u.Name,
+		Terminal: u.Terminal,
+		Source:   string(byts),
+		Target:   u.Target,
 	})
 	return res, nil
 }
 
 func (u *uploadStep) render(w io.Writer) {
-	fmt.Fprintf(w, "```.term1\n")
+	fmt.Fprintf(w, "```.%v\n", u.Terminal)
 	fmt.Fprintf(w, "%s\n", u.Source)
-	fmt.Fprintf(w, "```")
+	fmt.Fprintf(w, "```\n")
+	var source bytes.Buffer
+	enc := base64.NewEncoder(base64.StdEncoding, &source)
+	enc.Write([]byte(u.Source))
+	enc.Close()
+	fmt.Fprintf(w, "{:data-upload-path=%q data-upload-src=%q data-upload-term=%q}", u.Target, source.Bytes(), u.Terminal)
 }
 
 func (u *uploadStep) renderCompat(w io.Writer) {
-	fmt.Fprintf(w, "```.term1\n")
+	fmt.Fprintf(w, "```.%v\n", u.Terminal)
 	source := strings.ReplaceAll(u.Source, "\t", "        ")
 	fmt.Fprintf(w, "cat <<EOD > %v\n%s\nEOD\n", u.Target, source)
 	fmt.Fprintf(w, "```")

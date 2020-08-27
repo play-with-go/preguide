@@ -70,6 +70,7 @@ Initialized empty Git repository in /home/gopher/example/.git/
 ```.term1
 This is a test.
 ```
+{:data-upload-path="README" data-upload-src="VGhpcyBpcyBhIHRlc3Qu" data-upload-term="term1"}
 
 ```.term1
 $ git add -A
