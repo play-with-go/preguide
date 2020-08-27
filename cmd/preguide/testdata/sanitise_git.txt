@@ -65,6 +65,7 @@ $ cd example
 $ git init
 Initialized empty Git repository in /home/gopher/example/.git/
 ```
+{:data-command-src="bWtkaXIgZXhhbXBsZQpjZCBleGFtcGxlCmdpdCBpbml0Cg=="}
 
 ```.term1
 This is a test.
@@ -77,6 +78,7 @@ $ git commit -am 'Initial commit'
  1 file changed, 1 insertion(+)
  create mode 100644 README
 ```
+{:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="}
 <script>let pageGuide="sanitise"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- sanitise/en_log.txt.golden --
 Terminals: [

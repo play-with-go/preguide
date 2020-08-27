@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -188,9 +189,12 @@ func commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*commandStep, e
 
 func (c *commandStep) render(w io.Writer) {
 	fmt.Fprintf(w, "```.term1\n")
+	var cmds bytes.Buffer
+	enc := base64.NewEncoder(base64.StdEncoding, &cmds)
 	if len(c.Stmts) > 0 {
 		var stmt *commandStmt
 		for _, stmt = range c.Stmts {
+			fmt.Fprintf(enc, "%s\n", stmt.CmdStr)
 			fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
 			fmt.Fprintf(w, "%s", stmt.Output)
 		}
@@ -200,23 +204,13 @@ func (c *commandStep) render(w io.Writer) {
 			fmt.Fprintf(w, "\n")
 		}
 	}
-	fmt.Fprintf(w, "```")
+	fmt.Fprintf(w, "```\n")
+	enc.Close()
+	fmt.Fprintf(w, "{:data-command-src=%q}", cmds.Bytes())
 }
 
 func (c *commandStep) renderCompat(w io.Writer) {
-	fmt.Fprintf(w, "```.term1\n")
-	if len(c.Stmts) > 0 {
-		var stmt *commandStmt
-		for _, stmt = range c.Stmts {
-			fmt.Fprintf(w, "%s\n", stmt.CmdStr)
-		}
-		// Output a trailing newline if the last block of output did not include one
-		// otherwise the closing code block fence will not render properly
-		if stmt.Output != "" && stmt.Output[len(stmt.Output)-1] != '\n' {
-			fmt.Fprintf(w, "\n")
-		}
-	}
-	fmt.Fprintf(w, "```")
+	c.render(w)
 }
 
 func (c *commandStep) renderLog(w io.Writer) {

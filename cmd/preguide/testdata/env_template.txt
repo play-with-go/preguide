@@ -81,6 +81,7 @@ title: A test with all directives
 $ echo -n "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 ```
+{:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="env_template"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- env_template/en_log.txt.golden --
 Terminals: [
@@ -160,6 +161,7 @@ title: A test with all directives
 $ echo -n "The answer is: Hello, world!!"
 The answer is: Hello, world!!
 ```
+{:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="env_template"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- env_template/en_log.txt.raw.golden --
 Terminals: [

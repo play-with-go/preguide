@@ -103,6 +103,7 @@ $ ls
 blah
 nooutput
 ```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
 
 # Step 2
 
@@ -110,6 +111,7 @@ nooutput
 $ echo "Hello, world! I am a #CommandFile"
 Hello, world! I am a #CommandFile
 ```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmRGaWxlIgo="}
 
 # Step 3
 
@@ -135,17 +137,23 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-echo "Hello, world! I am a #Command"
-touch blah
-false
-ls
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
+$ touch blah
+$ false
+$ ls
+blah
+nooutput
 ```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
 
 # Step 2
 
 ```.term1
-echo "Hello, world! I am a #CommandFile"
+$ echo "Hello, world! I am a #CommandFile"
+Hello, world! I am a #CommandFile
 ```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmRGaWxlIgo="}
 
 # Step 3
 
