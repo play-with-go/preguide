@@ -3,6 +3,7 @@ package out
 import "github.com/play-with-go/preguide"
 
 #GuideOutput: {
+	Delims: [string, string]
 	Presteps: [...#Prestep]
 	Terminals: [...#Terminal]
 	Scenarios: [...#Scenario]
@@ -87,6 +88,7 @@ _#stepCommon: {
 // conslidate at some point. The main difference is that
 // GuideStructure is a function of the input types.
 #GuideStructure: {
+	Delims: [string, string]
 	Presteps: [...preguide.#Prestep]
 	Terminals: [...preguide.#Terminal]
 	Scenarios: [...preguide.#Scenario]

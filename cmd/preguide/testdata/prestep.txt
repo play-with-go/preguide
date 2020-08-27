@@ -308,6 +308,7 @@ prestep: {
 		Package: "github.com/blah"
 		Args: ["Hello, world!"]
 	}]
+	Delims: ["{{", "}}"]
 	Terminals: [{
 		Name:        "term1"
 		Description: "The main terminal"

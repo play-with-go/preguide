@@ -124,6 +124,7 @@ package out
 		Version: "file"
 		Variables: ["GREETING"]
 	}]
+	Delims: ["{{", "}}"]
 	Terminals: [{
 		Name:        "term1"
 		Description: "The main terminal"

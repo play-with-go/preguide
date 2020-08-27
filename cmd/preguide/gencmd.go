@@ -377,7 +377,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 	err = gv.Decode(&intGuide)
 	check(err, "failed to decode guide: %v", err)
 
-	g.delims = intGuide.Delims
+	g.Delims = intGuide.Delims
 	g.Networks = intGuide.Networks
 	g.Env = intGuide.Env
 	for _, s := range intGuide.Scenarios {
@@ -1227,6 +1227,7 @@ func (gc *genCmd) writeGuideStructures() {
 	structures := make(map[string]preguide.GuideStructure)
 	for _, guide := range gc.guides {
 		s := preguide.GuideStructure{
+			Delims:    guide.Delims,
 			Terminals: guide.Terminals,
 			Networks:  guide.Networks,
 			Scenarios: guide.Scenarios,
@@ -1243,6 +1244,9 @@ func (gc *genCmd) writeGuideStructures() {
 	}
 	v, err := gc.codec.Decode(structures)
 	check(err, "failed to decode guide structures to CUE value: %v", err)
+	// Now do a sanity check against the schema
+	err = v.Unify(gc.schemas.GuideStructures).Validate()
+	check(err, "failed to validate guide structures against schema: %v", err)
 	s := v.Syntax().(*ast.StructLit)
 	f := &ast.File{}
 	pkgName := *gc.fPackage
