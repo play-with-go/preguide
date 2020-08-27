@@ -62,7 +62,7 @@ type guide struct {
 
 	// delims are the text/template delimiters for guide prose and
 	// step variable expansion
-	delims [2]string
+	Delims [2]string
 }
 
 // TODO drop this when we support multiple terminals

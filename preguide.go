@@ -18,6 +18,7 @@ type PrestepOut struct {
 type GuideStructures map[string]*GuideStructure
 
 type GuideStructure struct {
+	Delims    [2]string
 	Presteps  []*Prestep
 	Terminals []*Terminal
 	Scenarios []*Scenario

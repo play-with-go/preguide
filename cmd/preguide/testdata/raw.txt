@@ -48,6 +48,7 @@ package out
 	}]
 	Networks: []
 	Env: ["A=B"]
+	Delims: ["{{", "}}"]
 	Terminals: [{
 		Name:        "term1"
 		Description: "The main terminal"
