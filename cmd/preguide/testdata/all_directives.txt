@@ -59,28 +59,38 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & { Source: """
+Steps: step0: en: preguide.#Command & {
+	Source: """
 mkdir nooutput
-"""}
+"""
+}
 
-Steps: step1: en: preguide.#Command & { Source: """
+Steps: step1: en: preguide.#Command & {
+	Source: """
 echo "Hello, world! I am a #Command"
 touch blah
 ! false
 ls
-"""}
+"""
+}
 
-Steps: step2: en: preguide.#CommandFile & { Path: "step2_commandFile.sh" }
+Steps: step2: en: preguide.#CommandFile & {
+	Path: "step2_commandFile.sh"
+}
 
-Steps: step3: en: preguide.#Upload & { Target: "/scripts/somewhere.sh", Source: """
+Steps: step3: en: preguide.#Upload & {
+	Target:   "/scripts/somewhere.sh"
+	Source: """
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
-""" }
+"""
+}
 
 Steps: step4: en: preguide.#UploadFile & {
-  Target: "/scripts/step2.sh"
-  Path: "step2_uploadFile.sh"
+	Language: "bash" // Vary the language for fun
+	Target:   "/scripts/step2.sh"
+	Path:     "step2_uploadFile.sh"
 }
 -- alldirectives/step2_commandFile.sh --
 echo "Hello, world! I am a #CommandFile"
@@ -115,7 +125,7 @@ Hello, world! I am a #CommandFile
 
 # Step 3
 
-```.term1
+```.sh
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
@@ -124,7 +134,7 @@ echo "Hello, world! I am an #Upload"
 
 # Step 4
 
-```.term1
+```.bash
 echo "Hello, world! I am an #UploadFile"
 
 ```

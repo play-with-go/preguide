@@ -121,6 +121,7 @@ type Upload struct {
 	Terminal    string
 	Name        string
 	Target      string
+	Language    string
 	Source      string
 }
 
@@ -135,6 +136,7 @@ type UploadFile struct {
 	Terminal    string
 	Name        string
 	Target      string
+	Language    string
 	Path        string
 }
 

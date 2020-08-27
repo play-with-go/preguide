@@ -234,6 +234,7 @@ type uploadStep struct {
 	Name     string
 	Order    int
 	Terminal string
+	Language string
 
 	Source string
 	Target string
@@ -266,6 +267,7 @@ func uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
 		Terminal: u.Terminal,
 		Source:   u.Source,
 		Target:   u.Target,
+		Language: u.Language,
 	})
 	return res, nil
 }
@@ -280,12 +282,13 @@ func uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
 		Terminal: u.Terminal,
 		Source:   string(byts),
 		Target:   u.Target,
+		Language: u.Language,
 	})
 	return res, nil
 }
 
 func (u *uploadStep) render(w io.Writer) {
-	fmt.Fprintf(w, "```.%v\n", u.Terminal)
+	fmt.Fprintf(w, "```.%v\n", u.Language)
 	fmt.Fprintf(w, "%s\n", u.Source)
 	fmt.Fprintf(w, "```\n")
 	var source bytes.Buffer
