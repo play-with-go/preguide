@@ -46,7 +46,7 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 }
 
 Steps: step1: en: preguide.#Command & {Source: """
-echo "The answer is: $GREETING!"
+echo "The answer is: {{.GREETING}}!"
 """}
 -- prestep_text/en.markdown.golden --
 ---
@@ -57,10 +57,10 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-$ echo "The answer is: $GREETING!"
-The answer is: {{.GREETING}}!
+$ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
+The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczogJEdSRUVUSU5HISIK"}
+{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="prestep_text"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep_text/en_log.txt.golden --
 Terminals: [
@@ -79,8 +79,11 @@ Presteps: [
     "Package": "github.com/blah",
     "Path": "/",
     "Args": null,
-    "Version": "file"
+    "Version": "file",
+    "Variables": [
+      "GREETING"
+    ]
   }
 ]
-$ echo "The answer is: $GREETING!"
+$ echo "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!

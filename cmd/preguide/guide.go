@@ -47,7 +47,17 @@ type guide struct {
 	outputGuide *guide
 	output      cue.Value
 
-	vars   []string
+	vars []string
+
+	// varMap holds a mapping from {{.VAR}}-style variable name to value.  When
+	// a guide needs to be run the value will be the actual value obtained
+	// during execution. When a guide does not need to be run then it will be
+	// empty. In the latter case, the map is still used in the phase of writing
+	// the guide output markdown because the variable name in {{.VAR}} template
+	// blocks is normalised and escaped.
+	//
+	// This will need to be made per language per scenario when that support is
+	// added
 	varMap map[string]string
 
 	// delims are the text/template delimiters for guide prose and
@@ -68,10 +78,11 @@ func (g *guide) Image() string {
 
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376
 type guidePrestep struct {
-	Package string
-	Path    string
-	Args    interface{}
-	Version string
+	Package   string
+	Path      string
+	Args      interface{}
+	Version   string
+	Variables []string
 }
 
 // writeGuideOutput writes the markdown files of output for a guide
@@ -159,6 +170,16 @@ func (r *runner) writeGuideOutput(g *guide) {
 			fmt.Fprintf(&buf, "<script>let pageGuide=%q; let pageLanguage=%q; let pageScenario=%q;</script>\n", g.name, md.lang, g.Scenarios[0].Name)
 		}
 
+		// If we are in normal (non-raw) mode, then we want to substitute
+		// {{.ENV}} templates with {% raw %}{{.ENV}}{% endraw %} normalised
+		// templates. Note this step is necessary here because the command and
+		// file inputs that contain {{.ENV}} templates are, at this stage,
+		// untouched. They get replaced as part of running the script but not as
+		// part of the writing of the output markdown file. The output
+		// sanitisation handles the replacing of env var values with their
+		// variable names, this step does the overall normalisation (and
+		// escaping) of _all_ {{.ENV}} templates.
+		//
 		// If we are in raw mode then we want to substitute {{.ENV}} templates
 		// for their actual value.
 		//
@@ -174,8 +195,17 @@ func (r *runner) writeGuideOutput(g *guide) {
 		// However, if there are no vars, then the substitution will have zero
 		// effect (regardless of whether there are any templates to be expanded)
 		if !*r.genCmd.fRaw || len(g.vars) == 0 {
-			_, err = outFile.Write(buf.Bytes())
-			check(err, "failed to write to %v: %v", outFilePath, err)
+			// Build a map of the variable names to escape
+			escVarMap := make(map[string]string)
+			for v := range g.varMap {
+				escVarMap[v] = "{% raw %}{{." + v + "}}{% endraw %}"
+			}
+			t := template.New("{{.ENV}} normalising and escaping")
+			t.Option("missingkey=error")
+			_, err := t.Parse(buf.String())
+			check(err, "failed to parse output for {{.ENV}} normalising and escaping")
+			err = t.Execute(outFile, escVarMap)
+			check(err, "failed to execute {{.ENV}} normalising and escaping template: %v", err)
 		} else {
 			t := template.New("pre-substitution markdown")
 			t.Option("missingkey=error")
@@ -216,7 +246,7 @@ func mustJSONMarshalIndent(i interface{}) []byte {
 
 func (g *guide) sanitiseVars(s string) string {
 	for name, val := range g.varMap {
-		s = strings.ReplaceAll(s, val, fmt.Sprintf("{{.%v}}", name))
+		s = strings.ReplaceAll(s, val, "{{."+name+"}}")
 	}
 	return s
 }

@@ -273,6 +273,19 @@ func (gc *genCmd) processDir(dir string) {
 							gc.debugf("cache hit for %v: will not re-run script\n", l)
 							ls.Steps = ols.Steps
 							ls.steps = ols.steps
+							// Populate the guide's varMap based on the variables that resulted
+							// when the script did run. Empty values are fine, we just need
+							// the environment variable names.
+							for _, ps := range out.Presteps {
+								for _, v := range ps.Variables {
+									g.varMap[v] = ""
+								}
+							}
+							// Now set the guide's Presteps to be that of the output because
+							// we known they are equivalent in terms of inputs at this stage
+							// i.e. what presteps will run, the order, the args etc, because
+							// this check happened as part of the hash check.
+							g.Presteps = out.Presteps
 							continue
 						}
 					}
@@ -740,11 +753,13 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 			}
 			g.vars = append(g.vars, v)
 			g.varMap[parts[0]] = parts[1]
+			ps.Variables = append(ps.Variables, parts[0])
 		}
 	}
 	// If we have any vars we need to first perform an expansion of any
 	// templates instances {{.ENV}} that appear in the bashScript, and then
-	// append the result of that substitution
+	// append the result of that substitution. Note this substitution applies
+	// to both the commands AND the uploads
 	bashScript := ls.bashScript
 	if len(g.vars) > 0 {
 		t := template.New("pre-substitution bashScript")

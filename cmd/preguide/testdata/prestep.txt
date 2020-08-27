@@ -106,7 +106,7 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 }
 
 Steps: step1: en: preguide.#Command & {Source: """
-echo "The answer is: $GREETING!"
+echo "The answer is: {{.GREETING}}!"
 """}
 -- prestep/en.markdown.golden --
 ---
@@ -117,10 +117,10 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-$ echo "The answer is: $GREETING!"
-The answer is: {{.GREETING}}!
+$ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
+The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczogJEdSRUVUSU5HISIK"}
+{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep/en_log.txt.golden --
 Terminals: [
@@ -141,10 +141,13 @@ Presteps: [
     "Args": [
       "Hello, world!"
     ],
-    "Version": "1"
+    "Version": "1",
+    "Variables": [
+      "GREETING"
+    ]
   }
 ]
-$ echo "The answer is: $GREETING!"
+$ echo "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 -- prestep/en.markdown.other.golden --
 ---
@@ -155,10 +158,10 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-$ echo "The answer is: $GREETING!"
-The answer is: !
+$ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
+The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczogJEdSRUVUSU5HISIK"}
+{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep/en_log.txt.other.golden --
 Terminals: [
@@ -179,11 +182,14 @@ Presteps: [
     "Args": [
       "Hello, world!"
     ],
-    "Version": "2"
+    "Version": "2",
+    "Variables": [
+      "GREETING"
+    ]
   }
 ]
-$ echo "The answer is: $GREETING!"
-The answer is: !
+$ echo "The answer is: {{.GREETING}}!"
+The answer is: {{.GREETING}}!
 -- prestep_server.go --
 package main
 
@@ -231,9 +237,11 @@ func main() {
 		var out struct {
 			Vars []string
 		}
-		if version == "1" {
-			out.Vars = append(out.Vars, "GREETING="+args[0])
+		val := args[0]
+		if version != "1" {
+			val = "other"
 		}
+		out.Vars = append(out.Vars, "GREETING="+val)
 		enc := json.NewEncoder(w)
 		if err := enc.Encode(out); err != nil {
 			panic(err)
