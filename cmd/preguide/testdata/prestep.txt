@@ -120,6 +120,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 ```
+{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczogJEdSRUVUSU5HISIK"}
 <script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep/en_log.txt.golden --
 Terminals: [
@@ -157,6 +158,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: !
 ```
+{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczogJEdSRUVUSU5HISIK"}
 <script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep/en_log.txt.other.golden --
 Terminals: [

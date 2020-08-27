@@ -105,6 +105,7 @@ Hello, world... from the test!
 PASS
 ok  	_/home/gopher	0.042s
 ```
+{:data-command-src="Z28gdGVzdAo="}
 <script>let pageGuide="sanitise"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- sanitise/en_log.txt.golden --
 Terminals: [

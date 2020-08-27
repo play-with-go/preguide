@@ -82,6 +82,7 @@ $ false
 $ ls
 blah
 ```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISIKdG91Y2ggYmxhaApmYWxzZQpscwo="}
 
 Here we talk about the second of those commands,
 `false`.
