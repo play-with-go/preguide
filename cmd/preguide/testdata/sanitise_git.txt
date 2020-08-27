@@ -37,21 +37,27 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Command & { Source: """
+Steps: step1: en: preguide.#Command & {
+	Source: """
 mkdir example
 cd example
 git init
-"""}
+"""
+}
 
-Steps: step2: en: preguide.#Upload & { Target: "README", Source: """
+Steps: step2: en: preguide.#Upload & {
+	Target: "README.md"
+	Source: """
 This is a test.
-""" }
+"""
+}
 
-Steps: step3: en: preguide.#Command & { Source: """
+Steps: step3: en: preguide.#Command & {
+	Source: """
 git add -A
 git commit -am 'Initial commit'
-"""}
-
+"""
+}
 -- sanitise/en.markdown.golden --
 ---
 guide: sanitise
@@ -67,17 +73,17 @@ Initialized empty Git repository in /home/gopher/example/.git/
 ```
 {:data-command-src="bWtkaXIgZXhhbXBsZQpjZCBleGFtcGxlCmdpdCBpbml0Cg=="}
 
-```.term1
+```.md
 This is a test.
 ```
-{:data-upload-path="README" data-upload-src="VGhpcyBpcyBhIHRlc3Qu" data-upload-term="term1"}
+{:data-upload-path="README.md" data-upload-src="VGhpcyBpcyBhIHRlc3Qu" data-upload-term="term1"}
 
 ```.term1
 $ git add -A
 $ git commit -am 'Initial commit'
 [master (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
- create mode 100644 README
+ create mode 100644 README.md
 ```
 {:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="}
 <script>let pageGuide="sanitise"; let pageLanguage="en"; let pageScenario="go115";</script>
@@ -97,11 +103,11 @@ $ mkdir example
 $ cd example
 $ git init
 Initialized empty Git repository in /home/gopher/example/.git/
-$ cat <<EOD > README
+$ cat <<EOD > README.md
 This is a test.
 EOD
 $ git add -A
 $ git commit -am 'Initial commit'
 [master (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
- create mode 100644 README
+ create mode 100644 README.md

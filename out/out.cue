@@ -73,8 +73,9 @@ _#stepCommon: {
 
 #UploadStep: {
 	_#stepCommon
-	Source: string
-	Target: string
+	Language: string
+	Source:   string
+	Target:   string
 }
 
 // GuideStructures maps a guide name to its #GuideStructure

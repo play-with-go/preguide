@@ -89,8 +89,9 @@ _#stepCommon: {
 
 #UploadStep: {
 	_#stepCommon
-	Source: string
-	Target: string
+	Language: string
+	Source:   string
+	Target:   string
 }
 
 // GuideStructures maps a guide name to its #GuideStructure
@@ -116,7 +117,11 @@ func out_out_cue() ([]byte, error) {
 
 var _preguide_cue = []byte(`package preguide
 
-import "list"
+import (
+	"list"
+	"path"
+	"regexp"
+)
 
 // TODO: keep this in sync with the Go definitions
 #StepType: int
@@ -137,6 +142,16 @@ import "list"
 		...
 	}
 
+	_#uploadCommon: {
+		// The language of the content being uploaded, e.g. go
+		// This gets used on the markdown code block, hence the
+		// values supported here are a function of the markdown
+		// parse on the other end.
+		Target:   string
+		Language: *regexp.FindSubmatch("^.(.*)", path.Ext(Target))[1] | string
+		...
+	}
+
 	#Command: {
 		_#stepCommon
 		StepType: #StepTypeCommand
@@ -151,15 +166,15 @@ import "list"
 
 	#Upload: {
 		_#stepCommon
+		_#uploadCommon
 		StepType: #StepTypeUpload
-		Target:   string
 		Source:   string
 	}
 
 	#UploadFile: {
 		_#stepCommon
+		_#uploadCommon
 		StepType: #StepTypeUploadFile
-		Target:   string
 		Path:     string
 	}
 
