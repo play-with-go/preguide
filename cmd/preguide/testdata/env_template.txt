@@ -78,8 +78,8 @@ title: A test with all directives
 # Step 1
 
 ```.term1
-$ echo -n "The answer is: {{.GREETING}}!"
-The answer is: {{.GREETING}}!
+$ echo -n "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
+The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="env_template"; let pageLanguage="en"; let pageScenario="go115";</script>
@@ -100,7 +100,10 @@ Presteps: [
     "Package": "github.com/blah",
     "Path": "/",
     "Args": null,
-    "Version": "file"
+    "Version": "file",
+    "Variables": [
+      "GREETING"
+    ]
   }
 ]
 $ echo -n "The answer is: {{.GREETING}}!"
@@ -119,6 +122,7 @@ package out
 		Path:    "/"
 		Package: "github.com/blah"
 		Version: "file"
+		Variables: ["GREETING"]
 	}]
 	Terminals: [{
 		Name:        "term1"
@@ -145,7 +149,7 @@ package out
 					}]
 				}
 			}
-			Hash: "5385ab34455eb8ecd3feaeedc14d16963f95ecab8835ee191e251a90d5096e05"
+			Hash: "6b2274e96ac076207bf49a061a0862b88150be2cb809c40af6dbc702cb31ca76"
 		}
 	}
 }
@@ -180,7 +184,10 @@ Presteps: [
     "Package": "github.com/blah",
     "Path": "/",
     "Args": null,
-    "Version": "file"
+    "Version": "file",
+    "Variables": [
+      "GREETING"
+    ]
   }
 ]
 $ echo -n "The answer is: {{.GREETING}}!"

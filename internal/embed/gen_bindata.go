@@ -47,6 +47,10 @@ _#stepCommon: {
 	Path:    string
 	Args:    _
 	Version: string
+
+	// Variables is the set of environment variables that resulted
+	// from the execution of the prestep
+	Variables: [...string]
 }
 
 #LangSteps: {
