@@ -150,6 +150,15 @@ func (r *runner) writeGuideOutput(g *guide) {
 			buf.Write(md.content)
 		}
 
+		// Now write a simple <script> block that declares some useful variables
+		// that will be picked up by postLayout.js
+		//
+		// TODO: obviously this code needs to change when we run multiple
+		// scenarios.
+		if len(g.Scenarios) > 0 {
+			fmt.Fprintf(&buf, "<script>let pageGuide=%q; let pageLanguage=%q; let pageScenario=%q;</script>\n", g.name, md.lang, g.Scenarios[0].Name)
+		}
+
 		// If we are in raw mode then we want to substitute {{.ENV}} templates
 		// for their actual value.
 		//

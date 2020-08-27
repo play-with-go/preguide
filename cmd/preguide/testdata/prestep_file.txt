@@ -60,6 +60,7 @@ title: A test with all directives
 $ echo "The answer is: $GREETING!"
 The answer is: {{.GREETING}}!
 ```
+<script>let pageGuide="prestep_text"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep_text/en_log.txt.golden --
 Terminals: [
   {

@@ -42,6 +42,10 @@ echo -n "Hello, world!"
 package out
 
 {
+	Scenarios: [{
+		Name:        "go115"
+		Description: "Go 1.15"
+	}]
 	Networks: []
 	Env: ["A=B"]
 	Terminals: [{
