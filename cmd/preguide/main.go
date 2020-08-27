@@ -17,10 +17,11 @@ package main
 // Theoretically we could code generate some of these types
 
 import (
+	"crypto/sha256"
 	"flag"
 	"fmt"
+	"io"
 	"os"
-	"os/exec"
 	"runtime/debug"
 
 	"cuelang.org/go/cue"
@@ -132,21 +133,26 @@ func (r *runner) readBuildInfo() {
 	if bi.Main.Replace != nil {
 		bi.Main = *bi.Main.Replace
 	}
-	if bi.Main.Sum == "" {
-		// Local development. Use the export information if it is available
-		export := exec.Command("go", "list", "-mod=readonly", "-export", "-f={{.Export}}", "github.com/play-with-go/preguide")
-		out, err := export.CombinedOutput()
-		if err == nil {
-			r.buildInfo = string(out)
-		} else {
-			// The only really conceivable case where this should happen is development
-			// of preguide itself. In that case, we will be running testscript tests
-			// that start from a clean slate.
-			r.buildInfo = "devel"
-		}
-	} else {
+	if bi.Main.Sum != "" {
 		r.buildInfo = bi.Main.Version + " " + bi.Main.Sum
+		return
 	}
+
+	if os.Getenv("PREGUIDE_DEVEL_HASH") != "true" {
+		r.buildInfo = "devel"
+		return
+	}
+
+	// Use a sha256 sum of self
+	self, err := os.Executable()
+	check(err, "failed to derive self: %v", err)
+	h := sha256.New()
+	selfF, err := os.Open(self)
+	check(err, "failed to open self: %v", err)
+	defer selfF.Close()
+	_, err = io.Copy(h, selfF)
+	check(err, "failed to hash self: %v", err)
+	r.buildInfo = string(h.Sum(nil))
 }
 
 func (r *runner) debugf(format string, args ...interface{}) {
