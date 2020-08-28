@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -60,7 +61,7 @@ func newRootCmd(r *runner) *rootCmd {
 	}
 	res.flagDefaults = newFlagSet("preguide", func(fs *flag.FlagSet) {
 		res.fs = fs
-		res.fDebug = fs.Bool("debug", false, "print debug output to os.Stderr")
+		res.fDebug = fs.Bool("debug", os.Getenv("PREGUIDE_DEBUG") == "true", "print debug output to os.Stderr")
 	})
 	return res
 }
