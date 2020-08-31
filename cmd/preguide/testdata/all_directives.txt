@@ -130,7 +130,7 @@ Hello, world! I am a #CommandFile
 
 echo "Hello, world! I am an #Upload"
 ```
-{:data-upload-path="/scripts/somewhere.sh" data-upload-src="IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term="term1"}
+{:data-upload-path="L3NjcmlwdHMvc29tZXdoZXJlLnNo" data-upload-src="IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"}
 
 # Step 4
 
@@ -138,7 +138,7 @@ echo "Hello, world! I am an #Upload"
 echo "Hello, world! I am an #UploadFile"
 
 ```
-{:data-upload-path="/scripts/step2.sh" data-upload-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term="term1"}
+{:data-upload-path="L3NjcmlwdHMvc3RlcDIuc2g=" data-upload-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"}
 <script>let pageGuide="alldirectives"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- alldirectives/en.compat.markdown.golden --
 ---

@@ -188,7 +188,7 @@ func commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*commandStep, e
 }
 
 func (c *commandStep) render(w io.Writer) {
-	fmt.Fprintf(w, "```.term1\n")
+	fmt.Fprintf(w, "```.%v\n", c.Terminal)
 	var cmds bytes.Buffer
 	enc := base64.NewEncoder(base64.StdEncoding, &cmds)
 	if len(c.Stmts) > 0 {
@@ -291,11 +291,18 @@ func (u *uploadStep) render(w io.Writer) {
 	fmt.Fprintf(w, "```.%v\n", u.Language)
 	fmt.Fprintf(w, "%s\n", u.Source)
 	fmt.Fprintf(w, "```\n")
-	var source bytes.Buffer
-	enc := base64.NewEncoder(base64.StdEncoding, &source)
-	enc.Write([]byte(u.Source))
-	enc.Close()
-	fmt.Fprintf(w, "{:data-upload-path=%q data-upload-src=%q data-upload-term=%q}", u.Target, source.Bytes(), u.Terminal)
+	var source, target bytes.Buffer
+	srcEnc := base64.NewEncoder(base64.StdEncoding, &source)
+	srcEnc.Write([]byte(u.Source))
+	srcEnc.Close()
+	// Workaround github.com/play-with-go/play-with-go/issues/44 by encoding the
+	// target as base64 in case it contains any {{.BLAH}} templates.  The
+	// frontend half of this workaround will do the decoding before any
+	// attempted replacement of the substitution happens.
+	targetEnc := base64.NewEncoder(base64.StdEncoding, &target)
+	targetEnc.Write([]byte(u.Target))
+	targetEnc.Close()
+	fmt.Fprintf(w, "{:data-upload-path=%q data-upload-src=%q data-upload-term=%q}", target.Bytes(), source.Bytes(), "."+u.Terminal)
 }
 
 func (u *uploadStep) renderCompat(w io.Writer) {
