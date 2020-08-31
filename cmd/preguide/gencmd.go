@@ -462,6 +462,7 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 				s, err = commandStepFromCommandFile(is)
 				check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
 			case *types.Upload:
+				// TODO: when we support non-Unix terminals,
 				s, err = uploadStepFromUpload(is)
 				check(err, "failed to parse #Upload from step %v: %v", stepName, err)
 			case *types.UploadFile:
