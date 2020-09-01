@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -207,9 +208,15 @@ func buildSelf(t *testing.T) string {
 	return filepath.Join(td, "preguide")
 }
 
+// modInitLock is used whilst the CUE API is not concurrency safe
+var modInitLock sync.Mutex
+
 // modInit establishes a temporary CUE module in dir and ensures the preguide
 // CUE packages are vendored within that module
 func modInit(dir string) (err error) {
+	modInitLock.Lock()
+	defer modInitLock.Unlock()
+
 	defer util.HandleKnown(&err)
 	fi, err := os.Stat(dir)
 	if err != nil || !fi.IsDir() {
