@@ -73,7 +73,7 @@ Initialized empty Git repository in /home/gopher/example/.git/
 ```
 {:data-command-src="bWtkaXIgZXhhbXBsZQpjZCBleGFtcGxlCmdpdCBpbml0Cg=="}
 
-```.md
+```md
 This is a test.
 ```
 {:data-upload-path="UkVBRE1FLm1k" data-upload-src="VGhpcyBpcyBhIHRlc3Qu" data-upload-term=".term1"}

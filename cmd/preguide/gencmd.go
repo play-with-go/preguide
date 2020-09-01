@@ -270,9 +270,21 @@ func (gc *genCmd) processDir(dir string) {
 				if out := g.outputGuide; out != nil {
 					if ols := out.Langs[l]; ols != nil {
 						if ols.Hash == ls.Hash {
+							// At this stage we know we have a cache hit. That means,
+							// the input steps are equivalent, in execution terms, to the
+							// steps in the output schema.
+							//
+							// However. There are parameters on the input steps that do
+							// not affect execution. e.g. on an upload step, the Renderer
+							// used. Hence we need to copy across fields that represent
+							// execution output from the output steps onto the input steps.
+
 							gc.debugf("cache hit for %v: will not re-run script\n", l)
-							ls.Steps = ols.Steps
-							ls.steps = ols.steps
+
+							for sn, ostep := range ols.Steps {
+								istep := ls.Steps[sn]
+								istep.setOutputFrom(ostep)
+							}
 							// Populate the guide's varMap based on the variables that resulted
 							// when the script did run. Empty values are fine, we just need
 							// the environment variable names.
@@ -956,7 +968,7 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 			var b bytes.Buffer
 			binary.Write(&b, binary.BigEndian, time.Now().UnixNano())
 			fence := fmt.Sprintf("%x", sha256.Sum256(b.Bytes()))
-			pf("cat <<%v > %v\n", fence, step.Target)
+			pf("cat <<'%v' > %v\n", fence, step.Target)
 			pf("%v\n", step.Source)
 			pf("%v\n", fence)
 			pf("x=$?\n")

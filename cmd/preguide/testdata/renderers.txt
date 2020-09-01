@@ -1,0 +1,257 @@
+# Test that we get the expected behaviour when using different types of
+# renderers for upload steps
+
+# Intial run
+preguide gen -out _output
+! stdout .+
+! stderr .+
+cmp _output/_posts/renderers.markdown renderers/en_pre.markdown.golden
+cmp renderers/out/gen_out.cue renderers/out/gen_out_pre.cue.golden
+
+# Check that we get a cache hit second time around
+preguide -debug gen -out _output
+! stdout .+
+stderr '^cache hit for en: will not re-run script$'
+cmp _output/_posts/renderers.markdown renderers/en_pre.markdown.golden
+cmp renderers/out/gen_out.cue renderers/out/gen_out_pre.cue.golden
+
+# Change the renderertype and ensure we get a cache hit but
+# different output schema
+cp renderers/steps.cue.changed renderers/steps.cue
+preguide -debug gen -out _output
+! stdout .+
+stderr '^cache hit for en: will not re-run script$'
+cmp _output/_posts/renderers.markdown renderers/en_post.markdown.golden
+cmp renderers/out/gen_out.cue renderers/out/gen_out_post.cue.golden
+
+-- renderers/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--step: step0 -->
+
+<!--step: step1 -->
+
+-- renderers/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: en: preguide.#Command & {
+	Source: """
+echo -n "Hello"
+"""
+}
+
+// Include some backtick text in the file contents to verify
+// that when uploading the file the backtick portion is not
+// expanded by bash
+Steps: step1: en: preguide.#Upload & {
+	Target:   "/home/gopher/somewhere.md"
+	Source: """
+This is some markdown `with code`
+Another line
+A third line
+"""
+}
+-- renderers/steps.cue.changed --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: en: preguide.#Command & {
+	Source: """
+echo -n "Hello"
+"""
+}
+
+Steps: step1: en: preguide.#Upload & {
+	Target:   "/home/gopher/somewhere.md"
+	Renderer: preguide.#RenderLineRanges & {
+		Lines: [[2,2]]
+	}
+	Source: """
+This is some markdown `with code`
+Another line
+A third line
+"""
+}
+
+-- renderers/en_pre.markdown.golden --
+---
+guide: renderers
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo -n "Hello"
+Hello
+```
+{:data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="}
+
+```md
+This is some markdown `with code`
+Another line
+A third line
+```
+{:data-upload-path="L2hvbWUvZ29waGVyL3NvbWV3aGVyZS5tZA==" data-upload-src="VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"}
+
+<script>let pageGuide="renderers"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- renderers/en_post.markdown.golden --
+---
+guide: renderers
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo -n "Hello"
+Hello
+```
+{:data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="}
+
+```md
+...
+Another line
+...
+```
+{:data-upload-path="L2hvbWUvZ29waGVyL3NvbWV3aGVyZS5tZA==" data-upload-src="VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"}
+
+<script>let pageGuide="renderers"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- renderers/out/gen_out_pre.cue.golden --
+package out
+
+{
+	Scenarios: [{
+		Name:        "go115"
+		Description: "Go 1.15"
+	}]
+	Networks: []
+	Env: []
+	Delims: ["{{", "}}"]
+	Terminals: [{
+		Name:        "term1"
+		Description: "The main terminal"
+		Scenarios: {
+			go115: {
+				Image: "this_will_never_be_used"
+			}
+		}
+	}]
+	Langs: {
+		en: {
+			Steps: {
+				step0: {
+					Name:     "step0"
+					StepType: 1
+					Terminal: "term1"
+					Order:    0
+					Stmts: [{
+						Negated:  false
+						CmdStr:   "echo -n \"Hello\""
+						ExitCode: 0
+						Output:   "Hello"
+					}]
+				}
+				step1: {
+					Name:     "step1"
+					StepType: 2
+					Terminal: "term1"
+					Target:   "/home/gopher/somewhere.md"
+					Language: "md"
+					Renderer: {
+						RendererType: 1
+					}
+					Source: """
+        This is some markdown `with code`
+        Another line
+        A third line
+        """
+					Order: 1
+				}
+			}
+			Hash: "dcd7404882aea68168134facc7b62fd6f2e0a64089ebd417843f75b3f200b560"
+		}
+	}
+}
+-- renderers/out/gen_out_post.cue.golden --
+package out
+
+{
+	Scenarios: [{
+		Name:        "go115"
+		Description: "Go 1.15"
+	}]
+	Networks: []
+	Env: []
+	Delims: ["{{", "}}"]
+	Terminals: [{
+		Name:        "term1"
+		Description: "The main terminal"
+		Scenarios: {
+			go115: {
+				Image: "this_will_never_be_used"
+			}
+		}
+	}]
+	Langs: {
+		en: {
+			Steps: {
+				step0: {
+					Name:     "step0"
+					StepType: 1
+					Terminal: "term1"
+					Order:    0
+					Stmts: [{
+						Negated:  false
+						CmdStr:   "echo -n \"Hello\""
+						ExitCode: 0
+						Output:   "Hello"
+					}]
+				}
+				step1: {
+					Name:     "step1"
+					StepType: 2
+					Terminal: "term1"
+					Target:   "/home/gopher/somewhere.md"
+					Language: "md"
+					Renderer: {
+						RendererType: 2
+						Ellipsis:     "..."
+						Lines: [[2, 2]]
+					}
+					Source: """
+        This is some markdown `with code`
+        Another line
+        A third line
+        """
+					Order: 1
+				}
+			}
+			Hash: "dcd7404882aea68168134facc7b62fd6f2e0a64089ebd417843f75b3f200b560"
+		}
+	}
+}
