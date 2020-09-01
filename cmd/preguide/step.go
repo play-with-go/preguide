@@ -79,6 +79,7 @@ type step interface {
 	render(io.Writer)
 	renderCompat(io.Writer)
 	renderLog(io.Writer)
+	setOutputFrom(step)
 }
 
 type commandStep struct {
@@ -228,6 +229,17 @@ func (c *commandStep) renderLog(w io.Writer) {
 	}
 }
 
+func (c *commandStep) setOutputFrom(s step) {
+	oc, ok := s.(*commandStep)
+	if !ok {
+		panic(fmt.Errorf("expected a *commandStep; got %T", s))
+	}
+	for i, s := range oc.Stmts {
+		c.Stmts[i].ExitCode = s.ExitCode
+		c.Stmts[i].Output = s.Output
+	}
+}
+
 type uploadStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
 	StepType StepType
@@ -235,6 +247,7 @@ type uploadStep struct {
 	Order    int
 	Terminal string
 	Language string
+	Renderer types.Renderer
 
 	Source string
 	Target string
@@ -261,13 +274,32 @@ func (u *uploadStep) setorder(i int) {
 	u.Order = i
 }
 
+func (u *uploadStep) UnmarshalJSON(b []byte) error {
+	type noUnmarshall uploadStep
+	var uv struct {
+		*noUnmarshall
+		Renderer json.RawMessage
+	}
+	uv.noUnmarshall = (*noUnmarshall)(u)
+	if err := json.Unmarshal(b, &uv); err != nil {
+		return fmt.Errorf("failed to unmarshal wrapped uploadStep: %v", err)
+	}
+	r, err := types.UnmarshalRenderer(uv.Renderer)
+	if err != nil {
+		return err
+	}
+	u.Renderer = r
+	return nil
+}
+
 func uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
 	res := newUploadStep(uploadStep{
 		Name:     u.Name,
 		Terminal: u.Terminal,
-		Source:   u.Source,
-		Target:   u.Target,
 		Language: u.Language,
+		Renderer: u.Renderer,
+		Target:   u.Target,
+		Source:   u.Source,
 	})
 	return res, nil
 }
@@ -280,16 +312,19 @@ func uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
 	res := newUploadStep(uploadStep{
 		Name:     u.Name,
 		Terminal: u.Terminal,
-		Source:   string(byts),
-		Target:   u.Target,
 		Language: u.Language,
+		Renderer: u.Renderer,
+		Target:   u.Target,
+		Source:   string(byts),
 	})
 	return res, nil
 }
 
 func (u *uploadStep) render(w io.Writer) {
-	fmt.Fprintf(w, "```.%v\n", u.Language)
-	fmt.Fprintf(w, "%s\n", u.Source)
+	renderedSource, err := u.Renderer.Render(u.Source)
+	check(err, "failed to render upload step: %v", err)
+	fmt.Fprintf(w, "```%v\n", u.Language)
+	fmt.Fprintf(w, "%s\n", renderedSource)
 	fmt.Fprintf(w, "```\n")
 	var source, target bytes.Buffer
 	srcEnc := base64.NewEncoder(base64.StdEncoding, &source)
@@ -308,10 +343,13 @@ func (u *uploadStep) render(w io.Writer) {
 func (u *uploadStep) renderCompat(w io.Writer) {
 	fmt.Fprintf(w, "```.%v\n", u.Terminal)
 	source := strings.ReplaceAll(u.Source, "\t", "        ")
-	fmt.Fprintf(w, "cat <<EOD > %v\n%s\nEOD\n", u.Target, source)
+	fmt.Fprintf(w, "cat <<'EOD' > %v\n%s\nEOD\n", u.Target, source)
 	fmt.Fprintf(w, "```")
 }
 
 func (u *uploadStep) renderLog(w io.Writer) {
 	fmt.Fprintf(w, "$ cat <<EOD > %v\n%s\nEOD\n", u.Target, u.Source)
+}
+
+func (u *uploadStep) setOutputFrom(s step) {
 }

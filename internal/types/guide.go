@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/play-with-go/preguide"
 )
@@ -122,13 +123,32 @@ type Upload struct {
 	Name        string
 	Target      string
 	Language    string
+	Renderer    Renderer
 	Source      string
 }
 
 var _ Step = (*Upload)(nil)
 
-func (c *Upload) StepType() StepType {
-	return c.StepTypeVal
+func (u *Upload) StepType() StepType {
+	return u.StepTypeVal
+}
+
+func (u *Upload) UnmarshalJSON(b []byte) error {
+	type noUnmarshall Upload
+	var uv struct {
+		*noUnmarshall
+		Renderer json.RawMessage
+	}
+	uv.noUnmarshall = (*noUnmarshall)(u)
+	if err := json.Unmarshal(b, &uv); err != nil {
+		return fmt.Errorf("failed to unmarshal wrapped Upload: %v", err)
+	}
+	r, err := UnmarshalRenderer(uv.Renderer)
+	if err != nil {
+		return err
+	}
+	u.Renderer = r
+	return nil
 }
 
 type UploadFile struct {
@@ -137,11 +157,123 @@ type UploadFile struct {
 	Name        string
 	Target      string
 	Language    string
+	Renderer    Renderer
 	Path        string
 }
 
 var _ Step = (*UploadFile)(nil)
 
-func (c *UploadFile) StepType() StepType {
-	return c.StepTypeVal
+func (u *UploadFile) StepType() StepType {
+	return u.StepTypeVal
+}
+
+func (u *UploadFile) UnmarshalJSON(b []byte) error {
+	type noUnmarshall UploadFile
+	var uv struct {
+		*noUnmarshall
+		Renderer json.RawMessage
+	}
+	uv.noUnmarshall = (*noUnmarshall)(u)
+	if err := json.Unmarshal(b, &uv); err != nil {
+		return fmt.Errorf("failed to unmarshal wrapped UploadFile: %v", err)
+	}
+	r, err := UnmarshalRenderer(uv.Renderer)
+	if err != nil {
+		return err
+	}
+	u.Renderer = r
+	return nil
+}
+
+type RendererType int64
+
+const (
+	// TODO: keep this in sync with the CUE definitions
+	RendererTypeFull RendererType = iota + 1
+	RendererTypeLineRanges
+)
+
+type Renderer interface {
+	rendererType() RendererType
+	Render(string) (string, error)
+}
+
+var _ Renderer = (*RendererFull)(nil)
+
+type RendererFull struct {
+	RendererType RendererType
+}
+
+func newRendererFull(r RendererFull) *RendererFull {
+	r.RendererType = RendererTypeFull
+	return &r
+}
+
+func (r *RendererFull) rendererType() RendererType {
+	return RendererTypeFull
+}
+
+func (r *RendererFull) Render(v string) (string, error) {
+	return v, nil
+}
+
+type RendererLineRanges struct {
+	RendererType RendererType
+	Ellipsis     string
+	Lines        [][2]int64
+}
+
+var _ Renderer = (*RendererLineRanges)(nil)
+
+func newRendererLineRanges(r RendererLineRanges) *RendererLineRanges {
+	r.RendererType = RendererTypeLineRanges
+	return &r
+}
+
+func (r *RendererLineRanges) rendererType() RendererType {
+	return RendererTypeLineRanges
+}
+
+func (r *RendererLineRanges) Render(v string) (string, error) {
+	lines := strings.Split(v, "\n")
+	l := int64(len(lines))
+	var res []string
+	for _, rng := range r.Lines {
+		if rng[0] > l || rng[1] > l {
+			return "", fmt.Errorf("range %v is outside the number of actual lines: %v (%q)", rng, l, v)
+		}
+		if rng[0] > 1 {
+			res = append(res, r.Ellipsis)
+		}
+		res = append(res, lines[rng[0]-1:rng[1]]...)
+		if rng[1]-1 < l-1 {
+			res = append(res, r.Ellipsis)
+		}
+	}
+	return strings.Join(res, "\n"), nil
+}
+
+func UnmarshalRenderer(v json.RawMessage) (Renderer, error) {
+	if string(v) == "{}" {
+		panic("here")
+	}
+	var discrim struct {
+		RendererType RendererType
+	}
+	if err := json.Unmarshal(v, &discrim); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal disciminator type: %v", err)
+	}
+	var r Renderer
+	switch discrim.RendererType {
+	case RendererTypeFull:
+		r = newRendererFull(RendererFull{})
+	case RendererTypeLineRanges:
+		r = newRendererLineRanges(RendererLineRanges{})
+	default:
+		panic(fmt.Errorf("unknown RendererType: %v", discrim.RendererType))
+	}
+	if err := json.Unmarshal(v, &r); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal %T: %v", r, err)
+	}
+	return r, nil
 }

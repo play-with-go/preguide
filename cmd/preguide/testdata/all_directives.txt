@@ -125,7 +125,7 @@ Hello, world! I am a #CommandFile
 
 # Step 3
 
-```.sh
+```sh
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
@@ -134,7 +134,7 @@ echo "Hello, world! I am an #Upload"
 
 # Step 4
 
-```.bash
+```bash
 echo "Hello, world! I am an #UploadFile"
 
 ```
@@ -170,7 +170,7 @@ Hello, world! I am a #CommandFile
 # Step 3
 
 ```.term1
-cat <<EOD > /scripts/somewhere.sh
+cat <<'EOD' > /scripts/somewhere.sh
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
@@ -180,7 +180,7 @@ EOD
 # Step 4
 
 ```.term1
-cat <<EOD > /scripts/step2.sh
+cat <<'EOD' > /scripts/step2.sh
 echo "Hello, world! I am an #UploadFile"
 
 EOD

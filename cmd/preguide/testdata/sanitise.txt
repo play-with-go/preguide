@@ -72,7 +72,7 @@ title: A test with output that should be sanitised
 ---
 # Create go file
 
-```.go
+```go
 package main
 
 import "fmt"
@@ -85,7 +85,7 @@ func main() {
 
 # Create test file
 
-```.go
+```go
 package main
 
 import (
