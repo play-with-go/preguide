@@ -53,7 +53,7 @@ FAIL
 	}}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("TestSanitiseGoTest_%v", i), func(t *testing.T) {
-			got := sanitiseGoTest(tc.in)
+			got := sanitiseGoTest(nil, tc.in)
 			if got != tc.want {
 				t.Fatalf("failed to get sanitised output: %v", cmp.Diff(got, tc.want))
 			}
