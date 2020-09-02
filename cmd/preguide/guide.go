@@ -198,7 +198,7 @@ func (r *runner) writeGuideOutput(g *guide) {
 			// Build a map of the variable names to escape
 			escVarMap := make(map[string]string)
 			for v := range g.varMap {
-				escVarMap[v] = "{% raw %}{{." + v + "}}{% endraw %}"
+				escVarMap[v] = "{% raw %}" + g.Delims[0] + "." + v + g.Delims[1] + "{% endraw %}"
 			}
 			t := template.New("{{.ENV}} normalising and escaping")
 			t.Option("missingkey=error")
@@ -244,9 +244,12 @@ func mustJSONMarshalIndent(i interface{}) []byte {
 
 }
 
-func (g *guide) sanitiseVars(s string) string {
+func (g *guide) sanitiseVars(s string) (string, []string) {
+	var tmpls []string
 	for name, val := range g.varMap {
-		s = strings.ReplaceAll(s, val, "{{."+name+"}}")
+		repl := g.Delims[0] + "." + name + g.Delims[1]
+		tmpls = append(tmpls, repl)
+		s = strings.ReplaceAll(s, val, repl)
 	}
-	return s
+	return s, tmpls
 }

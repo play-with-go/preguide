@@ -16,7 +16,7 @@ var (
 	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `$`)
 )
 
-func sanitiseGoTest(s string) string {
+func sanitiseGoTest(varNames []string, s string) string {
 	lines := strings.Split(s, "\n")
 	for i := range lines {
 		lines[i] = goTestPassRunHeading.ReplaceAllString(lines[i], fmt.Sprintf("${1}%v)", goTestMagicTime))

@@ -855,9 +855,14 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 				walk = walk[len(fence):]
 				stmt.Output = slurp(fence)
 				if !*gc.fRaw {
-					for _, s := range append(stmt.sanitisers, g.sanitiseVars) {
-						stmt.Output = s(stmt.Output)
+					// Sanitise variables first in order that "custom" sanitisers can, if required
+					// match against variable templates.
+					o := stmt.Output
+					o, varNames := g.sanitiseVars(o)
+					for _, s := range stmt.sanitisers {
+						o = s(varNames, o)
 					}
+					stmt.Output = o
 				}
 				exitCodeStr := slurp([]byte("\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)

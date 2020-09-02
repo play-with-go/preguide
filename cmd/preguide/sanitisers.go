@@ -6,7 +6,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-type sanitiser func(string) string
+type sanitiser func(varNames []string, output string) string
 
 type sanitiserMatcher struct {
 	printer *syntax.Printer
