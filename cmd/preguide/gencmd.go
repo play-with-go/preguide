@@ -31,7 +31,9 @@ import (
 	"github.com/kr/pretty"
 	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/types"
+	"github.com/play-with-go/preguide/sanitisers"
 	"golang.org/x/net/html"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // genCmd defines the gen command of preguide. This is where the main work
@@ -106,11 +108,19 @@ type genCmd struct {
 	// config is parse configuration that results from unifying all the provided
 	// config (which can be multiple CUE inputs)
 	config preguide.PrestepServiceConfig
+
+	// The following is context that current sits on genCmd but
+	// will likely have to move to a separate context object when
+	// we start to concurrently process guides
+	sanitiserHelper *sanitisers.S
+	stmtPrinter     *syntax.Printer
 }
 
 func newGenCmd(r *runner) *genCmd {
 	res := &genCmd{
-		runner: r,
+		runner:          r,
+		sanitiserHelper: sanitisers.NewS(),
+		stmtPrinter:     syntax.NewPrinter(),
 	}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
@@ -465,23 +475,23 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 			var s step
 			switch is := v.(type) {
 			case *types.Command:
-				s, err = commandStepFromCommand(is)
+				s, err = gc.commandStepFromCommand(is)
 				check(err, "failed to parse #Command from step %v: %v", stepName, err)
 			case *types.CommandFile:
 				if !filepath.IsAbs(is.Path) {
 					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				s, err = commandStepFromCommandFile(is)
+				s, err = gc.commandStepFromCommandFile(is)
 				check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
 			case *types.Upload:
 				// TODO: when we support non-Unix terminals,
-				s, err = uploadStepFromUpload(is)
+				s, err = gc.uploadStepFromUpload(is)
 				check(err, "failed to parse #Upload from step %v: %v", stepName, err)
 			case *types.UploadFile:
 				if !filepath.IsAbs(is.Path) {
 					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				s, err = uploadStepFromUploadFile(is)
+				s, err = gc.uploadStepFromUploadFile(is)
 				check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
 			}
 			ls, ok := g.Langs[code]

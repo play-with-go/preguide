@@ -1,13 +1,23 @@
-package main
+package git
 
 import (
 	"regexp"
 	"strings"
+
+	"github.com/play-with-go/preguide/sanitisers"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 var (
 	gitCommitFirstLine = regexp.MustCompile(`^(\[[[:alpha:]]+ \(root-commit\) )[0-9a-f]+(\] .*)$`)
 )
+
+func GitStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
+	if s.StmtHasCallExprPrefix(stmt, "git", "commit") {
+		return sanitiseGitCommit
+	}
+	return nil
+}
 
 func sanitiseGitCommit(varNames []string, s string) string {
 	lines := strings.SplitN(s, "\n", 2)
