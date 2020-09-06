@@ -253,7 +253,7 @@ func (gc *genCmd) processDir(dir string) {
 		return
 	}
 
-	gc.validateAndLoadsSteps(g)
+	gc.loadAndValidateSteps(g)
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
@@ -358,12 +358,12 @@ func (gc *genCmd) loadMarkdownFiles(g *guide) {
 	}
 }
 
-// validateAndLoadsSteps loads the CUE package for a guide and ensures that
+// loadAndValidateSteps loads the CUE package for a guide and ensures that
 // package is a valid instance of github.com/play-with-go/preguide.#Guide.
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (gc *genCmd) validateAndLoadsSteps(g *guide) {
+func (gc *genCmd) loadAndValidateSteps(g *guide) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -493,6 +493,16 @@ func (gc *genCmd) validateAndLoadsSteps(g *guide) {
 				}
 				s, err = gc.uploadStepFromUploadFile(is)
 				check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
+			}
+			// Validate various things about the step
+			switch s := s.(type) {
+			case *uploadStep:
+				// TODO: this check needs to be made platform specific, specific
+				// to the platform on which it will run (which is determined
+				// by the terminal scenario). However for now we assume Unix
+				if !isAbsolute(s.Target) {
+					raise("target path %q must be absolute", s.Target)
+				}
 			}
 			ls, ok := g.Langs[code]
 			if !ok {
