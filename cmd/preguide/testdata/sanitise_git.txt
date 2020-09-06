@@ -46,7 +46,7 @@ git init
 }
 
 Steps: step2: en: preguide.#Upload & {
-	Target: "README.md"
+	Target: "/home/gopher/example/README.md"
 	Source: """
 This is a test.
 """
@@ -76,7 +76,7 @@ Initialized empty Git repository in /home/gopher/example/.git/
 ```md
 This is a test.
 ```
-{:data-upload-path="UkVBRE1FLm1k" data-upload-src="VGhpcyBpcyBhIHRlc3Qu" data-upload-term=".term1"}
+{:data-upload-path="L2hvbWUvZ29waGVyL2V4YW1wbGUvUkVBRE1FLm1k" data-upload-src="VGhpcyBpcyBhIHRlc3Qu" data-upload-term=".term1"}
 
 ```.term1
 $ git add -A
@@ -103,7 +103,7 @@ $ mkdir example
 $ cd example
 $ git init
 Initialized empty Git repository in /home/gopher/example/.git/
-$ cat <<EOD > README.md
+$ cat <<EOD > /home/gopher/example/README.md
 This is a test.
 EOD
 $ git add -A
