@@ -81,7 +81,7 @@ This is a test.
 ```.term1
 $ git add -A
 $ git commit -am 'Initial commit'
-[master (root-commit) abcd123] Initial commit
+[main (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
 ```
@@ -108,6 +108,6 @@ This is a test.
 EOD
 $ git add -A
 $ git commit -am 'Initial commit'
-[master (root-commit) abcd123] Initial commit
+[main (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
  create mode 100644 README.md

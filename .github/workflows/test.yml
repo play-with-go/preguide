@@ -2,7 +2,7 @@
 
 name: Test
 env:
-  PREGUIDE_IMAGE_OVERRIDE: playwithgo/go1.15@sha256:7bf7788bb2291af0830a8c62cf38e3bfbd8b0d53e5435531458c8f77bd3efaeb
+  PREGUIDE_IMAGE_OVERRIDE: playwithgo/go1.15.1@sha256:009b09b0b12874cb1dd362bc2471e39d430f6c2c7cac47dc9db2ab7a4290e59b
   PREGUIDE_PULL_IMAGE: missing
 on:
   pull_request:
