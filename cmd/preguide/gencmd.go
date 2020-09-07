@@ -107,6 +107,7 @@ type genCmd struct {
 	fPackage       *string
 	fDebugCache    *bool
 	fRun           *string
+	fRunArgs       []string
 
 	// dir is the absolute path of the working directory specified by -dir
 	dir string
@@ -142,6 +143,7 @@ func newGenCmd(r *runner) *genCmd {
 		res.fPackage = fs.String("package", "", "the CUE package name to use for the generated guide structure file")
 		res.fDebugCache = fs.Bool("debugcache", false, "write a human-readable time-stamp-named file of the guide cache check to the current directory")
 		res.fRun = fs.String("run", envOrVal("PREGUIDE_RUN", "."), "regexp that describes which guides within dir to validate and run")
+		fs.Var(stringFlagList{&res.fRunArgs}, "runargs", "additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times")
 	})
 	return res
 }
@@ -858,6 +860,22 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		image = *gc.fImageOverride
 	}
 
+	// Whilst we know we have a single terminal, we know we can also safely
+	// address the single terminal's name for the purposes of checking our
+	// -runargs flag values
+	term := g.Terminals[0]
+	var termRunArgs []string
+	for _, a := range gc.fRunArgs {
+		var err error
+		p := term.Name + "="
+		if !strings.HasPrefix(a, p) {
+			raise("bad argument passed to -runargs, does not correspond to terminal: %q", a)
+		}
+		v := strings.TrimPrefix(a, p)
+		termRunArgs, err = split(v)
+		check(err, "failed to split -runargs in words: %v; value was %q", err, v)
+	}
+
 	imageCheck := exec.Command("docker", "inspect", image)
 	out, err := imageCheck.CombinedOutput()
 	if err != nil {
@@ -877,6 +895,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		"-e", fmt.Sprintf("USER_UID=%v", os.Geteuid()),
 		"-e", fmt.Sprintf("USER_GID=%v", os.Getegid()),
 	)
+	cmd.Args = append(cmd.Args, termRunArgs...)
 	for _, v := range g.vars {
 		cmd.Args = append(cmd.Args, "-e", v)
 	}
