@@ -76,5 +76,7 @@ usage: preguide gen
 	        generate raw output for steps
 	  -run string
 	        regexp that describes which guides within dir to validate and run (default ".")
+	  -runargs value
+	        additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times
 	  -skipcache
 	        whether to skip any output cache checking
