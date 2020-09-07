@@ -436,7 +436,7 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 	}
 	var termPositions []termPosition
 	if len(intGuide.Terminals) > 1 {
-		raise("we don't currently support multiple terminals")
+		raise("we only support a single terminal currently")
 	}
 	for n := range intGuide.Terminals {
 		termPositions = append(termPositions, termPosition{
@@ -543,6 +543,18 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 	sort.Slice(g.langs, func(i, j int) bool {
 		return g.langs[i] < g.langs[j]
 	})
+
+	// TODO: error on steps for multiple languages until we support
+	// github.com/play-with-go/preguide/issues/64
+	if len(g.langs) > 0 && (len(g.langs) > 2 || g.langs[0] != "en") {
+		raise("we only support steps for English language guides for now")
+	}
+
+	// TODO: error on multiple scenarios until we support
+	// github.com/play-with-go/preguide/issues/64
+	if len(g.Scenarios) > 1 {
+		raise("we only support a single scenario for now")
+	}
 
 	// Sort according to the order of the steps as declared in the
 	// guide [filename, offset]
