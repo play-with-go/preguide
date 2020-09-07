@@ -1,0 +1,106 @@
+# Test that we get sensible error messages for the current limitations
+# of preguide
+
+# Only support English language guides for now (hence a single language)
+# hence non-English langage guide should fail
+! preguide gen -out demarkdown/_output -dir demarkdown
+! stdout .+
+stderr 'we only support English language guides for now'
+
+# Only support English language guides for now (hence a single language)
+# hence non-English steps should fail
+! preguide gen -out desteps/_output -dir desteps
+! stdout .+
+stderr 'we only support steps for English language guides for now'
+
+# Only support a single terminal
+! preguide gen -out multipleterminals/_output -dir multipleterminals
+! stdout .+
+stderr 'we only support a single terminal currently'
+
+# Only support single scenario
+! preguide gen -out multiplescenarios/_output -dir multiplescenarios
+! stdout .+
+stderr 'we only support a single scenario for now'
+
+
+-- demarkdown/guide/de.markdown --
+---
+title: Test
+---
+-- desteps/guide/en.markdown --
+---
+title: Test
+---
+
+<!--step: step1 -->
+-- desteps/guide/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Terminals: term1: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Scenarios: go115: {
+	Description: "Go 1.15"
+}
+
+Steps: step1: de: preguide.#Command & {Source: """
+echo -n "Hello, world!"
+"""}
+-- multipleterminals/guide/en.markdown --
+---
+title: Test
+---
+-- multipleterminals/guide/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Terminals: term1: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Terminals: term2: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Scenarios: go115: {
+	Description: "Go 1.15"
+}
+
+Steps: step1: en: preguide.#Command & {Source: """
+echo -n "Hello, world!"
+"""}
+-- multiplescenarios/guide/en.markdown --
+---
+title: Test
+---
+-- multiplescenarios/guide/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Terminals: term1: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+	Scenarios: go116: Image: "this_will_never_be_used"
+}
+
+Scenarios: {
+	go115: {
+		Description: "Go 1.15"
+	}
+	go116: {
+		Description: "Go 1.16"
+	}
+}
+
+Steps: step1: en: preguide.#Command & {Source: """
+echo -n "Hello, world!"
+"""}
