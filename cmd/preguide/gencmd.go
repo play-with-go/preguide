@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -105,6 +106,7 @@ type genCmd struct {
 	fRaw           *bool
 	fPackage       *string
 	fDebugCache    *bool
+	fRun           *string
 
 	// dir is the absolute path of the working directory specified by -dir
 	dir string
@@ -139,8 +141,19 @@ func newGenCmd(r *runner) *genCmd {
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 		res.fPackage = fs.String("package", "", "the CUE package name to use for the generated guide structure file")
 		res.fDebugCache = fs.Bool("debugcache", false, "write a human-readable time-stamp-named file of the guide cache check to the current directory")
+		res.fRun = fs.String("run", envOrVal("PREGUIDE_RUN", "."), "regexp that describes which guides within dir to validate and run")
 	})
 	return res
+}
+
+// envOrVal evaluates environment variable e. If that variable is defined in
+// the environment its value is returned, else v is returned.
+func envOrVal(e string, v string) string {
+	ev, ok := os.LookupEnv(e)
+	if ok {
+		return ev
+	}
+	return v
 }
 
 func (g *genCmd) usage() string {
@@ -165,6 +178,9 @@ func (gc *genCmd) run(args []string) error {
 	}
 	gc.dir, err = filepath.Abs(*gc.fDir)
 	check(err, "failed to derive absolute directory from %q: %v", *gc.fDir, err)
+
+	runRegex, err := regexp.Compile(*gc.fRun)
+	check(err, "failed to compile -run regex %q: %v", *gc.fRun, err)
 
 	// Fallback to env-supplied config if no values supplied via -config flag
 	if len(gc.fConfigs) == 0 {
@@ -193,6 +209,10 @@ func (gc *genCmd) run(args []string) error {
 		}
 		// Like cmd/go we skip hidden dirs
 		if strings.HasPrefix(e.Name(), ".") || strings.HasPrefix(e.Name(), "_") || e.Name() == "testdata" {
+			continue
+		}
+		// Check against -run regexp
+		if !runRegex.MatchString(e.Name()) {
 			continue
 		}
 		gc.processDir(filepath.Join(dir, e.Name()))

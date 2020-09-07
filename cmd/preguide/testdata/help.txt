@@ -74,5 +74,7 @@ usage: preguide gen
 	        try and docker pull image if missing
 	  -raw
 	        generate raw output for steps
+	  -run string
+	        regexp that describes which guides within dir to validate and run (default ".")
 	  -skipcache
 	        whether to skip any output cache checking
