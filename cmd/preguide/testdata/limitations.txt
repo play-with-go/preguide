@@ -23,6 +23,11 @@ stderr 'we only support a single terminal currently'
 ! stdout .+
 stderr 'we only support a single scenario for now'
 
+# Do not support {% (end)?raw %}
+! preguide gen -out badraw/_output -dir badraw
+! stdout .+
+stderr 'input markdown and output from script blocks cannot contain \\{%'
+
 
 -- demarkdown/guide/de.markdown --
 ---
@@ -98,6 +103,32 @@ Scenarios: {
 	}
 	go116: {
 		Description: "Go 1.16"
+	}
+}
+
+Steps: step1: en: preguide.#Command & {Source: """
+echo -n "Hello, world!"
+"""}
+-- badraw/guide/en.markdown --
+---
+title: Test
+---
+echo {% raw %}{{ .Hello }}{% endraw %}
+
+<!--step: step1 -->
+-- badraw/guide/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Terminals: term1: preguide.#Guide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Scenarios: {
+	go115: {
+		Description: "Go 1.15"
 	}
 }
 

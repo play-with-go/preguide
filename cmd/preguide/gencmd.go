@@ -834,6 +834,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 	bashScript := ls.bashScript
 	if len(g.vars) > 0 {
 		t := template.New("pre-substitution bashScript")
+		t.Delims(g.Delims[0], g.Delims[1])
 		t.Option("missingkey=error")
 		_, err := t.Parse(bashScript)
 		check(err, "failed to parse pre-substitution bashScript: %v", err)
