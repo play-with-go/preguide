@@ -1,4 +1,7 @@
 # Check that file scheme prestep configuration works
+#
+# This also ensures that custom delimiters work, and that any subsequent brace
+# escapaing also works
 
 # Expand $WORK in conf.cue
 envsubst conf.cue
@@ -24,7 +27,7 @@ cmp prestep_text/en_log.txt prestep_text/en_log.txt.golden
 ---
 title: A test with all directives
 ---
-# Step 1
+# Step 1 {{ Hello }}
 
 <!--step: step1 -->
 -- prestep_text/steps.cue --
@@ -36,6 +39,8 @@ Presteps: [preguide.#Prestep & {
 	Package: "github.com/blah"
 }]
 
+Delims: [ "{{{", "}}}" ]
+
 Scenarios: go115: preguide.#Scenario & {
 	Description: "Go 1.15"
 }
@@ -46,7 +51,7 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 }
 
 Steps: step1: en: preguide.#Command & {Source: """
-echo "The answer is: {{.GREETING}}!"
+echo "The answer is: {{{.GREETING}}}!"
 """}
 -- prestep_text/en.markdown.golden --
 ---
@@ -54,13 +59,13 @@ guide: prestep_text
 lang: en
 title: A test with all directives
 ---
-# Step 1
+# Step 1 {% raw %}{{{% endraw %} Hello {% raw %}}}{% endraw %}
 
 ```.term1
-$ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
-The answer is: {% raw %}{{.GREETING}}{% endraw %}!
+$ echo "The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!"
+The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!
 ```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
+{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIK"}
 <script>let pageGuide="prestep_text"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- prestep_text/en_log.txt.golden --
 Terminals: [
@@ -85,5 +90,5 @@ Presteps: [
     ]
   }
 ]
-$ echo "The answer is: {{.GREETING}}!"
-The answer is: {{.GREETING}}!
+$ echo "The answer is: {{{.GREETING}}}!"
+The answer is: {{{.GREETING}}}!

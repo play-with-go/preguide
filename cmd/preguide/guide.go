@@ -11,8 +11,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
+	"text/template/parse"
 
 	"cuelang.org/go/cue"
 	"github.com/play-with-go/preguide"
@@ -205,13 +207,16 @@ func (r *runner) writeGuideOutput(g *guide) {
 				escVarMap[v] = "{% raw %}" + g.Delims[0] + "." + v + g.Delims[1] + "{% endraw %}"
 			}
 			t := template.New("{{.ENV}} normalising and escaping")
-			t.Option("missingkey=error")
-			_, err := t.Parse(buf.String())
+			pt, err := parse.Parse(t.Name(), buf.String(), g.Delims[0], g.Delims[1])
 			check(err, "failed to parse output for {{.ENV}} normalising and escaping")
+			t.AddParseTree(t.Name(), pt[t.Name()])
+			t.Option("missingkey=error")
+			walk(replaceBraces, pt[t.Name()].Root)
 			err = t.Execute(outFile, escVarMap)
 			check(err, "failed to execute {{.ENV}} normalising and escaping template: %v", err)
 		} else {
 			t := template.New("pre-substitution markdown")
+			t.Delims(g.Delims[0], g.Delims[1])
 			t.Option("missingkey=error")
 			_, err = t.Parse(buf.String())
 			check(err, "failed to parse pre-substitution markdown: %v", err)
@@ -256,4 +261,68 @@ func (g *guide) sanitiseVars(s string) (string, []string) {
 		s = strings.ReplaceAll(s, val, repl)
 	}
 	return s, tmpls
+}
+
+var rawRegex = regexp.MustCompile(`\{%`)
+
+func replaceBraces(n parse.Node) visitor {
+	switch n := n.(type) {
+	case *parse.TextNode:
+		if rawRegex.Match(n.Text) {
+			raise("input markdown and output from script blocks cannot contain %v", rawRegex)
+		}
+		n.Text = bytes.ReplaceAll(n.Text, []byte("{{"), []byte("{% raw %}{{{% endraw %}"))
+		n.Text = bytes.ReplaceAll(n.Text, []byte("}}"), []byte("{% raw %}}}{% endraw %}"))
+	}
+	return replaceBraces
+}
+
+type visitor func(parse.Node) visitor
+
+func walk(v visitor, n parse.Node) {
+	if v = v(n); v == nil {
+		return
+	}
+
+	switch n := n.(type) {
+	case *parse.ActionNode:
+		// Nothing to do
+	case *parse.BoolNode:
+		// Nothing to do
+	case *parse.BranchNode:
+		walk(v, n.List)
+		walk(v, n.ElseList)
+	case *parse.ChainNode:
+		// Nothing to do
+	case *parse.CommandNode:
+		// Nothing to do
+	case *parse.DotNode:
+		// Nothing to do
+	case *parse.FieldNode:
+		// Nothing to do
+	case *parse.IdentifierNode:
+		// Nothing to do
+	case *parse.IfNode:
+		walk(v, &n.BranchNode)
+	case *parse.ListNode:
+		for _, sn := range n.Nodes {
+			walk(v, sn)
+		}
+	case *parse.NilNode:
+		// Nothing to do
+	case *parse.NumberNode:
+		// Nothing to do
+	case *parse.PipeNode:
+		// Nothing to do
+	case *parse.RangeNode:
+		walk(v, &n.BranchNode)
+	case *parse.StringNode:
+		// Nothing to do
+	case *parse.TemplateNode:
+		// Nothing to do
+	case *parse.TextNode:
+		// Nothing to do
+	case *parse.VariableNode:
+		// Nothing to do
+	}
 }
