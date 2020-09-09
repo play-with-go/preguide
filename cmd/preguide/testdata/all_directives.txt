@@ -4,29 +4,29 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/alldirectives.markdown alldirectives/en.markdown.golden
-cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/alldirectives.markdown alldirectives/en.markdown.golden
-cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 # Verify that when skipping the cache we get the same output
 preguide gen -skipcache -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/alldirectives.markdown alldirectives/en.markdown.golden
-cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 # Verify that -compat works as expected
 preguide gen -compat -out _output
-cmp _output/alldirectives.markdown alldirectives/en.compat.markdown.golden
-cmp alldirectives/en_log.txt alldirectives/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.compat.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
--- alldirectives/en.markdown --
+-- myguide/en.markdown --
 ---
 title: A test with all directives
 ---
@@ -45,7 +45,7 @@ title: A test with all directives
 # Step 4
 
 <!--step: step4 -->
--- alldirectives/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -92,13 +92,13 @@ Steps: step4: en: preguide.#UploadFile & {
 	Target:   "/scripts/step2.sh"
 	Path:     "step2_uploadFile.sh"
 }
--- alldirectives/step2_commandFile.sh --
+-- myguide/step2_commandFile.sh --
 echo "Hello, world! I am a #CommandFile"
--- alldirectives/step2_uploadFile.sh --
+-- myguide/step2_uploadFile.sh --
 echo "Hello, world! I am an #UploadFile"
--- alldirectives/en.markdown.golden --
+-- myguide/en.markdown.golden --
 ---
-guide: alldirectives
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -139,10 +139,10 @@ echo "Hello, world! I am an #UploadFile"
 
 ```
 {:data-upload-path="L3NjcmlwdHMvc3RlcDIuc2g=" data-upload-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"}
-<script>let pageGuide="alldirectives"; let pageLanguage="en"; let pageScenario="go115";</script>
--- alldirectives/en.compat.markdown.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en.compat.markdown.golden --
 ---
-guide: alldirectives
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -185,8 +185,8 @@ echo "Hello, world! I am an #UploadFile"
 
 EOD
 ```
-<script>let pageGuide="alldirectives"; let pageLanguage="en"; let pageScenario="go115";</script>
--- alldirectives/en_log.txt.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

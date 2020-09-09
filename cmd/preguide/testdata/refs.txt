@@ -1,13 +1,13 @@
-# Test that basic defs work
+# Test that basic refs work
 
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/defs.md defs/en.md.golden
+cmp _output/myguide.md myguide/en.md.golden
 
--- defs/en.md --
+-- myguide/en.md --
 ---
-title: A test with defs
+title: myguide
 ---
 # Hello <!--ref: world-->
 
@@ -18,15 +18,15 @@ And a fence block:
 ```
 <!--ref: world-->
 ```
--- defs/guide.cue --
+-- myguide/guide.cue --
 package guide
 
 Defs: world: "world"
--- defs/en.md.golden --
+-- myguide/en.md.golden --
 ---
-guide: defs
+guide: myguide
 lang: en
-title: A test with defs
+title: myguide
 ---
 # Hello world
 

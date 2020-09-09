@@ -2,17 +2,17 @@
 
 # A run should generate stdout but no out/gen_out.cue file
 preguide gen -raw -out _output
-cmp stdout raw/stdout
+cmp stdout myguide/stdout
 ! stderr .+
-! exists raw/out/gen_out.cue
+! exists myguide/out/gen_out.cue
 
--- raw/en.markdown --
+-- myguide/en.markdown --
 ---
-title: A test with raw output
+title: myguide
 ---
 
 <!--step: step1 -->
--- raw/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -45,7 +45,7 @@ Steps: step2: en: preguide.#Upload & {
 echo -n "Hello, world!"
 """
 }
--- raw/stdout --
+-- myguide/stdout --
 package out
 
 {

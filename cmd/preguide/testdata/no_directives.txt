@@ -4,17 +4,17 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/nodirectives.md nodirectives/en.md.golden
+cmp _output/myguide.md myguide/en.md.golden
 
--- nodirectives/en.md --
+-- myguide/en.md --
 ---
 ---
 # Heading 1
 
 This is a test
--- nodirectives/en.md.golden --
+-- myguide/en.md.golden --
 ---
-guide: nodirectives
+guide: myguide
 lang: en
 ---
 # Heading 1

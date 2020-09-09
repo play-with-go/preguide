@@ -4,13 +4,13 @@
 ! preguide gen -out _output
 stderr 'we only support English language guides for now'
 
--- nodirectives/en.md --
+-- myguide/en.md --
 ---
 ---
 # Hello
 
 This is a test
--- nodirectives/es.md --
+-- myguide/es.md --
 ---
 ---
 # Hola
