@@ -19,7 +19,7 @@ cp version.1 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
+cmp _output/prestep.markdown prestep/en.markdown.golden
 cmp prestep/en_log.txt prestep/en_log.txt.golden
 cmp gen_guide_structures.cue gen_guide_structures.cue.golden
 
@@ -27,7 +27,7 @@ cmp gen_guide_structures.cue gen_guide_structures.cue.golden
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
+cmp _output/prestep.markdown prestep/en.markdown.golden
 cmp prestep/en_log.txt prestep/en_log.txt.golden
 
 # Verify that changing the prestep causes a new output
@@ -35,7 +35,7 @@ cp version.2 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/prestep.markdown prestep/en.markdown.other.golden
+cmp _output/prestep.markdown prestep/en.markdown.other.golden
 cmp prestep/en_log.txt prestep/en_log.txt.other.golden
 
 # Now do docker tests by running the server in a docker container.
@@ -47,7 +47,7 @@ cp conf.docker.cue conf.cue
 preguide gen -docker $PREGUIDE_IMAGE_OVERRIDE -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/prestep.markdown prestep/en.markdown.golden
+cmp _output/prestep.markdown prestep/en.markdown.golden
 cmp prestep/en_log.txt prestep/en_log.txt.golden
 
 -- go.mod --

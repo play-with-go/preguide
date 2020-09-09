@@ -5,7 +5,7 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/sanitise.markdown sanitise/en.markdown.golden
+cmp _output/sanitise.markdown sanitise/en.markdown.golden
 cmp sanitise/en_log.txt sanitise/en_log.txt.golden
 
 -- go.mod --

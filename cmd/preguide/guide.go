@@ -101,7 +101,7 @@ func (r *runner) writeGuideOutput(g *guide) {
 
 	var err error
 
-	postsDir := filepath.Join(g.target, "_posts")
+	postsDir := g.target
 	err = os.MkdirAll(postsDir, 0777)
 	check(err, "failed to os.MkdirAll %v: %v", postsDir, err)
 

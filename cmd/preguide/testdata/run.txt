@@ -1,50 +1,50 @@
 # Verify that -run works as expected
 
 # Tidy up (all, regardless of whether they exist)
-rm _output/_posts/run1.markdown
-rm _output/_posts/run2.markdown
+rm _output/run1.markdown
+rm _output/run2.markdown
 
 # Run only 1
 preguide gen -run 1 -out _output
-exists _output/_posts/run1.markdown
-! exists _output/_posts/run2.markdown
+exists _output/run1.markdown
+! exists _output/run2.markdown
 
 # Tidy up (all, regardless of whether they exist)
-rm _output/_posts/run1.markdown
-rm _output/_posts/run2.markdown
+rm _output/run1.markdown
+rm _output/run2.markdown
 
 # Run only 2
 preguide gen -run 2 -out _output
-! exists _output/_posts/run1.markdown
-exists _output/_posts/run2.markdown
+! exists _output/run1.markdown
+exists _output/run2.markdown
 
 # Tidy up (all, regardless of whether they exist)
-rm _output/_posts/run1.markdown
-rm _output/_posts/run2.markdown
+rm _output/run1.markdown
+rm _output/run2.markdown
 
 # Run all
 preguide gen -run . -out _output
-exists _output/_posts/run1.markdown
-exists _output/_posts/run2.markdown
+exists _output/run1.markdown
+exists _output/run2.markdown
 
 # Tidy up (all, regardless of whether they exist)
-rm _output/_posts/run1.markdown
-rm _output/_posts/run2.markdown
+rm _output/run1.markdown
+rm _output/run2.markdown
 
 # Run only 1 via PREGUIDE_RUN
 env PREGUIDE_RUN=1
 preguide gen -out _output
-exists _output/_posts/run1.markdown
-! exists _output/_posts/run2.markdown
+exists _output/run1.markdown
+! exists _output/run2.markdown
 
 # Tidy up (all, regardless of whether they exist)
-rm _output/_posts/run1.markdown
-rm _output/_posts/run2.markdown
+rm _output/run1.markdown
+rm _output/run2.markdown
 
 # Run all by overriding preguide via -run
 preguide gen -run . -out _output
-exists _output/_posts/run1.markdown
-exists _output/_posts/run2.markdown
+exists _output/run1.markdown
+exists _output/run2.markdown
 
 
 -- run1/en.markdown --
