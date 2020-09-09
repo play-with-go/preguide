@@ -111,6 +111,7 @@ type genCmd struct {
 	fMode          mode
 
 	// dir is the absolute path of the working directory specified by -dir
+	// (if specified)
 	dir string
 
 	// config is parse configuration that results from unifying all the provided
@@ -158,8 +159,8 @@ func newGenCmd(r *runner) *genCmd {
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
 		fs.Var(stringFlagList{&res.fConfigs}, "config", "CUE-style configuration input; can appear multiple times. See 'cue help inputs'")
-		res.fDir = fs.String("dir", ".", "the directory within which to run preguide")
-		res.fOutput = fs.String("out", "", "the target directory for generation")
+		res.fDir = fs.String("dir", "", "the directory within which to run preguide")
+		res.fOutput = fs.String("out", "", "the target directory for generation. If no value is specified it defaults to the input directory")
 		res.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
@@ -202,17 +203,27 @@ func (gc *genCmd) run(args []string) error {
 	if err := gc.fs.Parse(args); err != nil {
 		return gc.usageErr("failed to parse flags: %v", err)
 	}
-	if gc.fOutput == nil || *gc.fOutput == "" {
-		return gc.usageErr("target directory must be specified")
+	dir := *gc.fDir
+	dirArgs := gc.fs.Args()
+	gotDir := dir != ""
+	gotArgs := len(dirArgs) > 0
+	if gotDir && gotArgs {
+		return gc.usageErr("-dir and args are mutually exclusive")
 	}
-	gc.dir, err = filepath.Abs(*gc.fDir)
-	check(err, "failed to derive absolute directory from %q: %v", *gc.fDir, err)
+	if !gotDir && !gotArgs {
+		gotDir = true
+		dir = "."
+	}
+	if gotDir {
+		gc.dir, err = filepath.Abs(*gc.fDir)
+		check(err, "failed to derive absolute directory from %q: %v", *gc.fDir, err)
+	}
 
 	runRegex, err := regexp.Compile(*gc.fRun)
 	check(err, "failed to compile -run regex %q: %v", *gc.fRun, err)
 
 	if *gc.fCompat && gc.fMode == modeGitHub {
-		raise("-compat flag is not valid when output mode is %v", modeGitHub)
+		return gc.usageErr("-compat flag is not valid when output mode is %v", modeGitHub)
 	}
 
 	// Fallback to env-supplied config if no values supplied via -config flag
@@ -231,26 +242,47 @@ func (gc *genCmd) run(args []string) error {
 
 	gc.loadConfig()
 
-	// Read the source directory and process each guide (directory)
-	dir, err := filepath.Abs(*gc.fDir)
-	check(err, "failed to make path %q absolute: %v", *gc.fDir, err)
-	es, err := ioutil.ReadDir(dir)
-	check(err, "failed to read directory %v: %v", dir, err)
-	for _, e := range es {
-		if !e.IsDir() {
-			continue
+	// Any args to gen are considered directories to walk
+	var toWalk []string
+	switch {
+	case gotArgs:
+		for _, a := range gc.fs.Args() {
+			fp, err := filepath.Abs(a)
+			check(err, "failed to make arg absolute: %v", err)
+			fi, err := os.Stat(fp)
+			check(err, "failed to stat arg %v: %v", a, err)
+			if !fi.IsDir() {
+				raise("arg %v is not a directory", a)
+			}
+			toWalk = append(toWalk, fp)
 		}
-		// Like cmd/go we skip hidden dirs
-		if strings.HasPrefix(e.Name(), ".") || strings.HasPrefix(e.Name(), "_") || e.Name() == "testdata" {
-			continue
+	case gotDir:
+		// Read the source directory and process each guide (directory)
+		dir, err := filepath.Abs(*gc.fDir)
+		check(err, "failed to make path %q absolute: %v", *gc.fDir, err)
+		es, err := ioutil.ReadDir(dir)
+		check(err, "failed to read directory %v: %v", dir, err)
+		for _, e := range es {
+			if !e.IsDir() {
+				continue
+			}
+			// Like cmd/go we skip hidden dirs
+			if strings.HasPrefix(e.Name(), ".") || strings.HasPrefix(e.Name(), "_") || e.Name() == "testdata" {
+				continue
+			}
+			// Check against -run regexp
+			if !runRegex.MatchString(e.Name()) {
+				continue
+			}
+			toWalk = append(toWalk, filepath.Join(dir, e.Name()))
 		}
-		// Check against -run regexp
-		if !runRegex.MatchString(e.Name()) {
-			continue
-		}
-		gc.processDir(filepath.Join(dir, e.Name()))
 	}
-	gc.writeGuideStructures()
+	for _, d := range toWalk {
+		gc.processDir(d, gotArgs)
+	}
+	if gotDir {
+		gc.writeGuideStructures()
+	}
 	return nil
 }
 
@@ -296,18 +328,25 @@ func (gc *genCmd) loadConfig() {
 // processDir processes the guide (CUE package and markdown files) found in
 // dir. See the documentation for genCmd for more details. Returns a guide if
 // markdown files are found and successfully processed, else nil.
-func (gc *genCmd) processDir(dir string) {
+func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
+	target := *gc.fOutput
+	if target == "" {
+		target = dir
+	}
 	g := &guide{
 		dir:    dir,
 		name:   filepath.Base(dir),
-		target: *gc.fOutput,
+		target: target,
 		Langs:  make(map[types.LangCode]*langSteps),
 		varMap: make(map[string]string),
 	}
 
 	gc.loadMarkdownFiles(g)
 	if len(g.mdFiles) == 0 {
-		return
+		if !mustContainGuide {
+			return
+		}
+		raise("%v did not contain a guide", dir)
 	}
 
 	gc.loadAndValidateSteps(g)
@@ -409,7 +448,7 @@ func (gc *genCmd) loadMarkdownFiles(g *guide) {
 		}
 		lang := strings.TrimSuffix(e.Name(), ext)
 		if !types.ValidLangCode(lang) {
-			raise("unknown language code (%q) for %v", lang, path)
+			continue
 		}
 		g.mdFiles = append(g.mdFiles, g.buildMarkdownFile(path, types.LangCode(lang), ext))
 	}
