@@ -81,9 +81,9 @@ type step interface {
 	order() int
 	terminal() string
 	setorder(int)
-	render(io.Writer)
-	renderCompat(io.Writer)
-	renderLog(io.Writer)
+	render(mode, io.Writer)
+	renderCompat(mode, io.Writer)
+	renderLog(mode, io.Writer)
 	setOutputFrom(step)
 }
 
@@ -195,8 +195,13 @@ func (gc *genCmd) commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*c
 	return res, nil
 }
 
-func (c *commandStep) render(w io.Writer) {
-	fmt.Fprintf(w, "```.%v\n", c.Terminal)
+func (c *commandStep) render(mode mode, w io.Writer) {
+	switch mode {
+	case modeJekyll:
+		fmt.Fprintf(w, "```.%v\n", c.Terminal)
+	case modeGitHub:
+		fmt.Fprintf(w, "```\n")
+	}
 	var cmds bytes.Buffer
 	enc := base64.NewEncoder(base64.StdEncoding, &cmds)
 	if len(c.Stmts) > 0 {
@@ -212,16 +217,19 @@ func (c *commandStep) render(w io.Writer) {
 			fmt.Fprintf(w, "\n")
 		}
 	}
-	fmt.Fprintf(w, "```\n")
+	fmt.Fprintf(w, "```")
 	enc.Close()
-	fmt.Fprintf(w, "{:data-command-src=%q}", cmds.Bytes())
+	switch mode {
+	case modeJekyll:
+		fmt.Fprintf(w, "\n{:data-command-src=%q}", cmds.Bytes())
+	}
 }
 
-func (c *commandStep) renderCompat(w io.Writer) {
-	c.render(w)
+func (c *commandStep) renderCompat(mode mode, w io.Writer) {
+	c.render(mode, w)
 }
 
-func (c *commandStep) renderLog(w io.Writer) {
+func (c *commandStep) renderLog(mode mode, w io.Writer) {
 	if len(c.Stmts) > 0 {
 		var stmt *commandStmt
 		for _, stmt = range c.Stmts {
@@ -327,12 +335,12 @@ func (gc *genCmd) uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, er
 	return res, nil
 }
 
-func (u *uploadStep) render(w io.Writer) {
+func (u *uploadStep) render(mode mode, w io.Writer) {
 	renderedSource, err := u.Renderer.Render(u.Source)
 	check(err, "failed to render upload step: %v", err)
 	fmt.Fprintf(w, "```%v\n", u.Language)
 	fmt.Fprintf(w, "%s\n", renderedSource)
-	fmt.Fprintf(w, "```\n")
+	fmt.Fprintf(w, "```")
 	var source, target bytes.Buffer
 	srcEnc := base64.NewEncoder(base64.StdEncoding, &source)
 	srcEnc.Write([]byte(u.Source))
@@ -344,17 +352,20 @@ func (u *uploadStep) render(w io.Writer) {
 	targetEnc := base64.NewEncoder(base64.StdEncoding, &target)
 	targetEnc.Write([]byte(u.Target))
 	targetEnc.Close()
-	fmt.Fprintf(w, "{:data-upload-path=%q data-upload-src=%q data-upload-term=%q}", target.Bytes(), source.Bytes(), "."+u.Terminal)
+	switch mode {
+	case modeJekyll:
+		fmt.Fprintf(w, "\n{:data-upload-path=%q data-upload-src=%q data-upload-term=%q}", target.Bytes(), source.Bytes(), "."+u.Terminal)
+	}
 }
 
-func (u *uploadStep) renderCompat(w io.Writer) {
+func (u *uploadStep) renderCompat(mode mode, w io.Writer) {
 	fmt.Fprintf(w, "```.%v\n", u.Terminal)
 	source := strings.ReplaceAll(u.Source, "\t", "        ")
 	fmt.Fprintf(w, "cat <<'EOD' > %v\n%s\nEOD\n", u.Target, source)
 	fmt.Fprintf(w, "```")
 }
 
-func (u *uploadStep) renderLog(w io.Writer) {
+func (u *uploadStep) renderLog(mode mode, w io.Writer) {
 	fmt.Fprintf(w, "$ cat <<EOD > %v\n%s\nEOD\n", u.Target, u.Source)
 }
 

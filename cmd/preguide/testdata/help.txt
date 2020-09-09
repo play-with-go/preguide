@@ -66,6 +66,8 @@ usage: preguide gen
 	        run prestep requests in a docker container configured by the arguments passed to this flag
 	  -image string
 	        the image to use instead of the guide-specified image
+	  -mode value
+	        the output mode. Valid values are: jekyll, github (default jekyll)
 	  -out string
 	        the target directory for generation
 	  -package string

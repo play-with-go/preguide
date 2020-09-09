@@ -94,7 +94,7 @@ type guidePrestep struct {
 // writeGuideOutput writes the markdown files of output for a guide
 // that result from the combination of the configuration and input
 // to a guide.
-func (r *runner) writeGuideOutput(g *guide) {
+func (gc *genCmd) writeGuideOutput(g *guide) {
 	if len(g.mdFiles) != 1 || g.mdFiles[0].lang != "en" {
 		raise("we only support English language guides for now")
 	}
@@ -113,18 +113,21 @@ func (r *runner) writeGuideOutput(g *guide) {
 		check(err, "failed to open %v for writing: %v", outFilePath, err)
 
 		// TODO: support all front-matter formats
-		switch md.frontFormat {
-		case "yaml":
-			fmt.Fprintln(outFile, "---")
-			if len(md.frontMatter) > 0 {
-				enc := yaml.NewEncoder(outFile)
-				err := enc.Encode(md.frontMatter)
-				check(err, "failed to encode front matter for %v: %v", outFilePath, err)
+		switch gc.fMode {
+		case modeJekyll:
+			switch md.frontFormat {
+			case "yaml":
+				fmt.Fprintln(outFile, "---")
+				if len(md.frontMatter) > 0 {
+					enc := yaml.NewEncoder(outFile)
+					err := enc.Encode(md.frontMatter)
+					check(err, "failed to encode front matter for %v: %v", outFilePath, err)
+				}
+				fmt.Fprintln(outFile, "---")
+			case "":
+			default:
+				panic(fmt.Errorf("don't yet support front-matter type of %v", md.frontFormat))
 			}
-			fmt.Fprintln(outFile, "---")
-		case "":
-		default:
-			panic(fmt.Errorf("don't yet support front-matter type of %v", md.frontFormat))
 		}
 
 		var buf bytes.Buffer
@@ -140,10 +143,10 @@ func (r *runner) writeGuideOutput(g *guide) {
 				buf.Write(md.content[pos:d.Pos()])
 				switch d := d.(type) {
 				case *stepDirective:
-					if *r.genCmd.fCompat {
-						steps[d.Key()].renderCompat(&buf)
+					if *gc.genCmd.fCompat {
+						steps[d.Key()].renderCompat(gc.fMode, &buf)
 					} else {
-						steps[d.Key()].render(&buf)
+						steps[d.Key()].render(gc.fMode, &buf)
 					}
 				case *refDirective:
 					switch d.val.Kind() {
@@ -167,13 +170,16 @@ func (r *runner) writeGuideOutput(g *guide) {
 			buf.Write(md.content)
 		}
 
-		// Now write a simple <script> block that declares some useful variables
-		// that will be picked up by postLayout.js
-		//
-		// TODO: obviously this code needs to change when we run multiple
-		// scenarios.
-		if len(g.Scenarios) > 0 {
-			fmt.Fprintf(&buf, "<script>let pageGuide=%q; let pageLanguage=%q; let pageScenario=%q;</script>\n", g.name, md.lang, g.Scenarios[0].Name)
+		switch gc.fMode {
+		case modeJekyll:
+			// Now write a simple <script> block that declares some useful variables
+			// that will be picked up by postLayout.js
+			//
+			// TODO: obviously this code needs to change when we run multiple
+			// scenarios.
+			if len(g.Scenarios) > 0 {
+				fmt.Fprintf(&buf, "<script>let pageGuide=%q; let pageLanguage=%q; let pageScenario=%q;</script>\n", g.name, md.lang, g.Scenarios[0].Name)
+			}
 		}
 
 		// If we are in normal (non-raw) mode, then we want to substitute
@@ -200,7 +206,7 @@ func (r *runner) writeGuideOutput(g *guide) {
 		//
 		// However, if there are no vars, then the substitution will have zero
 		// effect (regardless of whether there are any templates to be expanded)
-		if !*r.genCmd.fRaw || len(g.vars) == 0 {
+		if !*gc.genCmd.fRaw || len(g.vars) == 0 {
 			// Build a map of the variable names to escape
 			escVarMap := make(map[string]string)
 			for v := range g.varMap {
@@ -230,7 +236,7 @@ func (r *runner) writeGuideOutput(g *guide) {
 }
 
 // writeLog writes a
-func (r *runner) writeLog(g *guide) {
+func (gc *genCmd) writeLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
@@ -238,7 +244,7 @@ func (r *runner) writeLog(g *guide) {
 			fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
 		}
 		for _, step := range ls.steps {
-			step.renderLog(&buf)
+			step.renderLog(gc.fMode, &buf)
 		}
 		logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", lang))
 		err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
