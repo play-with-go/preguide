@@ -21,14 +21,14 @@ envsubst conf.cue
 preguide gen -config conf.cue -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/env_template.markdown env_template/en.markdown.golden
+cmp _output/env_template.markdown env_template/en.markdown.golden
 cmp env_template/en_log.txt env_template/en_log.txt.golden
 
 # Run with -raw
 preguide gen -raw -config conf.cue -out _output
 cmp stdout env_template/raw.cue.golden
 ! stderr .+
-cmp _output/_posts/env_template.markdown env_template/en.markdown.raw.golden
+cmp _output/env_template.markdown env_template/en.markdown.raw.golden
 cmp env_template/en_log.txt env_template/en_log.txt.raw.golden
 
 -- prestep.txt --

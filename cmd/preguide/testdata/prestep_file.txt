@@ -10,7 +10,7 @@ envsubst conf.cue
 preguide gen -config conf.cue -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/prestep_text.markdown prestep_text/en.markdown.golden
+cmp _output/prestep_text.markdown prestep_text/en.markdown.golden
 cmp prestep_text/en_log.txt prestep_text/en_log.txt.golden
 
 -- prestep.txt --

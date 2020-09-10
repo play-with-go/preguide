@@ -4,7 +4,7 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/nodirectives.md nodirectives/en.md.golden
+cmp _output/nodirectives.md nodirectives/en.md.golden
 
 -- nodirectives/en.md --
 ---

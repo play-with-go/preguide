@@ -5,14 +5,14 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/_posts/renderers.markdown renderers/en_pre.markdown.golden
+cmp _output/renderers.markdown renderers/en_pre.markdown.golden
 cmp renderers/out/gen_out.cue renderers/out/gen_out_pre.cue.golden
 
 # Check that we get a cache hit second time around
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/_posts/renderers.markdown renderers/en_pre.markdown.golden
+cmp _output/renderers.markdown renderers/en_pre.markdown.golden
 cmp renderers/out/gen_out.cue renderers/out/gen_out_pre.cue.golden
 
 # Change the renderertype and ensure we get a cache hit but
@@ -21,7 +21,7 @@ cp renderers/steps.cue.changed renderers/steps.cue
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/_posts/renderers.markdown renderers/en_post.markdown.golden
+cmp _output/renderers.markdown renderers/en_post.markdown.golden
 cmp renderers/out/gen_out.cue renderers/out/gen_out_post.cue.golden
 
 -- renderers/en.markdown --
