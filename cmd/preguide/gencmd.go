@@ -108,6 +108,7 @@ type genCmd struct {
 	fDebugCache    *bool
 	fRun           *string
 	fRunArgs       []string
+	fMode          mode
 
 	// dir is the absolute path of the working directory specified by -dir
 	dir string
@@ -123,11 +124,36 @@ type genCmd struct {
 	stmtPrinter     *syntax.Printer
 }
 
+type mode string
+
+const (
+	modeJekyll mode = "jekyll"
+	modeGitHub mode = "github"
+)
+
+func (m *mode) String() string {
+	if m == nil {
+		return "nil"
+	}
+	return string(*m)
+}
+
+func (m *mode) Set(v string) error {
+	switch mode(v) {
+	case modeJekyll, modeGitHub:
+	default:
+		return fmt.Errorf("unknown mode %q", v)
+	}
+	*m = mode(v)
+	return nil
+}
+
 func newGenCmd(r *runner) *genCmd {
 	res := &genCmd{
 		runner:          r,
 		sanitiserHelper: sanitisers.NewS(),
 		stmtPrinter:     syntax.NewPrinter(),
+		fMode:           modeJekyll,
 	}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
@@ -144,6 +170,7 @@ func newGenCmd(r *runner) *genCmd {
 		res.fDebugCache = fs.Bool("debugcache", false, "write a human-readable time-stamp-named file of the guide cache check to the current directory")
 		res.fRun = fs.String("run", envOrVal("PREGUIDE_RUN", "."), "regexp that describes which guides within dir to validate and run")
 		fs.Var(stringFlagList{&res.fRunArgs}, "runargs", "additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times")
+		fs.Var(&res.fMode, "mode", fmt.Sprintf("the output mode. Valid values are: %v, %v", modeJekyll, modeGitHub))
 	})
 	return res
 }
@@ -183,6 +210,10 @@ func (gc *genCmd) run(args []string) error {
 
 	runRegex, err := regexp.Compile(*gc.fRun)
 	check(err, "failed to compile -run regex %q: %v", *gc.fRun, err)
+
+	if *gc.fCompat && gc.fMode == modeGitHub {
+		raise("-compat flag is not valid when output mode is %v", modeGitHub)
+	}
 
 	// Fallback to env-supplied config if no values supplied via -config flag
 	if len(gc.fConfigs) == 0 {
