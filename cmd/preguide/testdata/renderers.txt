@@ -5,26 +5,26 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/renderers.markdown renderers/en_pre.markdown.golden
-cmp renderers/out/gen_out.cue renderers/out/gen_out_pre.cue.golden
+cmp _output/myguide.markdown myguide/en_pre.markdown.golden
+cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 
 # Check that we get a cache hit second time around
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/renderers.markdown renderers/en_pre.markdown.golden
-cmp renderers/out/gen_out.cue renderers/out/gen_out_pre.cue.golden
+cmp _output/myguide.markdown myguide/en_pre.markdown.golden
+cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 
 # Change the renderertype and ensure we get a cache hit but
 # different output schema
-cp renderers/steps.cue.changed renderers/steps.cue
+cp myguide/steps.cue.changed myguide/steps.cue
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/renderers.markdown renderers/en_post.markdown.golden
-cmp renderers/out/gen_out.cue renderers/out/gen_out_post.cue.golden
+cmp _output/myguide.markdown myguide/en_post.markdown.golden
+cmp myguide/out/gen_out.cue myguide/out/gen_out_post.cue.golden
 
--- renderers/en.markdown --
+-- myguide/en.markdown --
 ---
 title: A test with all directives
 ---
@@ -34,7 +34,7 @@ title: A test with all directives
 
 <!--step: step1 -->
 
--- renderers/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -65,7 +65,7 @@ Another line
 A third line
 """
 }
--- renderers/steps.cue.changed --
+-- myguide/steps.cue.changed --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -97,9 +97,9 @@ A third line
 """
 }
 
--- renderers/en_pre.markdown.golden --
+-- myguide/en_pre.markdown.golden --
 ---
-guide: renderers
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -118,10 +118,10 @@ A third line
 ```
 {:data-upload-path="L2hvbWUvZ29waGVyL3NvbWV3aGVyZS5tZA==" data-upload-src="VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"}
 
-<script>let pageGuide="renderers"; let pageLanguage="en"; let pageScenario="go115";</script>
--- renderers/en_post.markdown.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en_post.markdown.golden --
 ---
-guide: renderers
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -140,8 +140,8 @@ Another line
 ```
 {:data-upload-path="L2hvbWUvZ29waGVyL3NvbWV3aGVyZS5tZA==" data-upload-src="VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"}
 
-<script>let pageGuide="renderers"; let pageLanguage="en"; let pageScenario="go115";</script>
--- renderers/out/gen_out_pre.cue.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/out/gen_out_pre.cue.golden --
 package out
 
 {
@@ -197,7 +197,7 @@ package out
 		}
 	}
 }
--- renderers/out/gen_out_post.cue.golden --
+-- myguide/out/gen_out_post.cue.golden --
 package out
 
 {

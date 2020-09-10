@@ -7,16 +7,16 @@ stderr 'bad argument passed to -runargs'
 
 # Good args
 preguide gen -out _output -runargs 'term1=-e GREETING=hello'
-cmp guide/out/gen_out.cue guide/out/gen_out.cue.golden
+cmp myguide/out/gen_out.cue myguide/out/gen_out.cue.golden
 
--- guide/en.markdown --
+-- myguide/en.markdown --
 ---
 title: A test with all directives
 ---
 # Step 1
 
 <!--step: step1 -->
--- guide/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -33,7 +33,7 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 Steps: step1: en: preguide.#Command & {Source: """
 echo -n "The answer is: $GREETING"
 """}
--- guide/out/gen_out.cue.golden --
+-- myguide/out/gen_out.cue.golden --
 package out
 
 {

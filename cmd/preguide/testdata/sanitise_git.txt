@@ -5,15 +5,15 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/sanitise.markdown sanitise/en.markdown.golden
-cmp sanitise/en_log.txt sanitise/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 -- go.mod --
 module mod.com/init
 
 go 1.12
 
--- sanitise/en.markdown --
+-- myguide/en.markdown --
 ---
 title: A test with output that should be sanitised
 ---
@@ -23,7 +23,7 @@ title: A test with output that should be sanitised
 <!--step: step2 -->
 
 <!--step: step3 -->
--- sanitise/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -58,9 +58,9 @@ git add -A
 git commit -am 'Initial commit'
 """
 }
--- sanitise/en.markdown.golden --
+-- myguide/en.markdown.golden --
 ---
-guide: sanitise
+guide: myguide
 lang: en
 title: A test with output that should be sanitised
 ---
@@ -86,8 +86,8 @@ $ git commit -am 'Initial commit'
  create mode 100644 README.md
 ```
 {:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="}
-<script>let pageGuide="sanitise"; let pageLanguage="en"; let pageScenario="go115";</script>
--- sanitise/en_log.txt.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

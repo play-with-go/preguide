@@ -3,11 +3,11 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/defs.md defs/en.md.golden
+cmp _output/myguide.md myguide/en.md.golden
 
--- defs/en.md --
+-- myguide/en.md --
 ---
-title: A test with defs
+title: A test with myguide
 ---
 # Hello <!--ref: world-->
 
@@ -26,7 +26,7 @@ Here are some commands:
 Here we talk about the second of those commands,
 `<!--outref: cmd_false -->`.
 
--- defs/guide.cue --
+-- myguide/guide.cue --
 package guide
 
 import "github.com/play-with-go/preguide"
@@ -48,7 +48,7 @@ touch blah
 ! false
 ls
 """}
--- defs/out/defs.cue --
+-- myguide/out/myguide.cue --
 package out
 
 Langs: _
@@ -56,11 +56,11 @@ Langs: _
 Defs: {
 	cmd_false: Langs.en.Steps.step1.Stmts[2].CmdStr
 }
--- defs/en.md.golden --
+-- myguide/en.md.golden --
 ---
-guide: defs
+guide: myguide
 lang: en
-title: A test with defs
+title: A test with myguide
 ---
 # Hello world
 
@@ -87,4 +87,4 @@ blah
 Here we talk about the second of those commands,
 `false`.
 
-<script>let pageGuide="defs"; let pageLanguage="en"; let pageScenario="go115";</script>
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>

@@ -19,24 +19,24 @@ cp version.1 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/prestep.markdown prestep/en.markdown.golden
-cmp prestep/en_log.txt prestep/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 cmp gen_guide_structures.cue gen_guide_structures.cue.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^cache hit for en: will not re-run script$'
-cmp _output/prestep.markdown prestep/en.markdown.golden
-cmp prestep/en_log.txt prestep/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 # Verify that changing the prestep causes a new output
 cp version.2 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/prestep.markdown prestep/en.markdown.other.golden
-cmp prestep/en_log.txt prestep/en_log.txt.other.golden
+cmp _output/myguide.markdown myguide/en.markdown.other.golden
+cmp myguide/en_log.txt myguide/en_log.txt.other.golden
 
 # Now do docker tests by running the server in a docker container.
 # Because this involves running ourselves, we need to set the
@@ -47,8 +47,8 @@ cp conf.docker.cue conf.cue
 preguide gen -docker $PREGUIDE_IMAGE_OVERRIDE -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/prestep.markdown prestep/en.markdown.golden
-cmp prestep/en_log.txt prestep/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 -- go.mod --
 module mod.com/init
@@ -78,14 +78,14 @@ import (
 func main() {
 	fmt.Println("{}")
 }
--- prestep/en.markdown --
+-- myguide/en.markdown --
 ---
 title: A test with all directives
 ---
 # Step 1
 
 <!--step: step1 -->
--- prestep/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -108,9 +108,9 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 Steps: step1: en: preguide.#Command & {Source: """
 echo "The answer is: {{.GREETING}}!"
 """}
--- prestep/en.markdown.golden --
+-- myguide/en.markdown.golden --
 ---
-guide: prestep
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -121,8 +121,8 @@ $ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
 The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
-<script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
--- prestep/en_log.txt.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
@@ -149,9 +149,9 @@ Presteps: [
 ]
 $ echo "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
--- prestep/en.markdown.other.golden --
+-- myguide/en.markdown.other.golden --
 ---
-guide: prestep
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -162,8 +162,8 @@ $ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
 The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
-<script>let pageGuide="prestep"; let pageLanguage="en"; let pageScenario="go115";</script>
--- prestep/en_log.txt.other.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en_log.txt.other.golden --
 Terminals: [
   {
     "Name": "term1",
@@ -296,7 +296,7 @@ func getVersion() string {
 -- gen_guide_structures.cue.golden --
 package script_prestep
 
-prestep: {
+myguide: {
 	Scenarios: [{
 		Name:        "go115"
 		Description: "Go 1.15"

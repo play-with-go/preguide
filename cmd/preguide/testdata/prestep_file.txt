@@ -10,8 +10,8 @@ envsubst conf.cue
 preguide gen -config conf.cue -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/prestep_text.markdown prestep_text/en.markdown.golden
-cmp prestep_text/en_log.txt prestep_text/en_log.txt.golden
+cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/en_log.txt myguide/en_log.txt.golden
 
 -- prestep.txt --
 {
@@ -23,14 +23,14 @@ cmp prestep_text/en_log.txt prestep_text/en_log.txt.golden
 "github.com/blah": {
 	Endpoint: "file://$WORK/prestep.txt"
 }
--- prestep_text/en.markdown --
+-- myguide/en.markdown --
 ---
 title: A test with all directives
 ---
 # Step 1 {{ Hello }}
 
 <!--step: step1 -->
--- prestep_text/steps.cue --
+-- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
@@ -53,9 +53,9 @@ Terminals: term1: preguide.#Guide.#Terminal & {
 Steps: step1: en: preguide.#Command & {Source: """
 echo "The answer is: {{{.GREETING}}}!"
 """}
--- prestep_text/en.markdown.golden --
+-- myguide/en.markdown.golden --
 ---
-guide: prestep_text
+guide: myguide
 lang: en
 title: A test with all directives
 ---
@@ -66,8 +66,8 @@ $ echo "The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!"
 The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIK"}
-<script>let pageGuide="prestep_text"; let pageLanguage="en"; let pageScenario="go115";</script>
--- prestep_text/en_log.txt.golden --
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

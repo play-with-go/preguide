@@ -2,9 +2,9 @@
 
 ! preguide gen -out _output
 ! stdout .+
-stderr 'unknown step "step1" referened in file '$WORK'[/\\]missing_step[/\\]en\.md'
+stderr 'unknown step "step1" referened in file '$WORK'[/\\]myguide[/\\]en\.md'
 
--- missing_step/en.md --
+-- myguide/en.md --
 # Step 1
 
 <!--step: step1 -->
