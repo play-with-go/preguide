@@ -1,15 +1,15 @@
 # Test that we get the expected output when using -mode github
 
 # Check that we cannot use -mode github with -compat
-! preguide gen -out _output -mode github -compat
+! preguide gen -out _output -mode github -compat myguide
 ! stdout .+
 stderr '-compat flag is not valid when output mode is github'
 
 # Check that we get the expected output
-preguide gen -out _output -mode github
+preguide gen -mode github myguide
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp myguide/myguide.markdown myguide/en.markdown.golden
 
 -- myguide/en.markdown --
 ---

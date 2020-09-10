@@ -61,7 +61,7 @@ usage: preguide gen
 	  -debugcache
 	        write a human-readable time-stamp-named file of the guide cache check to the current directory
 	  -dir string
-	        the directory within which to run preguide (default ".")
+	        the directory within which to run preguide
 	  -docker string
 	        run prestep requests in a docker container configured by the arguments passed to this flag
 	  -image string
@@ -69,7 +69,7 @@ usage: preguide gen
 	  -mode value
 	        the output mode. Valid values are: jekyll, github (default jekyll)
 	  -out string
-	        the target directory for generation
+	        the target directory for generation. If no value is specified it defaults to the input directory
 	  -package string
 	        the CUE package name to use for the generated guide structure file
 	  -pull string
