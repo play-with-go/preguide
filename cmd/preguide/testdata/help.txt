@@ -62,8 +62,8 @@ usage: preguide gen
 	        write a human-readable time-stamp-named file of the guide cache check to the current directory
 	  -dir string
 	        the directory within which to run preguide
-	  -docker string
-	        run prestep requests in a docker container configured by the arguments passed to this flag
+	  -docker
+	        internal flag: run prestep requests in a docker container
 	  -image string
 	        the image to use instead of the guide-specified image
 	  -mode value

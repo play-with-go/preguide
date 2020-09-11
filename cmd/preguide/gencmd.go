@@ -19,6 +19,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -102,7 +103,7 @@ type genCmd struct {
 	fImageOverride *string
 	fCompat        *bool
 	fPullImage     *string
-	fDocker        *string
+	fDocker        *bool
 	fRaw           *bool
 	fPackage       *string
 	fDebugCache    *bool
@@ -165,7 +166,7 @@ func newGenCmd(r *runner) *genCmd {
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
 		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
-		res.fDocker = fs.String("docker", os.Getenv("PREGUIDE_DOCKER"), "run prestep requests in a docker container configured by the arguments passed to this flag")
+		res.fDocker = fs.Bool("docker", false, "internal flag: run prestep requests in a docker container")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 		res.fPackage = fs.String("package", "", "the CUE package name to use for the generated guide structure file")
 		res.fDebugCache = fs.Bool("debugcache", false, "write a human-readable time-stamp-named file of the guide cache check to the current directory")
@@ -1182,12 +1183,7 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		}
 		body = &w
 	}
-	if *gc.fDocker != "" {
-		sself, err := os.Executable()
-		check(err, "failed to derive executable for self: %v", err)
-		self, err := filepath.EvalSymlinks(sself)
-		check(err, "failed to eval symlinks for %v: %v", sself, err)
-
+	if *gc.fDocker {
 		cmd := gc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
@@ -1195,22 +1191,14 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 			// Set up "ourselves" as init which we then run
 			// as a command (so as not to clobber the entrypoint
 			// defined on the image)
-			fmt.Sprintf("--volume=%s:/init", self),
 		)
 		for _, e := range conf.Env {
 			cmd.Args = append(cmd.Args, "-e", e)
 		}
-
 		if v, ok := os.LookupEnv("TESTSCRIPT_COMMAND"); ok {
 			cmd.Args = append(cmd.Args, "-e", "TESTSCRIPT_COMMAND="+v)
 		}
-
-		// Add the user-supplied args, after splitting docker flag val into
-		// pieces
-		addArgs, err := split(*gc.fDocker)
-		check(err, "failed to split -docker flag into args: %v", err)
-		cmd.Args = append(cmd.Args, addArgs...)
-
+		gc.addSelfArgs(cmd)
 		// Now add the arguments to "ourselves"
 		cmd.Args = append(cmd.Args, "/init", "docker", method, endpoint)
 		if body != nil {
@@ -1223,7 +1211,7 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 
-		err = cmd.Run()
+		err := cmd.Run()
 		check(err, "failed to docker run %v: %v\n%s", strings.Join(cmd.Args, " "), err, stderr.Bytes())
 
 		return stdout.Bytes()
@@ -1239,6 +1227,25 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 	respBody, err := ioutil.ReadAll(resp.Body)
 	check(err, "failed to read response body for request %v: %v", req, err)
 	return respBody
+}
+
+// addSelfArgs is ultimately responsible for adding the image that will be run
+// as part of this docker command. However it also adds any supporting arguments
+// e.g. like mounts
+func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok || bi.Main.Replace != nil || bi.Main.Version == "(devel)" {
+		sself, err := os.Executable()
+		check(err, "failed to derive executable: %v", err)
+		self, err := filepath.EvalSymlinks(sself)
+		check(err, "failed to EvalSymlinks for %v: %v", sself, err)
+		dr.Args = append(dr.Args,
+			fmt.Sprintf("--volume=%s:/init", self),
+			imageBase,
+		)
+		return
+	}
+	dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
 }
 
 type mdFile struct {
