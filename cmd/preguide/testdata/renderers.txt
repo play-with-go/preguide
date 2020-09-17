@@ -144,114 +144,110 @@ Another line
 -- myguide/out/gen_out_pre.cue.golden --
 package out
 
-{
-	Scenarios: [{
-		Name:        "go115"
-		Description: "Go 1.15"
-	}]
-	Networks: []
-	Env: []
-	Delims: ["{{", "}}"]
-	Terminals: [{
-		Name:        "term1"
-		Description: "The main terminal"
-		Scenarios: {
-			go115: {
-				Image: "this_will_never_be_used"
-			}
+Scenarios: [{
+	Name:        "go115"
+	Description: "Go 1.15"
+}]
+Networks: []
+Env: []
+Delims: ["{{", "}}"]
+Terminals: [{
+	Name:        "term1"
+	Description: "The main terminal"
+	Scenarios: {
+		go115: {
+			Image: "this_will_never_be_used"
 		}
-	}]
-	Langs: {
-		en: {
-			Steps: {
-				step0: {
-					Name:     "step0"
-					StepType: 1
-					Terminal: "term1"
-					Order:    0
-					Stmts: [{
-						Negated:  false
-						CmdStr:   "echo -n \"Hello\""
-						ExitCode: 0
-						Output:   "Hello"
-					}]
+	}
+}]
+Langs: {
+	en: {
+		Steps: {
+			step0: {
+				Name:     "step0"
+				StepType: 1
+				Terminal: "term1"
+				Order:    0
+				Stmts: [{
+					Negated:  false
+					CmdStr:   "echo -n \"Hello\""
+					ExitCode: 0
+					Output:   "Hello"
+				}]
+			}
+			step1: {
+				Name:     "step1"
+				StepType: 2
+				Terminal: "term1"
+				Target:   "/home/gopher/somewhere.md"
+				Language: "md"
+				Renderer: {
+					RendererType: 1
 				}
-				step1: {
-					Name:     "step1"
-					StepType: 2
-					Terminal: "term1"
-					Target:   "/home/gopher/somewhere.md"
-					Language: "md"
-					Renderer: {
-						RendererType: 1
-					}
-					Source: """
+				Source: """
         This is some markdown `with code`
         Another line
         A third line
         """
-					Order: 1
-				}
+				Order: 1
 			}
-			Hash: "dcd7404882aea68168134facc7b62fd6f2e0a64089ebd417843f75b3f200b560"
 		}
+		Hash: "dcd7404882aea68168134facc7b62fd6f2e0a64089ebd417843f75b3f200b560"
 	}
 }
 -- myguide/out/gen_out_post.cue.golden --
 package out
 
-{
-	Scenarios: [{
-		Name:        "go115"
-		Description: "Go 1.15"
-	}]
-	Networks: []
-	Env: []
-	Delims: ["{{", "}}"]
-	Terminals: [{
-		Name:        "term1"
-		Description: "The main terminal"
-		Scenarios: {
-			go115: {
-				Image: "this_will_never_be_used"
-			}
+Scenarios: [{
+	Name:        "go115"
+	Description: "Go 1.15"
+}]
+Networks: []
+Env: []
+Delims: ["{{", "}}"]
+Terminals: [{
+	Name:        "term1"
+	Description: "The main terminal"
+	Scenarios: {
+		go115: {
+			Image: "this_will_never_be_used"
 		}
-	}]
-	Langs: {
-		en: {
-			Steps: {
-				step0: {
-					Name:     "step0"
-					StepType: 1
-					Terminal: "term1"
-					Order:    0
-					Stmts: [{
-						Negated:  false
-						CmdStr:   "echo -n \"Hello\""
-						ExitCode: 0
-						Output:   "Hello"
-					}]
+	}
+}]
+Langs: {
+	en: {
+		Steps: {
+			step0: {
+				Name:     "step0"
+				StepType: 1
+				Terminal: "term1"
+				Order:    0
+				Stmts: [{
+					Negated:  false
+					CmdStr:   "echo -n \"Hello\""
+					ExitCode: 0
+					Output:   "Hello"
+				}]
+			}
+			step1: {
+				Name:     "step1"
+				StepType: 2
+				Terminal: "term1"
+				Target:   "/home/gopher/somewhere.md"
+				Language: "md"
+				Renderer: {
+					RendererType: 2
+					Ellipsis:     "..."
+					Lines: [[2, 2]]
 				}
-				step1: {
-					Name:     "step1"
-					StepType: 2
-					Terminal: "term1"
-					Target:   "/home/gopher/somewhere.md"
-					Language: "md"
-					Renderer: {
-						RendererType: 2
-						Ellipsis:     "..."
-						Lines: [[2, 2]]
-					}
-					Source: """
+				Source: """
         This is some markdown `with code`
         Another line
         A third line
         """
-					Order: 1
-				}
+				Order: 1
 			}
-			Hash: "dcd7404882aea68168134facc7b62fd6f2e0a64089ebd417843f75b3f200b560"
 		}
+		Hash: "dcd7404882aea68168134facc7b62fd6f2e0a64089ebd417843f75b3f200b560"
 	}
 }

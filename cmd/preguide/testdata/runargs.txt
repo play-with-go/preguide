@@ -36,40 +36,38 @@ echo -n "The answer is: $GREETING"
 -- myguide/out/gen_out.cue.golden --
 package out
 
-{
-	Scenarios: [{
-		Name:        "go115"
-		Description: "Go 1.15"
-	}]
-	Networks: []
-	Env: []
-	Delims: ["{{", "}}"]
-	Terminals: [{
-		Name:        "term1"
-		Description: "The main terminal"
-		Scenarios: {
-			go115: {
-				Image: "this_will_never_be_used"
+Scenarios: [{
+	Name:        "go115"
+	Description: "Go 1.15"
+}]
+Networks: []
+Env: []
+Delims: ["{{", "}}"]
+Terminals: [{
+	Name:        "term1"
+	Description: "The main terminal"
+	Scenarios: {
+		go115: {
+			Image: "this_will_never_be_used"
+		}
+	}
+}]
+Langs: {
+	en: {
+		Steps: {
+			step1: {
+				Name:     "step1"
+				StepType: 1
+				Terminal: "term1"
+				Order:    0
+				Stmts: [{
+					Negated:  false
+					CmdStr:   "echo -n \"The answer is: $GREETING\""
+					ExitCode: 0
+					Output:   "The answer is: hello"
+				}]
 			}
 		}
-	}]
-	Langs: {
-		en: {
-			Steps: {
-				step1: {
-					Name:     "step1"
-					StepType: 1
-					Terminal: "term1"
-					Order:    0
-					Stmts: [{
-						Negated:  false
-						CmdStr:   "echo -n \"The answer is: $GREETING\""
-						ExitCode: 0
-						Output:   "The answer is: hello"
-					}]
-				}
-			}
-			Hash: "f84141eeea2e0ecdc7fb79678069e372693bc399b127d32b5c6d58d9bcdbe2cb"
-		}
+		Hash: "f84141eeea2e0ecdc7fb79678069e372693bc399b127d32b5c6d58d9bcdbe2cb"
 	}
 }
