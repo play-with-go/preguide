@@ -834,8 +834,7 @@ func (gc *genCmd) writeOutPackage(g *guide) {
 	enc := gocodec.New(&gc.runner.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
-	byts, err := format.Node(v.Syntax())
-	out := fmt.Sprintf("package out\n\n%s\n", byts)
+	out, err := valueToFile("out", v)
 	check(err, "failed to format CUE output: %v", err)
 
 	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
@@ -1411,22 +1410,26 @@ func (gc *genCmd) writeGuideStructures() {
 	// Now do a sanity check against the schema
 	err = v.Unify(gc.schemas.GuideStructures).Validate()
 	check(err, "failed to validate guide structures against schema: %v", err)
-	s := v.Syntax().(*ast.StructLit)
-	f := &ast.File{}
 	pkgName := *gc.fPackage
 	if pkgName == "" {
 		pkgName = filepath.Base(gc.dir)
 		pkgName = strings.ReplaceAll(pkgName, "-", "_")
 	}
-	f.Decls = append(f.Decls, &ast.Package{
-		Name: ast.NewIdent(pkgName),
-	})
-	f.Decls = append(f.Decls, s.Elts...)
-	syn, err := format.Node(f)
+	syn, err := valueToFile(pkgName, v)
 	check(err, "failed to convert guide structures to CUE syntax: %v", err)
 	outPath := filepath.Join(*gc.fDir, "gen_guide_structures.cue")
 	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
 	check(err, "failed to write guide structures output to %v: %v", outPath, err)
+}
+
+func valueToFile(pkg string, v cue.Value) ([]byte, error) {
+	s := v.Syntax().(*ast.StructLit)
+	f := &ast.File{}
+	f.Decls = append(f.Decls, &ast.Package{
+		Name: ast.NewIdent(pkg),
+	})
+	f.Decls = append(f.Decls, s.Elts...)
+	return format.Node(f)
 }
 
 // dockerRunnner is a convenience type used to wrap the three call
