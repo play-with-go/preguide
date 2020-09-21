@@ -5,14 +5,21 @@ env:
   PREGUIDE_IMAGE_OVERRIDE: playwithgo/go1.15.1@sha256:009b09b0b12874cb1dd362bc2471e39d430f6c2c7cac47dc9db2ab7a4290e59b
   PREGUIDE_PULL_IMAGE: missing
 on:
-  pull_request:
-    branches:
-    - '**'
   push:
     branches:
     - master
+  pull_request:
+    branches:
+    - '**'
 jobs:
   test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-latest
+        go_version:
+        - "1.15"
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code
@@ -33,10 +40,3 @@ jobs:
       run: go mod tidy
     - name: Verify commit is clean
       run: test -z "$(git status --porcelain)" || (git status; git diff; false)
-    strategy:
-      matrix:
-        os:
-        - ubuntu-latest
-        go_version:
-        - "1.15"
-      fail-fast: false

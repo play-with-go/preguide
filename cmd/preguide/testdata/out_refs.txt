@@ -35,7 +35,7 @@ Scenarios: go115: preguide.#Scenario & {
 	Description: "Go 1.15"
 }
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
@@ -50,8 +50,6 @@ ls
 """}
 -- myguide/out/myguide.cue --
 package out
-
-Langs: _
 
 Defs: {
 	cmd_false: Langs.en.Steps.step1.Stmts[2].CmdStr

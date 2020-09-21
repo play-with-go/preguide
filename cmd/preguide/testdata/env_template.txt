@@ -61,7 +61,7 @@ Scenarios: go115: preguide.#Scenario & {
 	Description: "Go 1.15"
 }
 
-Terminals: term1: preguide.#Guide.#Terminal & {
+Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
@@ -111,47 +111,47 @@ The answer is: {{.GREETING}}!
 -- myguide/raw.cue.golden --
 package out
 
-Scenarios: [{
-	Name:        "go115"
-	Description: "Go 1.15"
-}]
-Networks: []
-Env: []
 Presteps: [{
-	Path:    "/"
-	Package: "github.com/blah"
-	Version: "file"
 	Variables: ["GREETING"]
+	Version: "file"
+	Package: "github.com/blah"
+	Path:    "/"
 }]
-Delims: ["{{", "}}"]
 Terminals: [{
-	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
+	Name: "term1"
 }]
+Scenarios: [{
+	Description: "Go 1.15"
+	Name:        "go115"
+}]
+Networks: []
+Env: []
 Langs: {
 	en: {
+		Hash: "6b2274e96ac076207bf49a061a0862b88150be2cb809c40af6dbc702cb31ca76"
 		Steps: {
 			step1: {
-				Name:     "step1"
-				StepType: 1
-				Terminal: "term1"
-				Order:    0
 				Stmts: [{
-					Negated:  false
-					CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
-					ExitCode: 0
 					Output:   "The answer is: Hello, world!!"
+					ExitCode: 0
+					CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
+					Negated:  false
 				}]
+				Order:    0
+				Terminal: "term1"
+				StepType: 1
+				Name:     "step1"
 			}
 		}
-		Hash: "6b2274e96ac076207bf49a061a0862b88150be2cb809c40af6dbc702cb31ca76"
 	}
 }
+Delims: ["{{", "}}"]
 -- myguide/en.markdown.raw.golden --
 ---
 guide: myguide
