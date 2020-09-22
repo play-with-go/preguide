@@ -100,11 +100,11 @@ func TestSanitiseGoGet(t *testing.T) {
 		want string
 	}{{
 		vars: []string{"{{.REPO1}}"},
-		in: `go: downloading play-with-go.dev/userguides/{{.REPO1}} v2.0.0-20200901194510-cc2d21bd1e55+something
-go: play-with-go.dev/userguides/{{.REPO1}} upgrade => v0.0.0-20200901194510-cc2d21bd1e55
+		in: `go: downloading gopher.live/x/{{.REPO1}} v2.0.0-20200901194510-cc2d21bd1e55+something
+go: gopher.live/x/{{.REPO1}} upgrade => v0.0.0-20200901194510-cc2d21bd1e55
 `,
-		want: `go: downloading play-with-go.dev/userguides/{{.REPO1}} v2.0.0-20060102150405-abcde12345+something
-go: play-with-go.dev/userguides/{{.REPO1}} upgrade => v0.0.0-20060102150405-abcde12345
+		want: `go: downloading gopher.live/x/{{.REPO1}} v2.0.0-20060102150405-abcde12345+something
+go: gopher.live/x/{{.REPO1}} upgrade => v0.0.0-20060102150405-abcde12345
 `,
 	}}
 	for i, tc := range testCases {
