@@ -44,7 +44,7 @@ cmp myguide/en_log.txt myguide/en_log.txt.other.golden
 exec docker run --rm --network-alias server --network $PRESTEP_NETWORK --volume=$WORK:/workdir --volume=$PRESTEP_SERVER_BINARY:/workdir/server --workdir=/workdir --entrypoint=/workdir/server $PREGUIDE_IMAGE_OVERRIDE :8080 &
 cp version.1 version
 cp conf.docker.cue conf.cue
-preguide gen -docker $PREGUIDE_IMAGE_OVERRIDE -out _output
+preguide gen -docker -out _output
 ! stdout .+
 ! stderr .+
 cmp _output/myguide.markdown myguide/en.markdown.golden
