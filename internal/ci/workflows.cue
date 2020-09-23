@@ -14,7 +14,7 @@ test: json.#Workflow & {
 		PREGUIDE_PULL_IMAGE:     "missing"
 	}
 	on: {
-		push: branches: ["master"]
+		push: branches: ["main"]
 		pull_request: branches: ["**"]
 	}
 	jobs: test: {
