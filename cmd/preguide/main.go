@@ -20,6 +20,8 @@ package main
 //
 // Theoretically we could code generate some of these types
 
+//go:generate go run cuelang.org/go/cmd/cue cmd genimagebases
+
 import (
 	"crypto/sha256"
 	"flag"
