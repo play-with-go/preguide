@@ -3,6 +3,8 @@
 set -eu -o pipefail
 shopt -s inherit_errexit
 
+set -x
+
 version="$(basename $GITHUB_REF)"
 if [ "$version" == "main" ]
 then
@@ -20,5 +22,7 @@ go get -d github.com/play-with-go/preguide@$version
 version="$(go list -m -f {{.Version}} github.com/play-with-go/preguide)"
 dir="$(go list -m -f {{.Dir}} github.com/play-with-go/preguide)"
 
-docker build -f $dir/Dockerfile playwithgo/preguide:$version
+go build github.com/play-with-go/preguide
+
+docker build -f $dir/cmd/preguide/Dockerfile -t playwithgo/preguide:$version .
 docker push playwithgo/preguide:$version
