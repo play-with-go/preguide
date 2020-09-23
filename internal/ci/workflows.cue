@@ -4,7 +4,8 @@ import "github.com/SchemaStore/schemastore/src/schemas/json"
 
 workflows: [...{file: string, schema: json.#Workflow}]
 workflows: [
-	{file: "test.yml", schema: test},
+	{file: "test.yml", schema:       test},
+	{file: "dockerSelf.yml", schema: dockerSelf},
 ]
 
 #checkoutCode: {
