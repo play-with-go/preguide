@@ -22,7 +22,7 @@ go get -d github.com/play-with-go/preguide@$version
 version="$(go list -m -f {{.Version}} github.com/play-with-go/preguide)"
 dir="$(go list -m -f {{.Dir}} github.com/play-with-go/preguide)"
 
-go build github.com/play-with-go/preguide/cmd/preguide
+CGO_ENABLED=0 go build github.com/play-with-go/preguide/cmd/preguide
 
 docker build -f $dir/cmd/preguide/Dockerfile -t playwithgo/preguide:$version .
 docker push playwithgo/preguide:$version

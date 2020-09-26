@@ -4,7 +4,8 @@ import (
 	"tool/file"
 )
 
-imageBase: "busybox@sha256:a59b4c18ddd80e2e87cef38478acd918536d31493a12a7271bada299c384033d"
+// Usage plain busybox:latest image
+imageBase: "busybox@sha256:d366a4665ab44f0648d7a00ae3fae139d55e32f9712c67accd604bb55df9d05a"
 
 command: genimagebases: {
 	writeGoFile: file.Create & {

@@ -131,6 +131,7 @@ func startserver(ts *testscript.TestScript, neg bool, args []string) {
 	server := filepath.Join(td, "server")
 	build := exec.Command("go", "build", "-o", server)
 	build.Args = append(build.Args, files...)
+	build.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if out, err := build.CombinedOutput(); err != nil {
 		ts.Fatalf("failed to build server from %v: %v\n%s", files, err, out)
 	}
@@ -209,6 +210,7 @@ func buildSelf(t *testing.T) string {
 		t.Fatalf("failed to create temp dir for self build: %v", err)
 	}
 	cmd := exec.Command("go", "build", "-o", td)
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("failed to run [%v]: %v\n%s", cmd, err, out)
 	}
