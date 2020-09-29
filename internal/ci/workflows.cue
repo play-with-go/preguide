@@ -17,6 +17,10 @@ workflows: [
 	uses: "actions/setup-go@v2"
 	with: "go-version": "${{ matrix.go_version }}"
 }
+#dockerBuildSelf: {
+	name: "Generate Docker self"
+	run:  "./_scripts/dockerBuildSelf.sh"
+}
 
 test: json.#Workflow & {
 	name: "Test"
@@ -60,6 +64,7 @@ test: json.#Workflow & {
 				name: "Tidy"
 				run:  "go mod tidy"
 			},
+			#dockerBuildSelf,
 			{
 				name: "Verify commit is clean"
 				run:  #"test -z "$(git status --porcelain)" || (git status; git diff; false)"#
@@ -90,10 +95,7 @@ dockerSelf: json.#Workflow & {
 		steps: [
 			#checkoutCode,
 			#installGo,
-			{
-				name: "Generate Docker self"
-				run:  "./_scripts/dockerBuildSelf.sh"
-			},
+			#dockerBuildSelf,
 		]
 	}
 }
