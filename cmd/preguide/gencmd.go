@@ -1183,7 +1183,8 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		}
 		body = &w
 	}
-	if *gc.fDocker {
+	// We need Docker if we need to connect to networks
+	if len(conf.Networks) > 0 && !*gc.fDocker {
 		cmd := gc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
@@ -1194,9 +1195,6 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		)
 		for _, e := range conf.Env {
 			cmd.Args = append(cmd.Args, "-e", e)
-		}
-		if v, ok := os.LookupEnv("TESTSCRIPT_COMMAND"); ok {
-			cmd.Args = append(cmd.Args, "-e", "TESTSCRIPT_COMMAND="+v)
 		}
 		gc.addSelfArgs(cmd)
 		// Now add the arguments to "ourselves"
