@@ -915,12 +915,33 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 
 	// Concatenate the bash script
 	toWrite += bashScript
+
+	// Create a temp directory for our "workings". Note, this directory will
+	// not be world-readable by default. So when it comes to the directory we
+	// wil mount inside the docker container that will run the script, we
+	// need to be a bit more liberal with permissions. Doing so within the
+	// the temp directory is safe.
 	td, err := ioutil.TempDir("", fmt.Sprintf("preguide-%v-runner-", g.name))
-	check(err, "failed to create temp directory for guide %v: %v", g.dir, err)
+	check(err, "failed to create workings directory for guide %v: %v", g.dir, err)
 	defer os.RemoveAll(td)
-	sf := filepath.Join(td, "script.sh")
-	err = ioutil.WriteFile(sf, []byte(toWrite), 0777)
-	check(err, "failed to write temporary script to %v: %v", sf, err)
+
+	scriptsDir := filepath.Join(td, "scripts")
+	err = os.Mkdir(scriptsDir, 0777)
+	check(err, "failed to create scripts directory %v: %v", scriptsDir, err)
+	scriptsFile := filepath.Join(scriptsDir, "script.sh")
+	err = ioutil.WriteFile(scriptsFile, []byte(toWrite), 0777)
+	check(err, "failed to write temporary script to %v: %v", scriptsFile, err)
+
+	// Explicitly change the permissions for the scripts directory and the
+	// script itself so that when mounted within the docker container they are
+	// runnable by anyone. This is necessary because the bind mount used adopts
+	// the same owner and permissions as the host. Therefore, to be runnable
+	// by any user, including the user who ends up running the script as defined
+	// by the image we are using, we need to be liberal.
+	err = os.Chmod(scriptsDir, 0777)
+	check(err, "failed to change permissions of %v: %v", scriptsDir, err)
+	err = os.Chmod(scriptsFile, 0777)
+	check(err, "failed to change permissions of %v: %v", scriptsFile, err)
 
 	// Whilst we know we have a single terminal, we can use the g.Image() hack
 	// of finding the image for that single terminal. We we support multiple
@@ -961,9 +982,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 
 	cmd := gc.newDockerRunner(g.Networks,
 		"--rm",
-		"-v", fmt.Sprintf("%v:/scripts", td),
-		"-e", fmt.Sprintf("USER_UID=%v", os.Geteuid()),
-		"-e", fmt.Sprintf("USER_GID=%v", os.Getegid()),
+		"-v", fmt.Sprintf("%v:/scripts", scriptsDir),
 	)
 	cmd.Args = append(cmd.Args, termRunArgs...)
 	for _, v := range g.vars {
@@ -1227,18 +1246,18 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 // e.g. like mounts
 func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
 	bi := gc.buildInfo
-	if bi.Main.Replace != nil || bi.Main.Version == "(devel)" {
-		sself, err := os.Executable()
-		check(err, "failed to derive executable: %v", err)
-		self, err := filepath.EvalSymlinks(sself)
-		check(err, "failed to EvalSymlinks for %v: %v", sself, err)
-		dr.Args = append(dr.Args,
-			fmt.Sprintf("--volume=%s:/runbin/preguide", self),
-			imageBase,
-		)
+	if os.Getenv("PREGUIDE_DEVEL_IMAGE") != "true" && bi.Main.Replace == nil && bi.Main.Version != "(devel)" {
+		dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
 		return
 	}
-	dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
+	sself, err := os.Executable()
+	check(err, "failed to derive executable: %v", err)
+	self, err := filepath.EvalSymlinks(sself)
+	check(err, "failed to EvalSymlinks for %v: %v", sself, err)
+	dr.Args = append(dr.Args,
+		fmt.Sprintf("--volume=%s:/runbin/preguide", self),
+		imageBase,
+	)
 }
 
 type mdFile struct {
