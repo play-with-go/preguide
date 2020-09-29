@@ -80,7 +80,9 @@ type runner struct {
 	// binary. This information is hashed as part of the calculation to
 	// determine whether re-running preguide for a given guide is necessary
 	// (because a change in the preguide binary should result in a cache miss)
-	buildInfo string
+	buildInfo *debug.BuildInfo
+
+	versionString string
 
 	// guides is the set of guides that we successfully processed, gathered as
 	// part of processDir
@@ -136,16 +138,18 @@ func (r *runner) readBuildInfo() {
 	if !ok {
 		raise("failed to read build info")
 	}
+	r.buildInfo = bi
 	if bi.Main.Replace != nil {
 		bi.Main = *bi.Main.Replace
 	}
 	if bi.Main.Sum != "" {
-		r.buildInfo = bi.Main.Version + " " + bi.Main.Sum
+		r.versionString = bi.Main.Version + " " + bi.Main.Sum
 		return
 	}
 
-	if os.Getenv("PREGUIDE_DEVEL_HASH") != "true" {
-		r.buildInfo = "devel"
+	// For testing we need a stable version
+	if os.Getenv("PREGUIDE_NO_DEVEL_HASH") == "true" {
+		r.versionString = "(devel)"
 		return
 	}
 
@@ -158,7 +162,7 @@ func (r *runner) readBuildInfo() {
 	defer selfF.Close()
 	_, err = io.Copy(h, selfF)
 	check(err, "failed to hash self: %v", err)
-	r.buildInfo = string(h.Sum(nil))
+	r.versionString = string(h.Sum(nil))
 }
 
 func (r *runner) debugf(format string, args ...interface{}) {

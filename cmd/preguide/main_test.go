@@ -76,6 +76,7 @@ func TestScripts(t *testing.T) {
 				"PREGUIDE_IMAGE_OVERRIDE="+os.Getenv("PREGUIDE_IMAGE_OVERRIDE"),
 				"PREGUIDE_PULL_IMAGE=missing",
 				"PREGUIDE_SELF_BUILD="+selfBuild,
+				"PREGUIDE_NO_DEVEL_HASH=true",
 			)
 			err = os.Mkdir(newTmp, 0777)
 			check(err, "failed to create %v: %v", newTmp, err)

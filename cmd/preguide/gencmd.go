@@ -19,7 +19,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -1080,7 +1079,7 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 		fmt.Fprintf(out, format, args...)
 	}
 	// Write the module info for github.com/play-with-go/preguide
-	hf("preguide: %#v\n", gc.buildInfo)
+	hf("preguide: %#v\n", gc.versionString)
 	// We write the Presteps information to the hash, and only run the pre-step
 	// if we have a cache miss and come to run the bash file. Note that
 	// this _includes_ the buildID (hence the use of pretty.Sprint rather
@@ -1188,17 +1187,13 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		cmd := gc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
-
-			// Set up "ourselves" as init which we then run
-			// as a command (so as not to clobber the entrypoint
-			// defined on the image)
 		)
 		for _, e := range conf.Env {
 			cmd.Args = append(cmd.Args, "-e", e)
 		}
 		gc.addSelfArgs(cmd)
 		// Now add the arguments to "ourselves"
-		cmd.Args = append(cmd.Args, "/init", "docker", method, endpoint)
+		cmd.Args = append(cmd.Args, "/runbin/preguide", "docker", method, endpoint)
 		if body != nil {
 			byts, err := ioutil.ReadAll(body)
 			check(err, "failed to read from body: %v", err)
@@ -1231,14 +1226,14 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 // as part of this docker command. However it also adds any supporting arguments
 // e.g. like mounts
 func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok || bi.Main.Replace != nil || bi.Main.Version == "(devel)" {
+	bi := gc.buildInfo
+	if bi.Main.Replace != nil || bi.Main.Version == "(devel)" {
 		sself, err := os.Executable()
 		check(err, "failed to derive executable: %v", err)
 		self, err := filepath.EvalSymlinks(sself)
 		check(err, "failed to EvalSymlinks for %v: %v", sself, err)
 		dr.Args = append(dr.Args,
-			fmt.Sprintf("--volume=%s:/init", self),
+			fmt.Sprintf("--volume=%s:/runbin/preguide", self),
 			imageBase,
 		)
 		return
