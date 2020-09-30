@@ -22,13 +22,18 @@ then
 	# Re-resolve to a version, ensures we resolve a pseudo-version
 	# if we previously supplied a commit to go get
 	version="$(go list -m -f {{.Version}} github.com/play-with-go/preguide)"
-else
+elif [ "$(go list -m)" == "github.com/play-with-go/preguide" ]
+then
 	version="devel"
+else
+	# We are calling this script from elsewhere with a viewing simply
+	# building the preguide image
+	version="$(go list -m -f {{.Version}} github.com/play-with-go/preguide)"
 fi
 
 dir="$(go list -m -f {{.Dir}} github.com/play-with-go/preguide)"
 
-docker build -f $dir/cmd/preguide/Dockerfile -t playwithgo/preguide:$version .
+docker build -f $dir/cmd/preguide/Dockerfile -t playwithgo/preguide:$version $dir
 
 if [ "${GITHUB_WORKFLOW:-}" == "Docker self" ]
 then
