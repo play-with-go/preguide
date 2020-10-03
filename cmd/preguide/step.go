@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"path"
 	"strings"
 
 	"github.com/play-with-go/preguide/internal/types"
@@ -341,21 +342,25 @@ func (u *uploadStep) render(mode mode, w io.Writer) {
 	fmt.Fprintf(w, "```%v\n", u.Language)
 	fmt.Fprintf(w, "%s\n", renderedSource)
 	fmt.Fprintf(w, "```")
-	var source, target bytes.Buffer
-	srcEnc := base64.NewEncoder(base64.StdEncoding, &source)
-	srcEnc.Write([]byte(u.Source))
-	srcEnc.Close()
+	source := base64Encode(u.Source)
 	// Workaround github.com/play-with-go/play-with-go/issues/44 by encoding the
 	// target as base64 in case it contains any {{.BLAH}} templates.  The
 	// frontend half of this workaround will do the decoding before any
 	// attempted replacement of the substitution happens.
-	targetEnc := base64.NewEncoder(base64.StdEncoding, &target)
-	targetEnc.Write([]byte(u.Target))
-	targetEnc.Close()
+	targetDir := base64Encode(path.Dir(u.Target))
+	targetFile := base64Encode(path.Base(u.Target))
 	switch mode {
 	case modeJekyll:
-		fmt.Fprintf(w, "\n{:data-upload-path=%q data-upload-src=%q data-upload-term=%q}", target.Bytes(), source.Bytes(), "."+u.Terminal)
+		fmt.Fprintf(w, "\n{:data-upload-path=\"%v\" data-upload-src=\"%v:%v\" data-upload-term=%q}", targetDir, targetFile, source, "."+u.Terminal)
 	}
+}
+
+func base64Encode(s string) string {
+	var buf bytes.Buffer
+	targetDirEnv := base64.NewEncoder(base64.StdEncoding, &buf)
+	targetDirEnv.Write([]byte(s))
+	targetDirEnv.Close()
+	return buf.String()
 }
 
 func (u *uploadStep) renderCompat(mode mode, w io.Writer) {

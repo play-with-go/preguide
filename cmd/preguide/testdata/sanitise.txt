@@ -80,7 +80,7 @@ func main() {
 	fmt.Println("Hello, world!")
 }
 ```
-{:data-upload-path="L2hvbWUvZ29waGVyL2hlbGxvLmdv" data-upload-src="cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQ==" data-upload-term=".term1"}
+{:data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG8uZ28=:cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQ==" data-upload-term=".term1"}
 
 # Create test file
 
@@ -96,7 +96,7 @@ func TestHello(t *testing.T) {
 	fmt.Println("Hello, world... from the test!")
 }
 ```
-{:data-upload-path="L2hvbWUvZ29waGVyL2hlbGxvX3Rlc3QuZ28=" data-upload-src="cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKCSJ0ZXN0aW5nIgopCgpmdW5jIFRlc3RIZWxsbyh0ICp0ZXN0aW5nLlQpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQuLi4gZnJvbSB0aGUgdGVzdCEiKQp9" data-upload-term=".term1"}
+{:data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG9fdGVzdC5nbw==:cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKCSJ0ZXN0aW5nIgopCgpmdW5jIFRlc3RIZWxsbyh0ICp0ZXN0aW5nLlQpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQuLi4gZnJvbSB0aGUgdGVzdCEiKQp9" data-upload-term=".term1"}
 
 # Test
 
