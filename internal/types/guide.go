@@ -7,9 +7,11 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/play-with-go/preguide"
+	"github.com/play-with-go/preguide/internal/textutil"
 )
 
 type StepType int64
@@ -21,6 +23,30 @@ const (
 	StepTypeUpload
 	StepTypeUploadFile
 )
+
+type Mode string
+
+const (
+	ModeJekyll Mode = "jekyll"
+	ModeGitHub Mode = "github"
+)
+
+func (m *Mode) String() string {
+	if m == nil {
+		return "nil"
+	}
+	return string(*m)
+}
+
+func (m *Mode) Set(v string) error {
+	switch Mode(v) {
+	case ModeJekyll, ModeGitHub:
+	default:
+		return fmt.Errorf("unknown mode %q", v)
+	}
+	*m = Mode(v)
+	return nil
+}
 
 type Guide struct {
 	Delims    [2]string
@@ -195,18 +221,19 @@ const (
 	// TODO: keep this in sync with the CUE definitions
 	RendererTypeFull RendererType = iota + 1
 	RendererTypeLineRanges
+	RendererTypeDiff
 )
 
 type Renderer interface {
 	rendererType() RendererType
-	Render(string) (string, error)
+	Render(Mode, string) (string, error)
 }
-
-var _ Renderer = (*RendererFull)(nil)
 
 type RendererFull struct {
 	RendererType RendererType
 }
+
+var _ Renderer = (*RendererFull)(nil)
 
 func newRendererFull(r RendererFull) *RendererFull {
 	r.RendererType = RendererTypeFull
@@ -217,7 +244,7 @@ func (r *RendererFull) rendererType() RendererType {
 	return RendererTypeFull
 }
 
-func (r *RendererFull) Render(v string) (string, error) {
+func (r *RendererFull) Render(m Mode, v string) (string, error) {
 	return v, nil
 }
 
@@ -238,7 +265,7 @@ func (r *RendererLineRanges) rendererType() RendererType {
 	return RendererTypeLineRanges
 }
 
-func (r *RendererLineRanges) Render(v string) (string, error) {
+func (r *RendererLineRanges) Render(m Mode, v string) (string, error) {
 	lines := strings.Split(v, "\n")
 	l := int64(len(lines))
 	var res []string
@@ -257,6 +284,34 @@ func (r *RendererLineRanges) Render(v string) (string, error) {
 	return strings.Join(res, "\n"), nil
 }
 
+type RendererDiff struct {
+	RendererType RendererType
+	Pre          string
+}
+
+var _ Renderer = (*RendererDiff)(nil)
+
+func newRendererDiff(r RendererDiff) *RendererDiff {
+	r.RendererType = RendererTypeDiff
+	return &r
+}
+
+func (r *RendererDiff) rendererType() RendererType {
+	return RendererTypeDiff
+}
+
+func (r *RendererDiff) Render(m Mode, v string) (string, error) {
+	same := func(w io.Writer, s string) {
+		fmt.Fprintf(w, "%s\n", s)
+	}
+	before := func(w io.Writer, s string) {}
+	after := func(w io.Writer, s string) {
+		fmt.Fprintf(w, "<b style=\"color:darkblue\">%s</b>\n", s)
+	}
+	res := textutil.Diff(r.Pre, v, same, before, after)
+	return res, nil
+}
+
 func UnmarshalRenderer(v json.RawMessage) (Renderer, error) {
 	if string(v) == "{}" {
 		panic("here")
@@ -273,6 +328,8 @@ func UnmarshalRenderer(v json.RawMessage) (Renderer, error) {
 		r = newRendererFull(RendererFull{})
 	case RendererTypeLineRanges:
 		r = newRendererLineRanges(RendererLineRanges{})
+	case RendererTypeDiff:
+		r = newRendererDiff(RendererDiff{})
 	default:
 		panic(fmt.Errorf("unknown RendererType: %v", discrim.RendererType))
 	}

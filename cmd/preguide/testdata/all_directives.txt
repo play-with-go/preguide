@@ -125,20 +125,14 @@ Hello, world! I am a #CommandFile
 
 # Step 3
 
-```sh
-#!/usr/bin/env bash
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
 
-echo "Hello, world! I am an #Upload"
-```
-{:data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"}
+echo "Hello, world! I am an #Upload"</code></pre>
 
 # Step 4
 
-```bash
-echo "Hello, world! I am an #UploadFile"
-
-```
-{:data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"}
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash">echo "Hello, world! I am an #UploadFile"
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/en.compat.markdown.golden --
 ---
