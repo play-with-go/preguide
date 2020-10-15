@@ -166,10 +166,10 @@ Langs: {
 			step1: {
 				Order: 1
 				Source: """
-        This is some markdown `with code`
-        Another line
-        A third line
-        """
+					This is some markdown `with code`
+					Another line
+					A third line
+					"""
 				Renderer: {
 					RendererType: 1
 				}
@@ -220,10 +220,10 @@ Langs: {
 			step1: {
 				Order: 1
 				Source: """
-        This is some markdown `with code`
-        Another line
-        A third line
-        """
+					This is some markdown `with code`
+					Another line
+					A third line
+					"""
 				Renderer: {
 					Lines: [[2, 2]]
 					Ellipsis:     "..."
