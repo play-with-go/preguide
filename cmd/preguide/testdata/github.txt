@@ -57,6 +57,7 @@ Steps: step2: en: preguide.#Upload & {
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
+
 """
 }
 
@@ -79,4 +80,4 @@ nooutput
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
-```
+```n

@@ -114,7 +114,7 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 
 		// TODO: support all front-matter formats
 		switch gc.fMode {
-		case modeJekyll:
+		case types.ModeJekyll:
 			switch md.frontFormat {
 			case "yaml":
 				fmt.Fprintln(outFile, "---")
@@ -171,7 +171,7 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 		}
 
 		switch gc.fMode {
-		case modeJekyll:
+		case types.ModeJekyll:
 			// Now write a simple <script> block that declares some useful variables
 			// that will be picked up by postLayout.js
 			//

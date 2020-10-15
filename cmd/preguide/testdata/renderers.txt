@@ -111,12 +111,9 @@ Hello
 ```
 {:data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="}
 
-```md
-This is some markdown `with code`
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"><code class="language-md">This is some markdown `with code`
 Another line
-A third line
-```
-{:data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"}
+A third line</code></pre>
 
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/en_post.markdown.golden --
@@ -133,12 +130,9 @@ Hello
 ```
 {:data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="}
 
-```md
-...
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"><code class="language-md">...
 Another line
-...
-```
-{:data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"}
+...</code></pre>
 
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/out/gen_out_pre.cue.golden --
