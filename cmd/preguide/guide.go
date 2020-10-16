@@ -51,7 +51,6 @@ type guide struct {
 	outinstance *cue.Instance
 
 	outputGuide *guide
-	output      cue.Value
 
 	vars []string
 
