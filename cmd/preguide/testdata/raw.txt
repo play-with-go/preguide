@@ -83,10 +83,11 @@ Langs: {
 			}
 			step1: {
 				Stmts: [{
-					Output:   "Hello, world!"
-					ExitCode: 0
-					CmdStr:   "echo -n \"Hello, world!\""
-					Negated:  false
+					TrimmedOutput: "Hello, world!"
+					Output:        "Hello, world!"
+					ExitCode:      0
+					CmdStr:        "echo -n \"Hello, world!\""
+					Negated:       false
 				}]
 				Order:    0
 				Terminal: "term1"

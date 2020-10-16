@@ -1004,6 +1004,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 					}
 					stmt.Output = o
 				}
+				stmt.TrimmedOutput = trimTrailingNewline(stmt.Output)
 				exitCodeStr := slurp([]byte("\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)
 				check(err, "failed to parse exit code from %q at position %v in output: %v\n%s", exitCodeStr, len(out)-len(walk)-len(exitCodeStr)-1, err, out)
