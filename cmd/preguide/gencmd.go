@@ -27,6 +27,7 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/ast"
+	"cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/parser"
@@ -344,7 +345,6 @@ func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
 	// we don't have anything to do: the inputs are identical and hence (because
 	// guides should be idempotent) the output would be the same.
 	if stepCount > 0 {
-		outputLoadRequired := false
 		for _, l := range g.langs {
 			ls := g.Langs[l]
 			gc.buildBashFile(g, ls)
@@ -385,11 +385,13 @@ func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
 					}
 				}
 			}
-			outputLoadRequired = true
 			gc.runBashFile(g, ls)
 		}
 		gc.writeOutPackage(g)
-		if !*gc.fRaw && (outputLoadRequired || g.outputGuide == nil) {
+		if !*gc.fRaw {
+			// This step can be made more efficient if we know there is not
+			// anything else in the out package other than the generated data
+			// written in the previous step
 			gc.loadOutput(g, true)
 		}
 	}
@@ -469,7 +471,7 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 
 	var intGuide types.Guide
 	err = gv.Decode(&intGuide)
-	check(err, "failed to decode guide: %v", err)
+	check(err, "failed to decode guide: %T %v", err, err)
 
 	g.Delims = intGuide.Delims
 	g.Networks = intGuide.Networks
@@ -636,57 +638,70 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 	}
 }
 
-// loadOutput attempts to load the CUE package found in filepath.Join(g.dir,
-// "out"). Each successful run of preguide writes this package for multiple
-// reasons. It is a human readable log of the input to the guide steps, the
-// commands that were run, the output from those commands etc. But it also acts
-// as a "build cache" in that the hash of the various inputs to a guide is also
-// written to this package. That way, if a future run of preguide sees the same
-// inputs, then the running of the steps can be skipped because the output will
-// be the same (guides are meant to be idempotent). This massively speeds up
-// the guide writing process.
+// loadOutput attempts to load the out CUE package. Each successful run of
+// preguide writes this package for multiple reasons. It is a human readable
+// log of the input to the guide steps, the commands that were run, the output
+// from those commands etc. But it also acts as a "build cache" in that the
+// hash of the various inputs to a guide is also written to this package. That
+// way, if a future run of preguide sees the same inputs, then the running of
+// the steps can be skipped because the output will be the same (guides are
+// meant to be idempotent). This massively speeds up the guide writing process.
 //
-// fail indicates whether we require the load of the out package to succeed
-// or not. When we are looking to determine whether to run the steps of a guide
-// or not, the out package may not exist (first time that preguide has been
-// run for example). However, if we then go on to run the steps (cache miss),
-// we then re-load the output in order to validate the outref directives.
-func (gc *genCmd) loadOutput(g *guide, fail bool) {
+// The out package also has a human-defined element to it. outref's can be defined
+// to make referring to specific parts of the generated output simpler.
+//
+// The full parameter indicates whether we require the load of the full out
+// package, or only the generated part. When we are looking to determine
+// whether to re-run the steps of a guide or not, the out package may not exist
+// (first time that preguide has been run for example), or it might not be
+// valid (a definition might have been added that references a part of the
+// generated output that does not yet exist). Hence we only attempt to load
+// the generated part of the out package. When we come to later verify
+// any outref's, the fully package must be loaded
+//
+// When we are not loading the full package, we also tolerate errors. This
+// simply has the side effect of not setting the output guide or output guide
+// instance.
+func (gc *genCmd) loadOutput(g *guide, full bool) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
-	bps := load.Instances([]string{"./out"}, conf)
+	toLoad := outPkg
+	if !full {
+		toLoad = path.Join(toLoad, genOutCueFile)
+	}
+	toLoad = "./" + toLoad
+	bps := load.Instances([]string{toLoad}, conf)
 	gp := bps[0]
-	if gp.Err != nil {
-		if fail {
-			raise("failed to load out CUE package from %v: %v", filepath.Join(g.dir, "out"), gp.Err)
-		}
-		// absorb this error - we have nothing to do. We will fix
-		// out when we write the output later (all being well)
+	if !full && gp.Err != nil {
 		return
 	}
+	check(gp.Err, "failed to load out CUE package from %v: %v", toLoad, gp.Err)
 
 	gi, err := gc.runtime.Build(gp)
-	if err != nil {
-		if fail {
-			raise("failed to build %v: %v", gp.ImportPath, err)
-		}
+	if !full && err != nil {
 		return
 	}
+	check(err, "failed to build %v: %v", gp.ImportPath, err)
 
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	if err := gv.Unify(gc.schemas.GuideOutput).Validate(); err != nil {
-		if fail {
-			raise("failed to validate %v against out schema: %v", gp.ImportPath, err)
-		}
+	err = gv.Unify(gc.schemas.GuideOutput).Validate()
+	if !full && err != nil {
 		return
 	}
+	check(err, "failed to validate %v against out schema: %v", gp.ImportPath, err)
 
 	var out guide
 	err = gv.Decode(&out)
-	check(err, "failed to decode Guide from out value: %v", err)
+	if err != nil {
+		panic("here")
+	}
+	if !full && err != nil {
+		return
+	}
+	check(err, "failed to decode Guide from out value: %v", errors.Details(err, &errors.Config{Cwd: g.dir}))
 
 	// Now populate the steps slice for each langSteps
 	for _, ls := range out.Langs {
@@ -699,7 +714,6 @@ func (gc *genCmd) loadOutput(g *guide, fail bool) {
 	}
 
 	g.outputGuide = &out
-	g.output = gv
 	g.outinstance = gi
 }
 
@@ -806,11 +820,16 @@ func (gc *genCmd) validateOutRefsDirs(g *guide) {
 	}
 }
 
+const (
+	outPkg        = "out"
+	genOutCueFile = "gen_out.cue"
+)
+
 func (gc *genCmd) writeOutPackage(g *guide) {
 	enc := gocodec.New(&gc.runner.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
-	out, err := valueToFile("out", v)
+	out, err := valueToFile(outPkg, v)
 	check(err, "failed to format CUE output: %v", err)
 
 	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
@@ -819,10 +838,10 @@ func (gc *genCmd) writeOutPackage(g *guide) {
 		return
 	}
 
-	outDir := filepath.Join(g.dir, "out")
+	outDir := filepath.Join(g.dir, outPkg)
 	err = os.MkdirAll(outDir, 0777)
 	check(err, "failed to mkdir %v: %v", outDir, err)
-	outFilePath := filepath.Join(outDir, "gen_out.cue")
+	outFilePath := filepath.Join(outDir, genOutCueFile)
 	err = ioutil.WriteFile(outFilePath, []byte(out), 0666)
 	check(err, "failed to write output to %v: %v", outFilePath, err)
 }
