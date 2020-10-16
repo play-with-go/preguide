@@ -143,10 +143,11 @@ Langs: {
 			}
 			step0: {
 				Stmts: [{
-					Output:   "Hello"
-					ExitCode: 0
-					CmdStr:   "echo -n \"Hello\""
-					Negated:  false
+					TrimmedOutput: "Hello"
+					Output:        "Hello"
+					ExitCode:      0
+					CmdStr:        "echo -n \"Hello\""
+					Negated:       false
 				}]
 				Order:    0
 				Terminal: "term1"
