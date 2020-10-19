@@ -1,0 +1,209 @@
+# Test that we get the expected output when running with -parallel 2
+
+# Intial run
+preguide gen -parallel 2 -out _output
+! stdout .+
+! stderr .+
+cmp _output/myguide1.markdown myguide1/en.markdown.golden
+cmp _output/myguide2.markdown myguide2/en.markdown.golden
+cmp myguide1/en_log.txt myguide1/en_log.txt.golden
+cmp myguide2/en_log.txt myguide2/en_log.txt.golden
+
+-- myguide1/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--step: step1 -->
+
+# Step 2
+
+<!--step: step2 -->
+-- myguide1/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: en: preguide.#Command & {
+	Source: """
+mkdir nooutput
+"""
+}
+
+Steps: step1: en: preguide.#Command & {
+	Source: """
+echo "Hello, world! I am a #Command"
+touch blah
+! false
+ls
+"""
+}
+
+Steps: step2: en: preguide.#Upload & {
+	Target:   "/scripts/somewhere.sh"
+	Source: """
+#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"
+"""
+}
+
+-- myguide2/en.markdown --
+---
+title: A test with all directives
+---
+# Step 1
+
+<!--step: step1 -->
+
+# Step 2
+
+<!--step: step2 -->
+-- myguide2/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: en: preguide.#Command & {
+	Source: """
+mkdir nooutput
+"""
+}
+
+Steps: step1: en: preguide.#Command & {
+	Source: """
+echo "Hello, world! I am a #Command"
+touch blah
+! false
+ls
+"""
+}
+
+Steps: step2: en: preguide.#Upload & {
+	Target:   "/scripts/somewhere.sh"
+	Source: """
+#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"
+"""
+}
+
+-- myguide1/en.markdown.golden --
+---
+guide: myguide1
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
+$ touch blah
+$ false
+$ ls
+blah
+nooutput
+```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
+
+# Step 2
+
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"</code></pre>
+<script>let pageGuide="myguide1"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide1/en_log.txt.golden --
+Terminals: [
+  {
+    "Name": "term1",
+    "Description": "The main terminal",
+    "Scenarios": {
+      "go115": {
+        "Image": "this_will_never_be_used"
+      }
+    }
+  }
+]
+$ mkdir nooutput
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
+$ touch blah
+$ false
+$ ls
+blah
+nooutput
+$ cat <<EOD > /scripts/somewhere.sh
+#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"
+EOD
+-- myguide2/en.markdown.golden --
+---
+guide: myguide2
+lang: en
+title: A test with all directives
+---
+# Step 1
+
+```.term1
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
+$ touch blah
+$ false
+$ ls
+blah
+nooutput
+```
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
+
+# Step 2
+
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"</code></pre>
+<script>let pageGuide="myguide2"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide2/en_log.txt.golden --
+Terminals: [
+  {
+    "Name": "term1",
+    "Description": "The main terminal",
+    "Scenarios": {
+      "go115": {
+        "Image": "this_will_never_be_used"
+      }
+    }
+  }
+]
+$ mkdir nooutput
+$ echo "Hello, world! I am a #Command"
+Hello, world! I am a #Command
+$ touch blah
+$ false
+$ ls
+blah
+nooutput
+$ cat <<EOD > /scripts/somewhere.sh
+#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"
+EOD

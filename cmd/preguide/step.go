@@ -133,7 +133,7 @@ type commandStmt struct {
 // commandStepFromCommand takes a string value that is a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case s cannot be parsed
-func (gc *genCmd) commandStepFromCommand(s *types.Command) (*commandStep, error) {
+func (pdc *processDirContext) commandStepFromCommand(s *types.Command) (*commandStep, error) {
 	r := strings.NewReader(s.Source)
 	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
@@ -143,13 +143,13 @@ func (gc *genCmd) commandStepFromCommand(s *types.Command) (*commandStep, error)
 		Name:     s.Name,
 		Terminal: s.Terminal,
 	})
-	return gc.commadStepFromSyntaxFile(res, f)
+	return pdc.commadStepFromSyntaxFile(res, f)
 }
 
 // commandStepFromCommandFile takes a path to a file that contains a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case path cannot be read or parsed
-func (gc *genCmd) commandStepFromCommandFile(s *types.CommandFile) (*commandStep, error) {
+func (pdc *processDirContext) commandStepFromCommandFile(s *types.CommandFile) (*commandStep, error) {
 	byts, err := ioutil.ReadFile(s.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", s.Path, err)
@@ -163,13 +163,13 @@ func (gc *genCmd) commandStepFromCommandFile(s *types.CommandFile) (*commandStep
 		Name:     s.Name,
 		Terminal: s.Terminal,
 	})
-	return gc.commadStepFromSyntaxFile(res, f)
+	return pdc.commadStepFromSyntaxFile(res, f)
 }
 
 // commadStepFromSyntaxFile takes a *mvdan.cc/sh/syntax.File and returns a
 // commandStep with the individual statements, or an error in case any of the
 // statements cannot be printed as string values
-func (gc *genCmd) commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*commandStep, error) {
+func (pdc *processDirContext) commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*commandStep, error) {
 	res.StepType = StepTypeCommand
 	for i, stmt := range f.Stmts {
 		// Capture whether this statement is negated or not
@@ -179,12 +179,12 @@ func (gc *genCmd) commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*c
 		// bash script
 		stmt.Negated = false
 		var sb strings.Builder
-		if err := gc.stmtPrinter.Print(&sb, stmt); err != nil {
+		if err := pdc.stmtPrinter.Print(&sb, stmt); err != nil {
 			return res, fmt.Errorf("failed to print statement %v: %v", i, err)
 		}
 		var sanitiers []sanitisers.Sanitiser
 		for _, d := range stmtSanitisers {
-			if san := d(gc.sanitiserHelper, stmt); san != nil {
+			if san := d(pdc.sanitiserHelper, stmt); san != nil {
 				sanitiers = append(sanitiers, san)
 			}
 		}
@@ -318,7 +318,7 @@ func (u *uploadStep) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (gc *genCmd) uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
+func (pdc *processDirContext) uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
 	res := newUploadStep(uploadStep{
 		Name:     u.Name,
 		Terminal: u.Terminal,
@@ -330,7 +330,7 @@ func (gc *genCmd) uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
 	return res, nil
 }
 
-func (gc *genCmd) uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
+func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
 	byts, err := ioutil.ReadFile(u.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
