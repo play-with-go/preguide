@@ -72,6 +72,8 @@ usage: preguide gen
 	        the target directory for generation. If no value is specified it defaults to the input directory
 	  -package string
 	        the CUE package name to use for the generated guide structure file
+	  -parallel int
+	        allow parallel execution of preguide scripts. The value of this flag is the maximum number of scripts to run simultaneously. By default it is set to the value of GOMAXPROCS
 	  -pull string
 	        try and docker pull image if missing
 	  -raw

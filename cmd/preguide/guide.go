@@ -93,7 +93,7 @@ type guidePrestep struct {
 // writeGuideOutput writes the markdown files of output for a guide
 // that result from the combination of the configuration and input
 // to a guide.
-func (gc *genCmd) writeGuideOutput(g *guide) {
+func (pdc *processDirContext) writeGuideOutput(g *guide) {
 	if len(g.mdFiles) != 1 || g.mdFiles[0].lang != "en" {
 		raise("we only support English language guides for now")
 	}
@@ -112,7 +112,7 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 		check(err, "failed to open %v for writing: %v", outFilePath, err)
 
 		// TODO: support all front-matter formats
-		switch gc.fMode {
+		switch pdc.fMode {
 		case types.ModeJekyll:
 			switch md.frontFormat {
 			case "yaml":
@@ -142,10 +142,10 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 				buf.Write(md.content[pos:d.Pos()])
 				switch d := d.(type) {
 				case *stepDirective:
-					if *gc.genCmd.fCompat {
-						steps[d.Key()].renderCompat(gc.fMode, &buf)
+					if *pdc.genCmd.fCompat {
+						steps[d.Key()].renderCompat(pdc.fMode, &buf)
 					} else {
-						steps[d.Key()].render(gc.fMode, &buf)
+						steps[d.Key()].render(pdc.fMode, &buf)
 					}
 				case *refDirective:
 					switch d.val.Kind() {
@@ -169,7 +169,7 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 			buf.Write(md.content)
 		}
 
-		switch gc.fMode {
+		switch pdc.fMode {
 		case types.ModeJekyll:
 			// Now write a simple <script> block that declares some useful variables
 			// that will be picked up by postLayout.js
@@ -205,7 +205,7 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 		//
 		// However, if there are no vars, then the substitution will have zero
 		// effect (regardless of whether there are any templates to be expanded)
-		if !*gc.genCmd.fRaw || len(g.vars) == 0 {
+		if !*pdc.genCmd.fRaw || len(g.vars) == 0 {
 			// Build a map of the variable names to escape
 			escVarMap := make(map[string]string)
 			for v := range g.varMap {
@@ -235,7 +235,7 @@ func (gc *genCmd) writeGuideOutput(g *guide) {
 }
 
 // writeLog writes a
-func (gc *genCmd) writeLog(g *guide) {
+func (pdc *processDirContext) writeLog(g *guide) {
 	for lang, ls := range g.Langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
@@ -243,7 +243,7 @@ func (gc *genCmd) writeLog(g *guide) {
 			fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
 		}
 		for _, step := range ls.steps {
-			step.renderLog(gc.fMode, &buf)
+			step.renderLog(pdc.fMode, &buf)
 		}
 		logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", lang))
 		err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)

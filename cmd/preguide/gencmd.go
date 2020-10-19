@@ -19,9 +19,11 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -37,6 +39,7 @@ import (
 	"github.com/kr/pretty"
 	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/types"
+	"github.com/play-with-go/preguide/internal/util"
 	"github.com/play-with-go/preguide/sanitisers"
 	"golang.org/x/net/html"
 	"mvdan.cc/sh/v3/syntax"
@@ -111,6 +114,8 @@ type genCmd struct {
 	fRunArgs       []string
 	fMode          types.Mode
 
+	fParallel *int
+
 	// dir is the absolute path of the working directory specified by -dir
 	// (if specified)
 	dir string
@@ -118,6 +123,11 @@ type genCmd struct {
 	// config is parse configuration that results from unifying all the provided
 	// config (which can be multiple CUE inputs)
 	config preguide.PrestepServiceConfig
+}
+
+type processDirContext struct {
+	*genCmd
+	guideDir string
 
 	// The following is context that current sits on genCmd but
 	// will likely have to move to a separate context object when
@@ -128,10 +138,8 @@ type genCmd struct {
 
 func newGenCmd(r *runner) *genCmd {
 	res := &genCmd{
-		runner:          r,
-		sanitiserHelper: sanitisers.NewS(),
-		stmtPrinter:     syntax.NewPrinter(),
-		fMode:           types.ModeJekyll,
+		runner: r,
+		fMode:  types.ModeJekyll,
 	}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
@@ -149,6 +157,7 @@ func newGenCmd(r *runner) *genCmd {
 		res.fRun = fs.String("run", envOrVal("PREGUIDE_RUN", "."), "regexp that describes which guides within dir to validate and run")
 		fs.Var(stringFlagList{&res.fRunArgs}, "runargs", "additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times")
 		fs.Var(&res.fMode, "mode", fmt.Sprintf("the output mode. Valid values are: %v, %v", types.ModeJekyll, types.ModeGitHub))
+		res.fParallel = fs.Int("parallel", 0, "allow parallel execution of preguide scripts. The value of this flag is the maximum number of scripts to run simultaneously. By default it is set to the value of GOMAXPROCS")
 	})
 	return res
 }
@@ -184,6 +193,27 @@ func (gc *genCmd) run(args []string) error {
 	dirArgs := gc.fs.Args()
 	gotDir := dir != ""
 	gotArgs := len(dirArgs) > 0
+
+	// We set the default value of -parallel above to be zero so that we don't show a default
+	// value. Reason being, the value of runtime.GOMAXPROCS(0) is system dependent. Which means
+	// that tests that verify the output of -help are system dependent. This is bad. Hence
+	// we need to distinguish the case where -parallel has been provided with a value of 0
+	// or it has not (in which case we need to assign the default value)
+	parallelSet := false
+	gc.genCmd.fs.Visit(func(f *flag.Flag) {
+		if f.Name == "parallel" {
+			parallelSet = true
+		}
+	})
+	if !parallelSet {
+		v := runtime.GOMAXPROCS(0)
+		gc.fParallel = &v
+	}
+
+	// TODO: pending whilst we await cuelang.org/go/... to become thread-safe
+	if *gc.fParallel < 1 {
+		return gc.usageErr("invalid value for -parallel; must be > 0")
+	}
 	if gotDir && gotArgs {
 		return gc.usageErr("-dir and args are mutually exclusive")
 	}
@@ -254,8 +284,40 @@ func (gc *genCmd) run(args []string) error {
 			toWalk = append(toWalk, filepath.Join(dir, e.Name()))
 		}
 	}
-	for _, d := range toWalk {
-		gc.processDir(d, gotArgs)
+	// TODO: pending whilst we await cuelang.org/go/... to become thread-safe
+	concurrentyLimit := *gc.fParallel
+	// concurrentyLimit := 1
+	limiter := make(chan struct{}, concurrentyLimit)
+	for i := 0; i < concurrentyLimit; i++ {
+		limiter <- struct{}{}
+	}
+	var wg sync.WaitGroup
+	errs := make([]error, len(toWalk))
+	for i, d := range toWalk {
+		<-limiter
+		i := i
+		pdc := &processDirContext{
+			genCmd:          gc,
+			sanitiserHelper: sanitisers.NewS(),
+			stmtPrinter:     syntax.NewPrinter(),
+			guideDir:        d,
+		}
+		wg.Add(1)
+		go func() {
+			errs[i] = pdc.processDir(gotArgs)
+			wg.Done()
+			limiter <- struct{}{}
+		}()
+	}
+	wg.Wait()
+	var errBuf bytes.Buffer
+	for _, err := range errs {
+		if err != nil {
+			fmt.Fprintf(&errBuf, "%v\n", err)
+		}
+	}
+	if errBuf.Len() != 0 {
+		raise("%s", errBuf.Bytes())
 	}
 	if gotDir {
 		gc.writeGuideStructures()
@@ -274,7 +336,7 @@ func (gc *genCmd) loadConfig() {
 	// res will hold the config result
 	var res cue.Value
 
-	bis := load.Instances(gc.fConfigs, nil)
+	bis := cueLoadInstances(gc.fConfigs, nil)
 	for i, bi := range bis {
 		inst, err := gc.runtime.Build(bi)
 		check(err, "failed to load config from %v: %v", gc.fConfigs[i], err)
@@ -305,38 +367,39 @@ func (gc *genCmd) loadConfig() {
 // processDir processes the guide (CUE package and markdown files) found in
 // dir. See the documentation for genCmd for more details. Returns a guide if
 // markdown files are found and successfully processed, else nil.
-func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
-	target := *gc.fOutput
+func (pdc *processDirContext) processDir(mustContainGuide bool) (err error) {
+	defer util.HandleKnown(&err)
+	target := *pdc.fOutput
 	if target == "" {
-		target = dir
+		target = pdc.guideDir
 	}
 	g := &guide{
-		dir:    dir,
-		name:   filepath.Base(dir),
+		dir:    pdc.guideDir,
+		name:   filepath.Base(pdc.guideDir),
 		target: target,
 		Langs:  make(map[types.LangCode]*langSteps),
 		varMap: make(map[string]string),
 	}
 
-	gc.loadMarkdownFiles(g)
+	pdc.loadMarkdownFiles(g)
 	if len(g.mdFiles) == 0 {
 		if !mustContainGuide {
 			return
 		}
-		raise("%v did not contain a guide", dir)
+		raise("%v did not contain a guide", pdc)
 	}
 
-	gc.loadAndValidateSteps(g)
+	pdc.loadAndValidateSteps(g)
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
 	// mode, we do want to try and load the out CUE package; this is
 	// in effect like the Go build cache check.
-	if !*gc.fRaw {
-		gc.loadOutput(g, false)
+	if !*pdc.fRaw {
+		pdc.loadOutput(g, false)
 	}
 
-	stepCount := gc.validateStepAndRefDirs(g)
+	stepCount := pdc.validateStepAndRefDirs(g)
 
 	// If we have any steps to run, for each language build a bash file that
 	// represents the script to run. Then check whether the hash representing
@@ -347,8 +410,8 @@ func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
 	if stepCount > 0 {
 		for _, l := range g.langs {
 			ls := g.Langs[l]
-			gc.buildBashFile(g, ls)
-			if !*gc.fSkipCache {
+			pdc.buildBashFile(g, ls)
+			if !*pdc.fSkipCache {
 				if out := g.outputGuide; out != nil {
 					if ols := out.Langs[l]; ols != nil {
 						if ols.Hash == ls.Hash {
@@ -361,7 +424,7 @@ func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
 							// used. Hence we need to copy across fields that represent
 							// execution output from the output steps onto the input steps.
 
-							gc.debugf("cache hit for %v: will not re-run script\n", l)
+							pdc.debugf("cache hit for %v: will not re-run script\n", l)
 
 							for sn, ostep := range ols.Steps {
 								istep := ls.Steps[sn]
@@ -385,29 +448,31 @@ func (gc *genCmd) processDir(dir string, mustContainGuide bool) {
 					}
 				}
 			}
-			gc.runBashFile(g, ls)
+			pdc.runBashFile(g, ls)
 		}
-		gc.writeOutPackage(g)
-		if !*gc.fRaw {
+		pdc.writeOutPackage(g)
+		if !*pdc.fRaw {
 			// This step can be made more efficient if we know there is not
 			// anything else in the out package other than the generated data
 			// written in the previous step
-			gc.loadOutput(g, true)
+			pdc.loadOutput(g, true)
 		}
 	}
 
-	gc.validateOutRefsDirs(g)
+	pdc.validateOutRefsDirs(g)
 
-	gc.writeGuideOutput(g)
+	pdc.writeGuideOutput(g)
 
-	gc.writeLog(g)
+	pdc.writeLog(g)
 
-	gc.guides = append(gc.guides, g)
+	pdc.guides = append(pdc.guides, g)
+
+	return nil
 }
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
 // files are named according to isMarkdown, e.g en.markdown.
-func (gc *genCmd) loadMarkdownFiles(g *guide) {
+func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 	es, err := ioutil.ReadDir(g.dir)
 	check(err, "failed to read directory %v: %v", g.dir, err)
 
@@ -437,11 +502,11 @@ func (gc *genCmd) loadMarkdownFiles(g *guide) {
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (gc *genCmd) loadAndValidateSteps(g *guide) {
+func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
-	bps := load.Instances([]string{"."}, conf)
+	bps := cueLoadInstances([]string{"."}, conf)
 	gp := bps[0]
 	if gp.Err != nil {
 		if _, ok := gp.Err.(*load.NoFilesError); ok {
@@ -451,7 +516,7 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
-	gi, err := gc.runtime.Build(gp)
+	gi, err := pdc.runtime.Build(gp)
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
 
 	g.instance = gi
@@ -465,7 +530,7 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 	// We derive dv here because default values will be available via that
 	// where required, but will not have source information (which is required
 	// below)
-	gv = gv.Unify(gc.schemas.Guide)
+	gv = gv.Unify(pdc.schemas.Guide)
 	err = gv.Validate()
 	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Guide: %v", gp.ImportPath, err)
 
@@ -515,11 +580,11 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 			if ps.Package == "" {
 				raise("Prestep had empty package")
 			}
-			if v, ok := gc.seenPrestepPkgs[ps.Package]; ok {
+			if v, ok := pdc.seenPrestepPkgs[ps.Package]; ok {
 				ps.Version = v
 			} else {
 				// Resolve and endpoint for the package
-				conf, ok := gc.config[ps.Package]
+				conf, ok := pdc.config[ps.Package]
 				if !ok {
 					raise("no config found for prestep %v", ps.Package)
 				}
@@ -527,9 +592,9 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 				if conf.Endpoint.Scheme == "file" {
 					version = "file"
 				} else {
-					version = string(gc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
+					version = string(pdc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
 				}
-				gc.seenPrestepPkgs[ps.Package] = version
+				pdc.seenPrestepPkgs[ps.Package] = version
 				ps.Version = version
 			}
 			g.Presteps = append(g.Presteps, &ps)
@@ -549,23 +614,23 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 			var s step
 			switch is := v.(type) {
 			case *types.Command:
-				s, err = gc.commandStepFromCommand(is)
+				s, err = pdc.commandStepFromCommand(is)
 				check(err, "failed to parse #Command from step %v: %v", stepName, err)
 			case *types.CommandFile:
 				if !filepath.IsAbs(is.Path) {
 					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				s, err = gc.commandStepFromCommandFile(is)
+				s, err = pdc.commandStepFromCommandFile(is)
 				check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
 			case *types.Upload:
 				// TODO: when we support non-Unix terminals,
-				s, err = gc.uploadStepFromUpload(is)
+				s, err = pdc.uploadStepFromUpload(is)
 				check(err, "failed to parse #Upload from step %v: %v", stepName, err)
 			case *types.UploadFile:
 				if !filepath.IsAbs(is.Path) {
 					is.Path = filepath.Join(g.dir, is.Path)
 				}
-				s, err = gc.uploadStepFromUploadFile(is)
+				s, err = pdc.uploadStepFromUploadFile(is)
 				check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
 			}
 			// Validate various things about the step
@@ -662,7 +727,7 @@ func (gc *genCmd) loadAndValidateSteps(g *guide) {
 // When we are not loading the full package, we also tolerate errors. This
 // simply has the side effect of not setting the output guide or output guide
 // instance.
-func (gc *genCmd) loadOutput(g *guide, full bool) {
+func (pdc *processDirContext) loadOutput(g *guide, full bool) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -671,14 +736,14 @@ func (gc *genCmd) loadOutput(g *guide, full bool) {
 		toLoad = path.Join(toLoad, genOutCueFile)
 	}
 	toLoad = "./" + toLoad
-	bps := load.Instances([]string{toLoad}, conf)
+	bps := cueLoadInstances([]string{toLoad}, conf)
 	gp := bps[0]
 	if !full && gp.Err != nil {
 		return
 	}
 	check(gp.Err, "failed to load out CUE package from %v: %v", toLoad, gp.Err)
 
-	gi, err := gc.runtime.Build(gp)
+	gi, err := pdc.runtime.Build(gp)
 	if !full && err != nil {
 		return
 	}
@@ -687,7 +752,7 @@ func (gc *genCmd) loadOutput(g *guide, full bool) {
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	err = gv.Unify(gc.schemas.GuideOutput).Validate()
+	err = gv.Unify(pdc.schemas.GuideOutput).Validate()
 	if !full && err != nil {
 		return
 	}
@@ -695,9 +760,6 @@ func (gc *genCmd) loadOutput(g *guide, full bool) {
 
 	var out guide
 	err = gv.Decode(&out)
-	if err != nil {
-		panic("here")
-	}
 	if !full && err != nil {
 		return
 	}
@@ -722,7 +784,7 @@ func (gc *genCmd) loadOutput(g *guide, full bool) {
 // files are valid. That is, they resolve to either a named step of a reference
 // directive. Out reference directives (e.g. <!-- outref: cmdoutput -->) are
 // checked later (once we are guaranteed the out CUE package exists).
-func (gc *genCmd) validateStepAndRefDirs(g *guide) (stepCount int) {
+func (pdc *processDirContext) validateStepAndRefDirs(g *guide) (stepCount int) {
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
 
@@ -789,7 +851,7 @@ func (gc *genCmd) validateStepAndRefDirs(g *guide) (stepCount int) {
 // This second pass of checking the outrefs specifically is required because
 // only at this stage in the processing of a guide can we be guaranteed that
 // the out package exists (and hence any outref directives) resolve.
-func (gc *genCmd) validateOutRefsDirs(g *guide) {
+func (pdc *processDirContext) validateOutRefsDirs(g *guide) {
 	for _, mdf := range g.mdFiles {
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
@@ -825,15 +887,15 @@ const (
 	genOutCueFile = "gen_out.cue"
 )
 
-func (gc *genCmd) writeOutPackage(g *guide) {
-	enc := gocodec.New(&gc.runner.runtime, nil)
+func (pdc *processDirContext) writeOutPackage(g *guide) {
+	enc := gocodec.New(&pdc.runner.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
 	out, err := valueToFile(outPkg, v)
 	check(err, "failed to format CUE output: %v", err)
 
 	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
-	if *gc.fRaw {
+	if *pdc.fRaw {
 		fmt.Printf("%s", out)
 		return
 	}
@@ -846,7 +908,7 @@ func (gc *genCmd) writeOutPackage(g *guide) {
 	check(err, "failed to write output to %v: %v", outFilePath, err)
 }
 
-func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
+func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 	// Now run the pre-step if there is one
 	var toWrite string
 	for _, ps := range g.Presteps {
@@ -857,7 +919,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 
 		// At this stage we know we have a valid endpoint (because we previously
 		// checked it via a get-version=1 request)
-		conf := gc.config[ps.Package]
+		conf := pdc.config[ps.Package]
 		if conf.Endpoint.Scheme == "file" {
 			if ps.Args != nil {
 				raise("prestep %v (path %v) provides arguments [%v]: but prestep is configured with a file endpoint", ps.Package, ps.Path, pretty.Sprint(ps.Args))
@@ -870,7 +932,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		} else {
 			u := *conf.Endpoint
 			u.Path = path.Join(u.Path, ps.Path)
-			jsonBody = gc.doRequest("POST", u.String(), conf, ps.Args)
+			jsonBody = pdc.doRequest("POST", u.String(), conf, ps.Args)
 		}
 
 		// TODO: unmarshal jsonBody into a cue.Value, validate against a schema
@@ -942,8 +1004,8 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 	// of finding the image for that single terminal. We we support multiple
 	// terminals we will need to move away from that hack
 	image := g.Image()
-	if *gc.fImageOverride != "" {
-		image = *gc.fImageOverride
+	if *pdc.fImageOverride != "" {
+		image = *pdc.fImageOverride
 	}
 
 	// Whilst we know we have a single terminal, we know we can also safely
@@ -951,7 +1013,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 	// -runargs flag values
 	term := g.Terminals[0]
 	var termRunArgs []string
-	for _, a := range gc.fRunArgs {
+	for _, a := range pdc.fRunArgs {
 		var err error
 		p := term.Name + "="
 		if !strings.HasPrefix(a, p) {
@@ -965,8 +1027,8 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 	imageCheck := exec.Command("docker", "inspect", image)
 	out, err := imageCheck.CombinedOutput()
 	if err != nil {
-		if *gc.fPullImage == pullImageMissing {
-			gc.debugf("failed to find docker image %v (%v); will attempt pull", image, err)
+		if *pdc.fPullImage == pullImageMissing {
+			pdc.debugf("failed to find docker image %v (%v); will attempt pull", image, err)
 			pull := exec.Command("docker", "pull", image)
 			out, err = pull.CombinedOutput()
 			check(err, "failed to find docker image %v; also failed to pull it: %v\n%s", image, err, out)
@@ -975,7 +1037,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 		}
 	}
 
-	cmd := gc.newDockerRunner(g.Networks,
+	cmd := pdc.newDockerRunner(g.Networks,
 		"--rm",
 		"-v", fmt.Sprintf("%v:/scripts", scriptsDir),
 	)
@@ -990,7 +1052,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 
-	gc.debugf("output from [%v]:\n%s", strings.Join(cmd.Args, " "), out)
+	pdc.debugf("output from [%v]:\n%s", strings.Join(cmd.Args, " "), out)
 
 	walk := out
 	slurp := func(end []byte) (res string) {
@@ -1013,7 +1075,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 				}
 				walk = walk[len(fence):]
 				stmt.Output = slurp(fence)
-				if !*gc.fRaw {
+				if !*pdc.fRaw {
 					// Sanitise variables first in order that "custom" sanitisers can, if required
 					// match against variable templates.
 					o := stmt.Output
@@ -1034,7 +1096,7 @@ func (gc *genCmd) runBashFile(g *guide, ls *langSteps) {
 
 // buildBashFile creates a bash file to run for the language-specific steps of
 // a guide.
-func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
+func (pdc *processDirContext) buildBashFile(g *guide, ls *langSteps) {
 	// TODO when we come to support multiple terminals this will need to be
 	// rethought. Perhaps something along the following lines:
 	//
@@ -1083,7 +1145,7 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 	}
 	h := sha256.New()
 	var out io.Writer = h
-	if *gc.fDebugCache {
+	if *pdc.fDebugCache {
 		now := time.Now().UTC()
 		debugFileName := fmt.Sprintf("%v_%v_%v.txt", g.name, now.Format("20060102_150405"), now.Nanosecond())
 		debugFile, err := os.OpenFile(debugFileName, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
@@ -1094,7 +1156,7 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 		fmt.Fprintf(out, format, args...)
 	}
 	// Write the module info for github.com/play-with-go/preguide
-	hf("preguide: %#v\n", gc.versionString)
+	hf("preguide: %#v\n", pdc.versionString)
 	// We write the Presteps information to the hash, and only run the pre-step
 	// if we have a cache miss and come to run the bash file. Note that
 	// this _includes_ the buildID (hence the use of pretty.Sprint rather
@@ -1145,7 +1207,7 @@ func (gc *genCmd) buildBashFile(g *guide, ls *langSteps) {
 			panic(fmt.Errorf("can't yet handle steps of type %T", step))
 		}
 	}
-	gc.debugf("Bash script:\n%v", sb.String())
+	pdc.debugf("Bash script:\n%v", sb.String())
 	ls.bashScript = sb.String()
 	ls.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
@@ -1186,7 +1248,7 @@ func posLessThan(lhs, rhs token.Pos) bool {
 // In the special case that url is a file protocol, args is expected to be zero
 // length, and the -docker flag is ignored (that is to say, it is expected the
 // file can be accessed by the current process).
-func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
+func (pdc *processDirContext) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
 		var w bytes.Buffer
@@ -1198,15 +1260,15 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		body = &w
 	}
 	// We need Docker if we need to connect to networks
-	if len(conf.Networks) > 0 && !*gc.fDocker {
-		cmd := gc.newDockerRunner(conf.Networks,
+	if len(conf.Networks) > 0 && !*pdc.fDocker {
+		cmd := pdc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
 		)
 		for _, e := range conf.Env {
 			cmd.Args = append(cmd.Args, "-e", e)
 		}
-		gc.addSelfArgs(cmd)
+		pdc.addSelfArgs(cmd)
 		// Now add the arguments to "ourselves"
 		cmd.Args = append(cmd.Args, "/runbin/preguide", "docker", method, endpoint)
 		if body != nil {
@@ -1240,8 +1302,8 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 // addSelfArgs is ultimately responsible for adding the image that will be run
 // as part of this docker command. However it also adds any supporting arguments
 // e.g. like mounts
-func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
-	bi := gc.buildInfo
+func (pdc *processDirContext) addSelfArgs(dr *dockerRunnner) {
+	bi := pdc.buildInfo
 	if os.Getenv("PREGUIDE_DEVEL_IMAGE") != "true" && bi.Main.Replace == nil && bi.Main.Version != "(devel)" {
 		dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
 		return
@@ -1457,7 +1519,7 @@ func valueToFile(pkg string, v cue.Value) ([]byte, error) {
 // dance required to run a docker container with multiple
 // networks attached
 type dockerRunnner struct {
-	gc *genCmd
+	pdc *processDirContext
 
 	// DockerArgs are the flags to pass to each docker command
 	DockerArgs []string
@@ -1473,9 +1535,9 @@ type dockerRunnner struct {
 	Networks []string
 }
 
-func (gc *genCmd) newDockerRunner(networks []string, args ...string) *dockerRunnner {
+func (pdc *processDirContext) newDockerRunner(networks []string, args ...string) *dockerRunnner {
 	return &dockerRunnner{
-		gc:       gc,
+		pdc:      pdc,
 		Networks: append([]string{}, networks...),
 		Args:     append([]string{}, args...),
 	}
@@ -1489,7 +1551,7 @@ func (dr *dockerRunnner) Run() error {
 	createCmd.Stdout = &createStdout
 	createCmd.Stderr = &createStderr
 
-	dr.gc.debugf("about to run command> %v\n", createCmd)
+	dr.pdc.debugf("about to run command> %v\n", createCmd)
 	if err := createCmd.Run(); err != nil {
 		return fmt.Errorf("failed %v: %v\n%s", createCmd, err, createStderr.Bytes())
 	}
@@ -1498,7 +1560,7 @@ func (dr *dockerRunnner) Run() error {
 
 	for _, network := range dr.Networks {
 		connectCmd := exec.Command("docker", "network", "connect", network, instance)
-		dr.gc.debugf("about to run command> %v\n", connectCmd)
+		dr.pdc.debugf("about to run command> %v\n", connectCmd)
 		if out, err := connectCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed %v: %v\n%s", connectCmd, err, out)
 		}
@@ -1509,7 +1571,7 @@ func (dr *dockerRunnner) Run() error {
 	startCmd.Stdout = dr.Stdout
 	startCmd.Stderr = dr.Stderr
 
-	dr.gc.debugf("about to run command> %v\n", startCmd)
+	dr.pdc.debugf("about to run command> %v\n", startCmd)
 	return startCmd.Run()
 }
 
