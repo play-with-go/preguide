@@ -123,6 +123,61 @@ type genCmd struct {
 	// config is parse configuration that results from unifying all the provided
 	// config (which can be multiple CUE inputs)
 	config preguide.PrestepServiceConfig
+
+	// versionChecks is a map from pkg name to a channel used
+	// to control waiting for the result of a version check
+	versionChecks     map[string]chan struct{}
+	versionChecksLock sync.Mutex
+
+	// versions is a map from pkg to the resolved version
+	// returned by the endpoint for that package
+	versions     map[string]string
+	versionsLock sync.Mutex
+}
+
+// getVersion returns the current version returned by the endpoint configured
+// to serve package pkg. If pkg does not resolve to a service config, an error
+// is raised.
+func (gc *genCmd) getVersion(pkg string) string {
+	gc.versionsLock.Lock()
+	v, ok := gc.versions[pkg]
+	gc.versionsLock.Unlock()
+	if ok {
+		return v
+	}
+
+	// We do not have a version, check if we have a request
+	// in flight
+	gc.versionChecksLock.Lock()
+	c, ok := gc.versionChecks[pkg]
+	if !ok {
+		c = make(chan struct{})
+		gc.versionChecks[pkg] = c
+	}
+	gc.versionChecksLock.Unlock()
+	if ok {
+		<-c
+		// We know that version will be available this time
+		return gc.getVersion(pkg)
+	}
+
+	// Get the version
+	conf, ok := gc.config[pkg]
+	if !ok {
+		raise("no config found for prestep %v", pkg)
+	}
+	var version string
+	if conf.Endpoint.Scheme == "file" {
+		version = "file"
+	} else {
+		version = string(gc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
+	}
+	gc.versionsLock.Lock()
+	gc.versions[pkg] = version
+	gc.versionsLock.Unlock()
+	close(c)
+
+	return version
 }
 
 type processDirContext struct {
@@ -138,8 +193,10 @@ type processDirContext struct {
 
 func newGenCmd(r *runner) *genCmd {
 	res := &genCmd{
-		runner: r,
-		fMode:  types.ModeJekyll,
+		runner:        r,
+		fMode:         types.ModeJekyll,
+		versions:      make(map[string]string),
+		versionChecks: make(map[string]chan struct{}),
 	}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
 		res.fs = fs
@@ -292,10 +349,11 @@ func (gc *genCmd) run(args []string) error {
 		limiter <- struct{}{}
 	}
 	var wg sync.WaitGroup
-	errs := make([]error, len(toWalk))
-	for i, d := range toWalk {
+	var resLock sync.Mutex
+	var guides []*guide
+	var errs []error
+	for _, d := range toWalk {
 		<-limiter
-		i := i
 		pdc := &processDirContext{
 			genCmd:          gc,
 			sanitiserHelper: sanitisers.NewS(),
@@ -304,21 +362,27 @@ func (gc *genCmd) run(args []string) error {
 		}
 		wg.Add(1)
 		go func() {
-			errs[i] = pdc.processDir(gotArgs)
+			g, err := pdc.processDir(gotArgs)
+			resLock.Lock()
+			if err != nil {
+				errs = append(errs, err)
+			} else if g != nil {
+				guides = append(guides, g)
+			}
+			resLock.Unlock()
 			wg.Done()
 			limiter <- struct{}{}
 		}()
 	}
 	wg.Wait()
-	var errBuf bytes.Buffer
-	for _, err := range errs {
-		if err != nil {
+	if len(errs) > 0 {
+		var errBuf bytes.Buffer
+		for _, err := range errs {
 			fmt.Fprintf(&errBuf, "%v\n", err)
 		}
-	}
-	if errBuf.Len() != 0 {
 		raise("%s", errBuf.Bytes())
 	}
+	gc.guides = guides
 	if gotDir {
 		gc.writeGuideStructures()
 	}
@@ -367,7 +431,7 @@ func (gc *genCmd) loadConfig() {
 // processDir processes the guide (CUE package and markdown files) found in
 // dir. See the documentation for genCmd for more details. Returns a guide if
 // markdown files are found and successfully processed, else nil.
-func (pdc *processDirContext) processDir(mustContainGuide bool) (err error) {
+func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err error) {
 	defer util.HandleKnown(&err)
 	target := *pdc.fOutput
 	if target == "" {
@@ -465,9 +529,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (err error) {
 
 	pdc.writeLog(g)
 
-	pdc.guides = append(pdc.guides, g)
-
-	return nil
+	return g, nil
 }
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
@@ -580,23 +642,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 			if ps.Package == "" {
 				raise("Prestep had empty package")
 			}
-			if v, ok := pdc.seenPrestepPkgs[ps.Package]; ok {
-				ps.Version = v
-			} else {
-				// Resolve and endpoint for the package
-				conf, ok := pdc.config[ps.Package]
-				if !ok {
-					raise("no config found for prestep %v", ps.Package)
-				}
-				var version string
-				if conf.Endpoint.Scheme == "file" {
-					version = "file"
-				} else {
-					version = string(pdc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
-				}
-				pdc.seenPrestepPkgs[ps.Package] = version
-				ps.Version = version
-			}
+			ps.Version = pdc.getVersion(ps.Package)
 			g.Presteps = append(g.Presteps, &ps)
 		}
 	}
@@ -1248,7 +1294,7 @@ func posLessThan(lhs, rhs token.Pos) bool {
 // In the special case that url is a file protocol, args is expected to be zero
 // length, and the -docker flag is ignored (that is to say, it is expected the
 // file can be accessed by the current process).
-func (pdc *processDirContext) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
+func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
 		var w bytes.Buffer
@@ -1260,15 +1306,15 @@ func (pdc *processDirContext) doRequest(method string, endpoint string, conf *pr
 		body = &w
 	}
 	// We need Docker if we need to connect to networks
-	if len(conf.Networks) > 0 && !*pdc.fDocker {
-		cmd := pdc.newDockerRunner(conf.Networks,
+	if len(conf.Networks) > 0 && !*gc.fDocker {
+		cmd := gc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
 		)
 		for _, e := range conf.Env {
 			cmd.Args = append(cmd.Args, "-e", e)
 		}
-		pdc.addSelfArgs(cmd)
+		gc.addSelfArgs(cmd)
 		// Now add the arguments to "ourselves"
 		cmd.Args = append(cmd.Args, "/runbin/preguide", "docker", method, endpoint)
 		if body != nil {
@@ -1302,8 +1348,8 @@ func (pdc *processDirContext) doRequest(method string, endpoint string, conf *pr
 // addSelfArgs is ultimately responsible for adding the image that will be run
 // as part of this docker command. However it also adds any supporting arguments
 // e.g. like mounts
-func (pdc *processDirContext) addSelfArgs(dr *dockerRunnner) {
-	bi := pdc.buildInfo
+func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
+	bi := gc.buildInfo
 	if os.Getenv("PREGUIDE_DEVEL_IMAGE") != "true" && bi.Main.Replace == nil && bi.Main.Version != "(devel)" {
 		dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
 		return
@@ -1519,7 +1565,7 @@ func valueToFile(pkg string, v cue.Value) ([]byte, error) {
 // dance required to run a docker container with multiple
 // networks attached
 type dockerRunnner struct {
-	pdc *processDirContext
+	runner *runner
 
 	// DockerArgs are the flags to pass to each docker command
 	DockerArgs []string
@@ -1535,9 +1581,9 @@ type dockerRunnner struct {
 	Networks []string
 }
 
-func (pdc *processDirContext) newDockerRunner(networks []string, args ...string) *dockerRunnner {
+func (r *runner) newDockerRunner(networks []string, args ...string) *dockerRunnner {
 	return &dockerRunnner{
-		pdc:      pdc,
+		runner:   r,
 		Networks: append([]string{}, networks...),
 		Args:     append([]string{}, args...),
 	}
@@ -1551,7 +1597,7 @@ func (dr *dockerRunnner) Run() error {
 	createCmd.Stdout = &createStdout
 	createCmd.Stderr = &createStderr
 
-	dr.pdc.debugf("about to run command> %v\n", createCmd)
+	dr.runner.debugf("about to run command> %v\n", createCmd)
 	if err := createCmd.Run(); err != nil {
 		return fmt.Errorf("failed %v: %v\n%s", createCmd, err, createStderr.Bytes())
 	}
@@ -1560,7 +1606,7 @@ func (dr *dockerRunnner) Run() error {
 
 	for _, network := range dr.Networks {
 		connectCmd := exec.Command("docker", "network", "connect", network, instance)
-		dr.pdc.debugf("about to run command> %v\n", connectCmd)
+		dr.runner.debugf("about to run command> %v\n", connectCmd)
 		if out, err := connectCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed %v: %v\n%s", connectCmd, err, out)
 		}
@@ -1571,7 +1617,7 @@ func (dr *dockerRunnner) Run() error {
 	startCmd.Stdout = dr.Stdout
 	startCmd.Stderr = dr.Stderr
 
-	dr.pdc.debugf("about to run command> %v\n", startCmd)
+	dr.runner.debugf("about to run command> %v\n", startCmd)
 	return startCmd.Run()
 }
 

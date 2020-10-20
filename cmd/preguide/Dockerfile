@@ -5,7 +5,6 @@ FROM golang@sha256:da7ff43658854148b401f24075c0aa390e3b52187ab67cab0043f2b15e754
 
 ENV GOCACHE=/root/.cache/go/gocache
 ENV GOMODCACHE=/root/.cache/go/gomodcache
-ENV CGO_ENABLED=0
 ENV GOPATH=
 
 COPY . .
@@ -13,7 +12,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/go go build github.com/play-with-go/preguide/cmd/preguide
 
 # busybox:1.32.0
-FROM busybox@sha256:d366a4665ab44f0648d7a00ae3fae139d55e32f9712c67accd604bb55df9d05a
+FROM busybox@sha256:30d1412c0f45be67d38b99179866868b1f09fd9013cbacf22813926aee428cf7
 
 RUN mkdir /runbin
 
