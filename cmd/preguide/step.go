@@ -83,7 +83,6 @@ type step interface {
 	terminal() string
 	setorder(int)
 	render(types.Mode, io.Writer)
-	renderCompat(types.Mode, io.Writer)
 	renderLog(types.Mode, io.Writer)
 	setOutputFrom(step)
 }
@@ -225,10 +224,6 @@ func (c *commandStep) render(mode types.Mode, w io.Writer) {
 	case types.ModeJekyll:
 		fmt.Fprintf(w, "\n{:data-command-src=%q}", cmds.Bytes())
 	}
-}
-
-func (c *commandStep) renderCompat(mode types.Mode, w io.Writer) {
-	c.render(mode, w)
 }
 
 func (c *commandStep) renderLog(mode types.Mode, w io.Writer) {
@@ -374,13 +369,6 @@ func base64Encode(s string) string {
 	targetDirEnv.Write([]byte(s))
 	targetDirEnv.Close()
 	return buf.String()
-}
-
-func (u *uploadStep) renderCompat(mode types.Mode, w io.Writer) {
-	fmt.Fprintf(w, "```.%v\n", u.Terminal)
-	source := strings.ReplaceAll(u.Source, "\t", "        ")
-	fmt.Fprintf(w, "cat <<'EOD' > %v\n%s\nEOD\n", u.Target, source)
-	fmt.Fprintf(w, "```")
 }
 
 func (u *uploadStep) renderLog(mode types.Mode, w io.Writer) {

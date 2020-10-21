@@ -21,11 +21,6 @@ preguide gen -skipcache -out _output
 cmp _output/myguide.markdown myguide/en.markdown.golden
 cmp myguide/en_log.txt myguide/en_log.txt.golden
 
-# Verify that -compat works as expected
-preguide gen -compat -out _output
-cmp _output/myguide.markdown myguide/en.compat.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
-
 -- myguide/en.markdown --
 ---
 title: A test with all directives
@@ -133,52 +128,6 @@ echo "Hello, world! I am an #Upload"</code></pre>
 
 <pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash">echo "Hello, world! I am an #UploadFile"
 </code></pre>
-<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en.compat.markdown.golden --
----
-guide: myguide
-lang: en
-title: A test with all directives
----
-# Step 1
-
-```.term1
-$ echo "Hello, world! I am a #Command"
-Hello, world! I am a #Command
-$ touch blah
-$ false
-$ ls
-blah
-nooutput
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
-
-# Step 2
-
-```.term1
-$ echo "Hello, world! I am a #CommandFile"
-Hello, world! I am a #CommandFile
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmRGaWxlIgo="}
-
-# Step 3
-
-```.term1
-cat <<'EOD' > /scripts/somewhere.sh
-#!/usr/bin/env bash
-
-echo "Hello, world! I am an #Upload"
-EOD
-```
-
-# Step 4
-
-```.term1
-cat <<'EOD' > /scripts/step2.sh
-echo "Hello, world! I am an #UploadFile"
-
-EOD
-```
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/en_log.txt.golden --
 Terminals: [

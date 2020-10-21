@@ -104,7 +104,6 @@ type genCmd struct {
 	fOutput        *string
 	fSkipCache     *bool
 	fImageOverride *string
-	fCompat        *bool
 	fPullImage     *string
 	fDocker        *bool
 	fRaw           *bool
@@ -205,7 +204,6 @@ func newGenCmd(r *runner) *genCmd {
 		res.fOutput = fs.String("out", "", "the target directory for generation. If no value is specified it defaults to the input directory")
 		res.fSkipCache = fs.Bool("skipcache", os.Getenv("PREGUIDE_SKIP_CACHE") == "true", "whether to skip any output cache checking")
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
-		res.fCompat = fs.Bool("compat", false, "render old-style PWD code blocks")
 		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
 		res.fDocker = fs.Bool("docker", false, "internal flag: run prestep requests in a docker container")
 		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
@@ -285,10 +283,6 @@ func (gc *genCmd) run(args []string) error {
 
 	runRegex, err := regexp.Compile(*gc.fRun)
 	check(err, "failed to compile -run regex %q: %v", *gc.fRun, err)
-
-	if *gc.fCompat && gc.fMode == types.ModeGitHub {
-		return gc.usageErr("-compat flag is not valid when output mode is %v", types.ModeGitHub)
-	}
 
 	// Fallback to env-supplied config if no values supplied via -config flag
 	if len(gc.fConfigs) == 0 {
