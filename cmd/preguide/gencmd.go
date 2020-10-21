@@ -1392,6 +1392,14 @@ type stepDirective struct {
 	baseDirective
 }
 
+type outputDirective struct {
+	baseDirective
+}
+
+type trimmedDirective struct {
+	baseDirective
+}
+
 type refDirective struct {
 	baseDirective
 	val cue.Value
@@ -1406,6 +1414,8 @@ const (
 	stepDirectivePrefix       = "step:"
 	refDirectivePrefix        = "ref:"
 	outrefDirectivePrefix     = "outref:"
+	outputDirectivePrefix     = "output:"
+	trimmedDirectivePrefix    = "trimmed:"
 	dockerImageFrontMatterKey = "image"
 	guideFrontMatterKey       = "guide"
 	langFrontMatterKey        = "lang"
