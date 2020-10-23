@@ -447,7 +447,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 		raise("%v did not contain a guide", pdc)
 	}
 
-	pdc.loadAndValidateSteps(g)
+	hasStepsToRun := pdc.loadAndValidateSteps(g)
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
@@ -457,7 +457,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 		pdc.loadOutput(g, false)
 	}
 
-	stepCount := pdc.validateStepAndRefDirs(g)
+	pdc.validateStepAndRefDirs(g)
 
 	// If we have any steps to run, for each language build a bash file that
 	// represents the script to run. Then check whether the hash representing
@@ -465,7 +465,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 	// (i.e. the result of a previous run of this guide). If the hash matches,
 	// we don't have anything to do: the inputs are identical and hence (because
 	// guides should be idempotent) the output would be the same.
-	if stepCount > 0 {
+	if hasStepsToRun {
 		for _, l := range g.langs {
 			ls := g.Langs[l]
 			pdc.buildBashFile(g, ls)
@@ -558,7 +558,7 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
+func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool) {
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -689,6 +689,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 				g.Langs[code] = ls
 			}
 			ls.Steps[stepName] = s
+			hasStepsToRun = true
 		}
 	}
 
@@ -741,6 +742,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 			s.setorder(i)
 		}
 	}
+	return
 }
 
 // loadOutput attempts to load the out CUE package. Each successful run of
@@ -824,11 +826,10 @@ func (pdc *processDirContext) loadOutput(g *guide, full bool) {
 // files are valid. That is, they resolve to either a named step of a reference
 // directive. Out reference directives (e.g. <!-- outref: cmdoutput -->) are
 // checked later (once we are guaranteed the out CUE package exists).
-func (pdc *processDirContext) validateStepAndRefDirs(g *guide) (stepCount int) {
+func (pdc *processDirContext) validateStepAndRefDirs(g *guide) {
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
 
-	stepDirCount := 0
 	for _, mdf := range g.mdFiles {
 		mdf.frontMatter[guideFrontMatterKey] = g.name
 
@@ -840,7 +841,6 @@ func (pdc *processDirContext) validateStepAndRefDirs(g *guide) (stepCount int) {
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
 			case *stepDirective:
-				stepDirCount++
 				var found bool
 				found = ls != nil
 				if found {
@@ -876,14 +876,6 @@ func (pdc *processDirContext) validateStepAndRefDirs(g *guide) (stepCount int) {
 			}
 		}
 	}
-	for _, ls := range g.Langs {
-		stepCount += len(ls.steps)
-	}
-	if stepDirCount == 0 && stepCount > 0 {
-		fmt.Fprintln(os.Stderr, "This guide does not have any directives but does have steps to run.")
-		fmt.Fprintln(os.Stderr, "Not running those steps because they are not referenced.")
-	}
-	return stepCount
 }
 
 // validateOutRefsDirs ensures that outref directives (e.g. <!-- outref:
