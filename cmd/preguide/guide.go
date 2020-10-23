@@ -142,11 +142,7 @@ func (pdc *processDirContext) writeGuideOutput(g *guide) {
 				buf.Write(md.content[pos:d.Pos()])
 				switch d := d.(type) {
 				case *stepDirective:
-					if *pdc.genCmd.fCompat {
-						steps[d.Key()].renderCompat(pdc.fMode, &buf)
-					} else {
-						steps[d.Key()].render(pdc.fMode, &buf)
-					}
+					steps[d.Key()].render(pdc.fMode, &buf)
 				case *refDirective:
 					switch d.val.Kind() {
 					case cue.StringKind:

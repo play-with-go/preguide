@@ -54,8 +54,6 @@ preguide defines the following flags:
 -- gen_command_help.txt --
 usage: preguide gen
 
-	  -compat
-	        render old-style PWD code blocks
 	  -config value
 	        CUE-style configuration input; can appear multiple times. See 'cue help inputs'
 	  -debugcache
