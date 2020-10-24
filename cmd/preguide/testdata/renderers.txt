@@ -181,10 +181,11 @@ Langs: {
 					CmdStr:        "echo -n \"Hello\""
 					Negated:       false
 				}]
-				Order:    0
-				Terminal: "term1"
-				StepType: 1
-				Name:     "step0"
+				Order:     0
+				DoNotTrim: false
+				Terminal:  "term1"
+				StepType:  1
+				Name:      "step0"
 			}
 		}
 	}
@@ -238,10 +239,11 @@ Langs: {
 					CmdStr:        "echo -n \"Hello\""
 					Negated:       false
 				}]
-				Order:    0
-				Terminal: "term1"
-				StepType: 1
-				Name:     "step0"
+				Order:     0
+				DoNotTrim: false
+				Terminal:  "term1"
+				StepType:  1
+				Name:      "step0"
 			}
 		}
 	}

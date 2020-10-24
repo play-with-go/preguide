@@ -1096,9 +1096,27 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 		return res
 	}
 
+	// As we go through getting the output, continue to build up a list of
+	// replacements that will sanitise the output in a second pass.
+	//
+	// First add the variables that are the result of the prestep.
+	var sanVals [][2]string
+	if !*pdc.fRaw {
+		for name, val := range g.varMap {
+			repl := g.Delims[0] + "." + name + g.Delims[1]
+			sanVals = append(sanVals, [2]string{
+				val, repl,
+			})
+		}
+	}
 	for _, step := range ls.steps {
 		switch step := step.(type) {
 		case *commandStep:
+			var stepOutput *bytes.Buffer
+			doRandomReplace := !*pdc.fRaw && step.RandomReplace != nil
+			if doRandomReplace {
+				stepOutput = new(bytes.Buffer)
+			}
 			for _, stmt := range step.Stmts {
 				// TODO: tidy this up
 				fence := []byte(stmt.outputFence + "\n")
@@ -1107,20 +1125,62 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 				}
 				walk = walk[len(fence):]
 				stmt.Output = slurp(fence)
-				if !*pdc.fRaw {
-					// Sanitise variables first in order that "custom" sanitisers can, if required
-					// match against variable templates.
-					o := stmt.Output
-					o, varNames := g.sanitiseVars(o)
-					for _, s := range stmt.sanitisers {
-						o = s(varNames, o)
-					}
-					stmt.Output = o
+				if doRandomReplace {
+					stepOutput.WriteString(stmt.Output)
 				}
 				stmt.TrimmedOutput = trimTrailingNewline(stmt.Output)
 				exitCodeStr := slurp([]byte("\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)
 				check(err, "failed to parse exit code from %q at position %v in output: %v\n%s", exitCodeStr, len(out)-len(walk)-len(exitCodeStr)-1, err, out)
+			}
+			if doRandomReplace {
+				v := stepOutput.String()
+				if !step.DoNotTrim {
+					v = trimTrailingNewline(v)
+				}
+				sanVals = append(sanVals, [2]string{
+					v, *step.RandomReplace,
+				})
+			}
+		}
+	}
+	// Ensure we do not have any duplicate values to be sanitised
+	// (we even error if we see the a value more than once with the
+	// same replacement)
+	sanKeys := make(map[string]int)
+	for _, v := range sanVals {
+		sanKeys[v[0]] = sanKeys[v[0]] + 1
+	}
+	var badSanVals []string
+	for k, v := range sanKeys {
+		if v > 1 {
+			badSanVals = append(badSanVals, k)
+		}
+	}
+	if len(badSanVals) > 0 {
+		sort.Strings(badSanVals)
+		raise("the following values to be sanitised had multiple replacements: %v", badSanVals)
+	}
+	// Now sort the sanitisation values into reverse length order i.e. longest
+	// first, in case some sanitisationw values are substrings of longer ones
+	sort.Slice(sanVals, func(i, j int) bool {
+		lhs, rhs := sanVals[i], sanVals[j]
+		return len(lhs[0]) > len(rhs[0])
+	})
+	// Now sanitise everything
+	for _, step := range ls.steps {
+		switch step := step.(type) {
+		case *commandStep:
+			for _, stmt := range step.Stmts {
+				o := stmt.Output
+				for _, san := range sanVals {
+					o = strings.ReplaceAll(o, san[0], san[1])
+				}
+				// Now run sanitisers
+				for _, s := range stmt.sanitisers {
+					o = s(nil, o)
+				}
+				stmt.Output = o
 			}
 		}
 	}

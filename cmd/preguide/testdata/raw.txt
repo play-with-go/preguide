@@ -89,10 +89,11 @@ Langs: {
 					CmdStr:        "echo -n \"Hello, world!\""
 					Negated:       false
 				}]
-				Order:    0
-				Terminal: "term1"
-				StepType: 1
-				Name:     "step1"
+				Order:     0
+				DoNotTrim: false
+				Terminal:  "term1"
+				StepType:  1
+				Name:      "step1"
 			}
 		}
 	}
