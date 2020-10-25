@@ -83,11 +83,10 @@ Langs: {
 			}
 			step1: {
 				Stmts: [{
-					TrimmedOutput: "Hello, world!"
-					Output:        "Hello, world!"
-					ExitCode:      0
-					CmdStr:        "echo -n \"Hello, world!\""
-					Negated:       false
+					Output:   "Hello, world!"
+					ExitCode: 0
+					CmdStr:   "echo -n \"Hello, world!\""
+					Negated:  false
 				}]
 				Order:     0
 				DoNotTrim: false

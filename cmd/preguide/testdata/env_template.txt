@@ -138,11 +138,10 @@ Langs: {
 		Steps: {
 			step1: {
 				Stmts: [{
-					TrimmedOutput: "The answer is: Hello, world!!"
-					Output:        "The answer is: Hello, world!!"
-					ExitCode:      0
-					CmdStr:        "echo -n \"The answer is: {{.GREETING}}!\""
-					Negated:       false
+					Output:   "The answer is: Hello, world!!"
+					ExitCode: 0
+					CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
+					Negated:  false
 				}]
 				Order:     0
 				DoNotTrim: false

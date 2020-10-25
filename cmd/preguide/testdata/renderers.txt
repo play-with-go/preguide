@@ -175,11 +175,10 @@ Langs: {
 			}
 			step0: {
 				Stmts: [{
-					TrimmedOutput: "Hello"
-					Output:        "Hello"
-					ExitCode:      0
-					CmdStr:        "echo -n \"Hello\""
-					Negated:       false
+					Output:   "Hello"
+					ExitCode: 0
+					CmdStr:   "echo -n \"Hello\""
+					Negated:  false
 				}]
 				Order:     0
 				DoNotTrim: false
@@ -233,11 +232,10 @@ Langs: {
 			}
 			step0: {
 				Stmts: [{
-					TrimmedOutput: "Hello"
-					Output:        "Hello"
-					ExitCode:      0
-					CmdStr:        "echo -n \"Hello\""
-					Negated:       false
+					Output:   "Hello"
+					ExitCode: 0
+					CmdStr:   "echo -n \"Hello\""
+					Negated:  false
 				}]
 				Order:     0
 				DoNotTrim: false

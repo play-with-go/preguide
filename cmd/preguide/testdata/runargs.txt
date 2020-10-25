@@ -57,11 +57,10 @@ Langs: {
 		Steps: {
 			step1: {
 				Stmts: [{
-					TrimmedOutput: "The answer is: hello"
-					Output:        "The answer is: hello"
-					ExitCode:      0
-					CmdStr:        "echo -n \"The answer is: $GREETING\""
-					Negated:       false
+					Output:   "The answer is: hello"
+					ExitCode: 0
+					CmdStr:   "echo -n \"The answer is: $GREETING\""
+					Negated:  false
 				}]
 				Order:     0
 				DoNotTrim: false

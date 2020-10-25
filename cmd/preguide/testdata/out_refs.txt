@@ -27,8 +27,6 @@ Here we talk about the second of those commands, `<!--outref: cmd_false -->`.
 
 We also present the output of `<!--outref: echo_out-->`.
 
-We also present the trimmed output of `<!--outref: trimmed_echo_out-->`.
-
 -- myguide/guide.cue --
 package guide
 
@@ -56,7 +54,6 @@ package out
 
 Defs: {
 	echo_out:         Langs.en.Steps.step1.Stmts[0].Output
-	trimmed_echo_out: Langs.en.Steps.step1.Stmts[0].TrimmedOutput
 	cmd_false:        Langs.en.Steps.step1.Stmts[2].CmdStr
 }
 -- myguide/en.md.golden --
@@ -91,7 +88,5 @@ Here we talk about the second of those commands, `false`.
 
 We also present the output of `Hello, world!
 `.
-
-We also present the trimmed output of `Hello, world!`.
 
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
