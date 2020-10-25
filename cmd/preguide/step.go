@@ -121,12 +121,11 @@ func (c *commandStep) setorder(i int) {
 }
 
 type commandStmt struct {
-	Negated       bool
-	CmdStr        string
-	ExitCode      int
-	Output        string
-	TrimmedOutput string
-	outputFence   string
+	Negated     bool
+	CmdStr      string
+	ExitCode    int
+	Output      string
+	outputFence string
 
 	sanitisers []sanitisers.Sanitiser
 }
@@ -255,7 +254,6 @@ func (c *commandStep) setOutputFrom(s step) {
 	for i, s := range oc.Stmts {
 		c.Stmts[i].ExitCode = s.ExitCode
 		c.Stmts[i].Output = s.Output
-		c.Stmts[i].TrimmedOutput = s.TrimmedOutput
 	}
 }
 
