@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"text/template"
 	"text/template/parse"
 
@@ -252,16 +251,6 @@ func mustJSONMarshalIndent(i interface{}) []byte {
 	check(err, "failed to marshal prestep: %v", err)
 	return byts
 
-}
-
-func (g *guide) sanitiseVars(s string) (string, []string) {
-	var tmpls []string
-	for name, val := range g.varMap {
-		repl := g.Delims[0] + "." + name + g.Delims[1]
-		tmpls = append(tmpls, repl)
-		s = strings.ReplaceAll(s, val, repl)
-	}
-	return s, tmpls
 }
 
 var rawRegex = regexp.MustCompile(`\{%`)

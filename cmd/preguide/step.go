@@ -89,10 +89,12 @@ type step interface {
 
 type commandStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
-	StepType StepType
-	Name     string
-	Order    int
-	Terminal string
+	StepType      StepType
+	RandomReplace *string
+	DoNotTrim     bool
+	Name          string
+	Order         int
+	Terminal      string
 
 	Stmts []*commandStmt
 }
@@ -136,11 +138,13 @@ func (pdc *processDirContext) commandStepFromCommand(s *types.Command) (*command
 	r := strings.NewReader(s.Source)
 	f, err := syntax.NewParser().Parse(r, "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse command string %q: %v", s, err)
+		return nil, fmt.Errorf("failed to parse command string %q: %v", s.Source, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:     s.Name,
-		Terminal: s.Terminal,
+		Name:          s.Name,
+		RandomReplace: s.RandomReplace,
+		DoNotTrim:     s.DoNotTrim,
+		Terminal:      s.Terminal,
 	})
 	return pdc.commadStepFromSyntaxFile(res, f)
 }
@@ -159,8 +163,10 @@ func (pdc *processDirContext) commandStepFromCommandFile(s *types.CommandFile) (
 		return nil, fmt.Errorf("failed to parse commands from %v: %v", s.Path, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:     s.Name,
-		Terminal: s.Terminal,
+		Name:          s.Name,
+		RandomReplace: s.RandomReplace,
+		DoNotTrim:     s.DoNotTrim,
+		Terminal:      s.Terminal,
 	})
 	return pdc.commadStepFromSyntaxFile(res, f)
 }

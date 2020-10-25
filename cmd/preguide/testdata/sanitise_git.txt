@@ -23,6 +23,14 @@ title: A test with output that should be sanitised
 <!--step: step2 -->
 
 <!--step: step3 -->
+
+<!--step: step4 -->
+
+<!--step: step5 -->
+
+<!--step: step6 -->
+
+<!--step: step7 -->
 -- myguide/steps.cue --
 package steps
 
@@ -39,25 +47,68 @@ Terminals: term1: preguide.#Terminal & {
 
 Steps: step1: en: preguide.#Command & {
 	Source: """
-mkdir example
-cd example
-git init
-"""
+		mkdir example
+		cd example
+		git init
+		"""
 }
 
 Steps: step2: en: preguide.#Upload & {
 	Target: "/home/gopher/example/README.md"
 	Source: """
-This is a test.
-"""
+		This is a test.
+		"""
 }
 
 Steps: step3: en: preguide.#Command & {
 	Source: """
-git add -A
-git commit -am 'Initial commit'
-"""
+		git add -A
+		git commit -am 'Initial commit'
+		"""
 }
+
+Steps: step4: en: preguide.#Command & {
+	RandomReplace: "abcdefg123456789"
+	Source: """
+		git rev-parse HEAD
+		"""
+}
+
+Steps: first_random_commit: en: preguide.#Command & {
+	RandomReplace: "abcd123"
+	Source: """
+		git rev-parse --short HEAD
+		"""
+}
+
+Steps: step5: en: preguide.#Upload & {
+	Target: "/home/gopher/example/README.md"
+	Source: """
+		This is a test... again!
+		"""
+}
+
+Steps: step6: en: preguide.#Command & {
+	Source: """
+		git add -A
+		git commit -am 'Second commit'
+		"""
+}
+
+Steps: second_random_commit: en: preguide.#Command & {
+	RandomReplace: "abcd123"
+	Source: """
+		git rev-parse --short HEAD
+		"""
+}
+
+Steps: step7: en: preguide.#Command & {
+	RandomReplace: "abcdefg123456789"
+	Source: """
+		git rev-parse HEAD
+		"""
+}
+
 -- myguide/en.markdown.golden --
 ---
 guide: myguide
@@ -83,6 +134,28 @@ $ git commit -am 'Initial commit'
  create mode 100644 README.md
 ```
 {:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="}
+
+```.term1
+$ git rev-parse HEAD
+abcdefg123456789
+```
+{:data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="}
+
+<pre data-upload-path="L2hvbWUvZ29waGVyL2V4YW1wbGU=" data-upload-src="UkVBRE1FLm1k:VGhpcyBpcyBhIHRlc3QuLi4gYWdhaW4h" data-upload-term=".term1"><code class="language-md">This is a test... again!</code></pre>
+
+```.term1
+$ git add -A
+$ git commit -am 'Second commit'
+[main abcd123] Second commit
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+```
+{:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnU2Vjb25kIGNvbW1pdCcK"}
+
+```.term1
+$ git rev-parse HEAD
+abcdefg123456789
+```
+{:data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/en_log.txt.golden --
 Terminals: [
@@ -108,3 +181,18 @@ $ git commit -am 'Initial commit'
 [main (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
+$ git rev-parse HEAD
+abcdefg123456789
+$ git rev-parse --short HEAD
+abcd123
+$ cat <<EOD > /home/gopher/example/README.md
+This is a test... again!
+EOD
+$ git add -A
+$ git commit -am 'Second commit'
+[main abcd123] Second commit
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+$ git rev-parse --short HEAD
+abcd123
+$ git rev-parse HEAD
+abcdefg123456789

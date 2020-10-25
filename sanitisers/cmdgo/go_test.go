@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/mod/semver"
 )
 
 func TestSanitiseGoTest(t *testing.T) {
@@ -64,56 +63,4 @@ FAIL
 			}
 		})
 	}
-}
-
-func TestPseudoVersion(t *testing.T) {
-	testCases := []struct {
-		in   string
-		want bool
-	}{
-		{"v0.0.0-20200901194510-cc2d21bd1e55", true},
-		{"v2.3.0-pre.0.20060102150405-hash+incompatible", true},
-		{"v1.0.1-0.20060102150405-hash+metadata", true},
-		{"v1.4.3", false},
-		{"v1.4.3-other", false},
-		{"v1.4.3+something", false},
-	}
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("TestPseudoVersion_%v", i), func(t *testing.T) {
-			got := pseudoVersion.MatchString(tc.in)
-			if !semver.IsValid(tc.in) {
-				t.Errorf("semver.IsValid(%q) == false, want true", tc.in)
-			}
-			if got && !tc.want {
-				t.Errorf("got a match where we did not expect one")
-			} else if !got && tc.want {
-				t.Errorf("failed to find a match where we expected one ")
-			}
-		})
-	}
-}
-
-func TestSanitiseGoGet(t *testing.T) {
-	testCases := []struct {
-		vars []string
-		in   string
-		want string
-	}{{
-		vars: []string{"{{.REPO1}}"},
-		in: `go: downloading gopher.live/x/{{.REPO1}} v2.0.0-20200901194510-cc2d21bd1e55+something
-go: gopher.live/x/{{.REPO1}} upgrade => v0.0.0-20200901194510-cc2d21bd1e55
-`,
-		want: `go: downloading gopher.live/x/{{.REPO1}} v2.0.0-20060102150405-abcde12345+something
-go: gopher.live/x/{{.REPO1}} upgrade => v0.0.0-20060102150405-abcde12345
-`,
-	}}
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("TestSanitiseGoGet_%v", i), func(t *testing.T) {
-			got := sanitiseGoGet(tc.vars, tc.in)
-			if got != tc.want {
-				t.Fatalf("failed to get sanitised output: %v", cmp.Diff(got, tc.want))
-			}
-		})
-	}
-
 }
