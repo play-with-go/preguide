@@ -359,6 +359,7 @@ func (gc *genCmd) run(args []string) error {
 			g, err := pdc.processDir(gotArgs)
 			resLock.Lock()
 			if err != nil {
+				err = fmt.Errorf("error processing %v: %v", pdc.guideDir, err)
 				errs = append(errs, err)
 			} else if g != nil {
 				guides = append(guides, g)
