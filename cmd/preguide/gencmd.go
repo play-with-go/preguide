@@ -589,7 +589,11 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 	// below)
 	gv = gv.Unify(pdc.schemas.Guide)
 	err = gv.Validate()
-	check(err, "%v does not satisfy github.com/play-with-go/preguide.#Guide: %v", gp.ImportPath, err)
+	if err != nil {
+		var errstr strings.Builder
+		errors.Print(&errstr, err, nil)
+		raise("%v does not satisfy github.com/play-with-go/preguide.#Guide: %v", gp.ImportPath, errstr.String())
+	}
 
 	var intGuide types.Guide
 	err = gv.Decode(&intGuide)
