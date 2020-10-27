@@ -486,9 +486,7 @@ func (pdc *processDirContext) processDirPre(mustContainGuide bool) (err error) {
 		pdc.loadOutput(false)
 	}
 
-	pdc.validateStepAndRefDirs()
-
-	return
+	return pdc.validateStepAndRefDirs()
 }
 
 // processDirPost runs the Docker phase of processing for the guide (CUE
@@ -905,10 +903,11 @@ func (pdc *processDirContext) loadOutput(full bool) {
 // files are valid. That is, they resolve to either a named step of a reference
 // directive. Out reference directives (e.g. <!-- outref: cmdoutput -->) are
 // checked later (once we are guaranteed the out CUE package exists).
-func (pdc *processDirContext) validateStepAndRefDirs() {
+func (pdc *processDirContext) validateStepAndRefDirs() error {
 	g := pdc.guide
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
+	var errs errList
 
 	for _, mdf := range g.mdFiles {
 		mdf.frontMatter[guideFrontMatterKey] = g.name
@@ -919,23 +918,29 @@ func (pdc *processDirContext) validateStepAndRefDirs() {
 				var found bool
 				_, found = g.Steps[d.key]
 				if !found {
-					raise("unknown step %q referened in file %v", d.key, mdf.path)
+					errs.Addf("%v:%v: unknown step %q referened", pdc.relpath(mdf.path), d.Pos(), d.key)
 				}
 			case *refDirective:
 				if g.instance == nil {
-					raise("found a ref directive %v but not CUE instance?", d.key)
+					// This should never really happen so raise as an error
+					raise("found a ref directive %v but no CUE instance?", d.key)
 				}
 				key := "Defs." + d.key
 				expr, err := parser.ParseExpr("dummy", key)
-				check(err, "failed to parse CUE expression from %q: %v", key, err)
+				if err != nil {
+					errs.Addf("%v:%v: failed to parse CUE expression {%v}: %v", pdc.relpath(mdf.path), d.Pos(), key, err)
+					continue
+				}
 				v := g.instance.Eval(expr)
 				if err := v.Err(); err != nil {
-					raise("failed to evaluate %v: %v", key, err)
+					errs.Addf("%v:%v: failed to evaluate {%v}: %v", pdc.relpath(mdf.path), d.Pos(), key, err)
+					continue
 				}
 				switch v.Kind() {
 				case cue.StringKind:
 				default:
-					raise("value at %v is of unsupported kind %v", key, v.Kind())
+					errs.Addf("%v:%v: value resulting from {%v} is of unsupported kind %v", pdc.relpath(mdf.path), d.Pos(), key, v.Kind())
+					continue
 				}
 				d.val = v
 			case *outrefDirective:
@@ -945,6 +950,33 @@ func (pdc *processDirContext) validateStepAndRefDirs() {
 			}
 		}
 	}
+
+	return errs.Err()
+}
+
+type errList []error
+
+func (l *errList) Add(err error) {
+	*l = append(*l, err)
+}
+
+func (l *errList) Addf(format string, args ...interface{}) {
+	l.Add(fmt.Errorf(format, args...))
+}
+
+func (l errList) Err() error {
+	if len(l) == 0 {
+		return nil
+	}
+	return l
+}
+
+// Error is implemented so that errList implements error
+func (l errList) Error() string {
+	if len(l) == 0 {
+		return "nil"
+	}
+	return l[0].Error()
 }
 
 // validateOutRefsDirs ensures that outref directives (e.g. <!-- outref:
@@ -1495,29 +1527,29 @@ type mdFile struct {
 
 type directive interface {
 	Key() string
-	Pos() int
-	End() int
+	Pos() position
+	End() position
 }
 
 type baseDirective struct {
 	key string
 
-	// pos is the byte offset of the start of the directive
-	pos int
+	// pos is the position of the start of the directive
+	pos position
 
-	// end is the byte offset of the end of the directive
-	end int
+	// end is the position of the end of the directive
+	end position
 }
 
 func (b *baseDirective) Key() string {
 	return b.key
 }
 
-func (b *baseDirective) Pos() int {
+func (b *baseDirective) Pos() position {
 	return b.pos
 }
 
-func (b *baseDirective) End() int {
+func (b *baseDirective) End() position {
 	return b.end
 }
 
@@ -1590,7 +1622,7 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 		}
 		pos := ch.pos()
 		end := ch.end()
-		match := content[pos:end]
+		match := content[pos.offset:end.offset]
 		htmldoc, err := html.Parse(bytes.NewReader(match))
 		check(err, "failed to parse HTML comment %q: %v", match, err)
 		if htmldoc.FirstChild.Type != html.CommentNode {
