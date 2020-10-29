@@ -1126,7 +1126,9 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 				// TODO: tidy this up
 				fence := []byte(stmt.outputFence + "\n")
 				if !bytes.HasPrefix(walk, fence) {
-					raise("failed to find %q at position %v in output:\n%s", stmt.outputFence, len(out)-len(walk), out)
+					// Also log the bash script in this error case to try and track down
+					// the random failures we have been seeing
+					raise("failed to find %q at position %v in output:\n%s\nBash script was: %v\n", stmt.outputFence, len(out)-len(walk), out, toWrite)
 				}
 				walk = walk[len(fence):]
 				stmt.Output = slurp(fence)
