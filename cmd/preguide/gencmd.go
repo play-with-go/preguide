@@ -132,6 +132,10 @@ type genCmd struct {
 	// returned by the endpoint for that package
 	versions     map[string]string
 	versionsLock sync.Mutex
+
+	// cueLock ensures we only ever have a single thread running CUE
+	// code
+	cueLock sync.Mutex
 }
 
 // getVersion returns the current version returned by the endpoint configured
@@ -395,7 +399,7 @@ func (gc *genCmd) loadConfig() {
 	// res will hold the config result
 	var res cue.Value
 
-	bis := cueLoadInstances(gc.fConfigs, nil)
+	bis := load.Instances(gc.fConfigs, nil)
 	for i, bi := range bis {
 		inst, err := gc.runtime.Build(bi)
 		check(err, "failed to load config from %v: %v", gc.fConfigs[i], err)
@@ -560,14 +564,16 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
 func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool) {
+	pdc.cueLock.Lock()
 	conf := &load.Config{
 		Dir: g.dir,
 	}
-	bps := cueLoadInstances([]string{"."}, conf)
+	bps := load.Instances([]string{"."}, conf)
 	gp := bps[0]
 	if gp.Err != nil {
 		if _, ok := gp.Err.(*load.NoFilesError); ok {
 			// absorb this error - we have nothing to do
+			pdc.cueLock.Unlock()
 			return
 		}
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
@@ -628,6 +634,21 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 		t := intGuide.Terminals[n]
 		g.Terminals = append(g.Terminals, t)
 	}
+
+	// Before we release the CUE lock, grab the positions of the steps
+	// which we will use for later sorting
+	type stepPosition struct {
+		name string
+		pos  token.Pos
+	}
+	var stepPositions []stepPosition
+	for stepName := range intGuide.Steps {
+		stepPositions = append(stepPositions, stepPosition{
+			name: stepName,
+			pos:  structPos(gi.Lookup("Steps", stepName)),
+		})
+	}
+	pdc.cueLock.Unlock()
 
 	if len(intGuide.Steps) > 0 {
 		// We only investigate the presteps if we have any steps
@@ -719,17 +740,6 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 
 	// Sort according to the order of the steps as declared in the
 	// guide [filename, offset]
-	type stepPosition struct {
-		name string
-		pos  token.Pos
-	}
-	var stepPositions []stepPosition
-	for stepName := range intGuide.Steps {
-		stepPositions = append(stepPositions, stepPosition{
-			name: stepName,
-			pos:  structPos(gi.Lookup("Steps", stepName)),
-		})
-	}
 	sort.Slice(stepPositions, func(i, j int) bool {
 		return posLessThan(stepPositions[i].pos, stepPositions[j].pos)
 	})
@@ -775,6 +785,9 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 // simply has the side effect of not setting the output guide or output guide
 // instance.
 func (pdc *processDirContext) loadOutput(g *guide, full bool) {
+	pdc.cueLock.Lock()
+	defer pdc.cueLock.Unlock()
+
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -783,7 +796,7 @@ func (pdc *processDirContext) loadOutput(g *guide, full bool) {
 		toLoad = path.Join(toLoad, genOutCueFile)
 	}
 	toLoad = "./" + toLoad
-	bps := cueLoadInstances([]string{toLoad}, conf)
+	bps := load.Instances([]string{toLoad}, conf)
 	gp := bps[0]
 	if !full && gp.Err != nil {
 		return
