@@ -1,0 +1,35 @@
+# Test that we get the a non-zero exit code and good error
+# message when we have a guide that does not satisfy preguide.#Guide
+
+# Intial run
+! preguide gen -out _output
+! stdout .+
+stderr 'error processing '$WORK'/myguide: failed to validate CUE package: field `Banana` not allowed'
+
+-- myguide/en.markdown --
+---
+title: A title
+---
+<!--step: step1 -->
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Banana: 5
+
+Steps: step1: en: preguide.#Command & {
+	Source: """
+echo "Hello!"
+"""
+}
+

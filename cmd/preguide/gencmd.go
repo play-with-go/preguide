@@ -29,6 +29,7 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/ast"
+	"cuelang.org/go/cue/build"
 	"cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
@@ -564,7 +565,15 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
 func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool) {
-	pdc.cueLock.Lock()
+	lock := &pdc.cueLock
+	lock.Lock()
+	unlock := func() {
+		if lock != nil {
+			lock.Unlock()
+			lock = nil
+		}
+	}
+	defer unlock()
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -573,11 +582,12 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 	if gp.Err != nil {
 		if _, ok := gp.Err.(*load.NoFilesError); ok {
 			// absorb this error - we have nothing to do
-			pdc.cueLock.Unlock()
 			return
 		}
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
+
+	pdc.sanityCheck(gp)
 
 	gi, err := pdc.runtime.Build(gp)
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
@@ -648,7 +658,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 			pos:  structPos(gi.Lookup("Steps", stepName)),
 		})
 	}
-	pdc.cueLock.Unlock()
+	unlock()
 
 	if len(intGuide.Steps) > 0 {
 		// We only investigate the presteps if we have any steps
@@ -758,6 +768,43 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 		}
 	}
 	return
+}
+
+// sanityCheck performs a fresh load of the instance bi. It does so assuming
+// that instance is an instance of github.com/play-with-go/preguide.#Guide.
+// The load creates a temp file that imports and unifies both. The load
+// therefore helps to verify that bi does indeed satisfy the #Guide schema.
+//
+// It is assumed we are holding the CUE lock when calling this method.
+//
+// TODO: remove once we have a fix for cuelang.org/issue/567. Because whilst
+// that issue remains the Unify check below is useless
+func (pdc *processDirContext) sanityCheck(bi *build.Instance) {
+	tf, err := ioutil.TempFile("", "preguide_valid_check*.cue")
+	check(err, "failed to create temp file for valid check: %v", err)
+	defer os.Remove(tf.Name())
+	fmt.Fprintf(tf, "package x\n")
+	fmt.Fprintf(tf, "import  \"github.com/play-with-go/preguide\"\n")
+	fmt.Fprintf(tf, "import  x \"%v\"\n", bi.ImportPath)
+	fmt.Fprintf(tf, "x & preguide.#Guide\n")
+	err = tf.Close()
+	check(err, "failed to write %v: %v", tf.Name(), err)
+
+	conf := &load.Config{
+		Dir: bi.Dir,
+	}
+	bps := load.Instances([]string{tf.Name()}, conf)
+	gp := bps[0]
+	check(gp.Err, "failed to re-load CUE package: %v", gp.Err)
+	errStr := func(e error) string {
+		var errbuf bytes.Buffer
+		errors.Print(&errbuf, err, nil)
+		return errbuf.String()
+	}
+	i, err := pdc.runtime.Build(gp)
+	check(err, "failed to load CUE package: %s", errStr(err))
+	err = i.Value().Err()
+	check(err, "failed to validate CUE package: %v", errStr(err))
 }
 
 // loadOutput attempts to load the out CUE package. Each successful run of
