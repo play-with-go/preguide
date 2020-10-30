@@ -938,6 +938,8 @@ const (
 )
 
 func (pdc *processDirContext) writeOutPackage(g *guide) {
+	pdc.cueLock.Lock()
+	defer pdc.cueLock.Unlock()
 	enc := gocodec.New(&pdc.runner.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
