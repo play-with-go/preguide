@@ -49,9 +49,10 @@ func (m *Mode) Set(v string) error {
 }
 
 type Guide struct {
+	Languages []string
 	Delims    [2]string
 	Presteps  []*preguide.Prestep
-	Steps     map[string]LangSteps
+	Steps     Steps
 	Terminals map[string]*preguide.Terminal
 	Scenarios map[string]*preguide.Scenario
 	Defs      map[string]interface{}
@@ -70,23 +71,23 @@ func ValidLangCode(s string) bool {
 	return false
 }
 
-type LangSteps map[LangCode]Step
+type Steps map[string]Step
 
-func (l *LangSteps) UnmarshalJSON(b []byte) error {
-	var v map[LangCode]json.RawMessage
+func (l *Steps) UnmarshalJSON(b []byte) error {
+	var v map[string]json.RawMessage
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
 	if len(v) > 0 && *l == nil {
-		*l = make(map[LangCode]Step)
+		*l = make(map[string]Step)
 	}
-	for code, m := range v {
+	for stepName, m := range v {
 		var s Step
 		s, err := unmarshalStep(m)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal Step for En: %v", err)
+			return fmt.Errorf("failed to unmarshal Step: %v", err)
 		}
-		(*l)[code] = s
+		(*l)[stepName] = s
 	}
 	return nil
 }

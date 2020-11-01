@@ -45,7 +45,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Command & {
+Steps: step1: preguide.#Command & {
 	Source: """
 		mkdir example
 		cd example
@@ -53,56 +53,56 @@ Steps: step1: en: preguide.#Command & {
 		"""
 }
 
-Steps: step2: en: preguide.#Upload & {
+Steps: step2: preguide.#Upload & {
 	Target: "/home/gopher/example/README.md"
 	Source: """
 		This is a test.
 		"""
 }
 
-Steps: step3: en: preguide.#Command & {
+Steps: step3: preguide.#Command & {
 	Source: """
 		git add -A
 		git commit -am 'Initial commit'
 		"""
 }
 
-Steps: step4: en: preguide.#Command & {
+Steps: step4: preguide.#Command & {
 	RandomReplace: "abcdefg123456789"
 	Source: """
 		git rev-parse HEAD
 		"""
 }
 
-Steps: first_random_commit: en: preguide.#Command & {
+Steps: first_random_commit: preguide.#Command & {
 	RandomReplace: "abcd123"
 	Source: """
 		git rev-parse --short HEAD
 		"""
 }
 
-Steps: step5: en: preguide.#Upload & {
+Steps: step5: preguide.#Upload & {
 	Target: "/home/gopher/example/README.md"
 	Source: """
 		This is a test... again!
 		"""
 }
 
-Steps: step6: en: preguide.#Command & {
+Steps: step6: preguide.#Command & {
 	Source: """
 		git add -A
 		git commit -am 'Second commit'
 		"""
 }
 
-Steps: second_random_commit: en: preguide.#Command & {
+Steps: second_random_commit: preguide.#Command & {
 	RandomReplace: "abcd123"
 	Source: """
 		git rev-parse --short HEAD
 		"""
 }
 
-Steps: step7: en: preguide.#Command & {
+Steps: step7: preguide.#Command & {
 	RandomReplace: "abcdefg123456789"
 	Source: """
 		git rev-parse HEAD

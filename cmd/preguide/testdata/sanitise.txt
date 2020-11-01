@@ -36,7 +36,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Upload & { Target: "/home/gopher/hello.go", Source: """
+Steps: step1: preguide.#Upload & { Target: "/home/gopher/hello.go", Source: """
 package main
 
 import "fmt"
@@ -46,7 +46,7 @@ func main() {
 }
 """ }
 
-Steps: step2: en: preguide.#Upload & { Target: "/home/gopher/hello_test.go", Source: """
+Steps: step2: preguide.#Upload & { Target: "/home/gopher/hello_test.go", Source: """
 package main
 
 import (
@@ -59,7 +59,7 @@ func TestHello(t *testing.T) {
 }
 """ }
 
-Steps: step3: en: preguide.#Command & { Source: """
+Steps: step3: preguide.#Command & { Source: """
 go test
 """}
 

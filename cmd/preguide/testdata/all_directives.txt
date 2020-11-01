@@ -10,7 +10,7 @@ cmp myguide/en_log.txt myguide/en_log.txt.golden
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for en: will not re-run script$'
+stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
 cmp _output/myguide.markdown myguide/en.markdown.golden
 cmp myguide/en_log.txt myguide/en_log.txt.golden
 
@@ -54,13 +54,13 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & {
+Steps: step0: preguide.#Command & {
 	Source: """
 mkdir nooutput
 """
 }
 
-Steps: step1: en: preguide.#Command & {
+Steps: step1: preguide.#Command & {
 	Source: """
 echo "Hello, world! I am a #Command"
 touch blah
@@ -69,11 +69,11 @@ ls
 """
 }
 
-Steps: step2: en: preguide.#CommandFile & {
+Steps: step2: preguide.#CommandFile & {
 	Path: "step2_commandFile.sh"
 }
 
-Steps: step3: en: preguide.#Upload & {
+Steps: step3: preguide.#Upload & {
 	Target:   "/scripts/somewhere.sh"
 	Source: """
 #!/usr/bin/env bash
@@ -82,7 +82,7 @@ echo "Hello, world! I am an #Upload"
 """
 }
 
-Steps: step4: en: preguide.#UploadFile & {
+Steps: step4: preguide.#UploadFile & {
 	Language: "bash" // Vary the language for fun
 	Target:   "/scripts/step2.sh"
 	Path:     "step2_uploadFile.sh"

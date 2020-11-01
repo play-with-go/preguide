@@ -19,32 +19,22 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-type langSteps struct {
-	Steps      map[string]step
-	bashScript string
-	Hash       string
-	steps      []step
-}
+type steps map[string]step
 
-func (l *langSteps) UnmarshalJSON(b []byte) error {
-	type noUnmarshal langSteps
-	var v struct {
-		Steps map[string]json.RawMessage
-		*noUnmarshal
-	}
-	v.noUnmarshal = (*noUnmarshal)(l)
+func (l *steps) UnmarshalJSON(b []byte) error {
+	var v map[string]json.RawMessage
 	if err := json.Unmarshal(b, &v); err != nil {
-		return fmt.Errorf("failed to unmarshal langSteps into wrapper: %v", err)
+		return fmt.Errorf("failed to unmarshal steps into wrapper: %v", err)
 	}
-	if len(v.Steps) > 0 && l.Steps == nil {
-		l.Steps = make(map[string]step)
+	if len(v) > 0 && *l == nil {
+		*l = make(map[string]step)
 	}
-	for stepName, stepBytes := range v.Steps {
+	for stepName, stepBytes := range v {
 		s, err := unmarshalStep(stepBytes)
 		if err != nil {
 			return fmt.Errorf("failed to unmarshal step for step %v: %v", stepName, err)
 		}
-		l.Steps[stepName] = s
+		(*l)[stepName] = s
 	}
 	return nil
 }
@@ -69,12 +59,6 @@ func unmarshalStep(r json.RawMessage) (step, error) {
 		return nil, fmt.Errorf("failed to unmarshal %T: %v", s, err)
 	}
 	return s, nil
-}
-
-func newLangSteps() *langSteps {
-	return &langSteps{
-		Steps: make(map[string]step),
-	}
 }
 
 type step interface {

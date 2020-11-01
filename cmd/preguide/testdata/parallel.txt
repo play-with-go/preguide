@@ -34,13 +34,13 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & {
+Steps: step0: preguide.#Command & {
 	Source: """
 mkdir nooutput
 """
 }
 
-Steps: step1: en: preguide.#Command & {
+Steps: step1: preguide.#Command & {
 	Source: """
 echo "Hello, world! I am a #Command"
 touch blah
@@ -49,7 +49,7 @@ ls
 """
 }
 
-Steps: step2: en: preguide.#Upload & {
+Steps: step2: preguide.#Upload & {
 	Target:   "/scripts/somewhere.sh"
 	Source: """
 #!/usr/bin/env bash
@@ -83,13 +83,13 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & {
+Steps: step0: preguide.#Command & {
 	Source: """
 mkdir nooutput
 """
 }
 
-Steps: step1: en: preguide.#Command & {
+Steps: step1: preguide.#Command & {
 	Source: """
 echo "Hello, world! I am a #Command"
 touch blah
@@ -98,7 +98,7 @@ ls
 """
 }
 
-Steps: step2: en: preguide.#Upload & {
+Steps: step2: preguide.#Upload & {
 	Target:   "/scripts/somewhere.sh"
 	Source: """
 #!/usr/bin/env bash

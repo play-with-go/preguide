@@ -11,7 +11,7 @@ cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 # Check that we get a cache hit second time around
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for en: will not re-run script$'
+stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
 cmp _output/myguide.markdown myguide/en_pre.markdown.golden
 cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 
@@ -20,7 +20,7 @@ cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 cp myguide/steps.cue.changed myguide/steps.cue
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for en: will not re-run script$'
+stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
 cmp _output/myguide.markdown myguide/en_post.markdown.golden
 cmp myguide/out/gen_out.cue myguide/out/gen_out_post.cue.golden
 
@@ -48,7 +48,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & {
+Steps: step0: preguide.#Command & {
 	Source: """
 echo -n "Hello"
 """
@@ -57,7 +57,7 @@ echo -n "Hello"
 // Include some backtick text in the file contents to verify
 // that when uploading the file the backtick portion is not
 // expanded by bash
-Steps: step1: en: preguide.#Upload & {
+Steps: step1: preguide.#Upload & {
 	Target:   "/home/gopher/somewhere.md"
 	Source: """
 This is some markdown `with code`
@@ -79,13 +79,13 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & {
+Steps: step0: preguide.#Command & {
 	Source: """
 echo -n "Hello"
 """
 }
 
-Steps: step1: en: preguide.#Upload & {
+Steps: step1: preguide.#Upload & {
 	Target:   "/home/gopher/somewhere.md"
 	Renderer: preguide.#RenderLineRanges & {
 		Lines: [[2,2]]
@@ -153,42 +153,38 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-Langs: {
-	en: {
-		Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
-		Steps: {
-			step1: {
-				Order: 1
-				Source: """
-					This is some markdown `with code`
-					Another line
-					A third line
-					"""
-				Renderer: {
-					RendererType: 1
-				}
-				Language: "md"
-				Target:   "/home/gopher/somewhere.md"
-				Terminal: "term1"
-				StepType: 2
-				Name:     "step1"
-			}
-			step0: {
-				Stmts: [{
-					Output:   "Hello"
-					ExitCode: 0
-					CmdStr:   "echo -n \"Hello\""
-					Negated:  false
-				}]
-				Order:     0
-				DoNotTrim: false
-				Terminal:  "term1"
-				StepType:  1
-				Name:      "step0"
-			}
+Steps: {
+	step1: {
+		Order: 1
+		Source: """
+			This is some markdown `with code`
+			Another line
+			A third line
+			"""
+		Renderer: {
+			RendererType: 1
 		}
+		Language: "md"
+		Target:   "/home/gopher/somewhere.md"
+		Terminal: "term1"
+		StepType: 2
+		Name:     "step1"
+	}
+	step0: {
+		Stmts: [{
+			Output:   "Hello"
+			ExitCode: 0
+			CmdStr:   "echo -n \"Hello\""
+			Negated:  false
+		}]
+		Order:     0
+		DoNotTrim: false
+		Terminal:  "term1"
+		StepType:  1
+		Name:      "step0"
 	}
 }
+Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
 Delims: ["{{", "}}"]
 -- myguide/out/gen_out_post.cue.golden --
 package out
@@ -208,42 +204,36 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-Langs: {
-	en: {
-		Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
-		Steps: {
-			step1: {
-				Order: 1
-				Source: """
-					This is some markdown `with code`
-					Another line
-					A third line
-					"""
-				Renderer: {
-					Lines: [[2, 2]]
-					Ellipsis:     "..."
-					RendererType: 2
-				}
-				Language: "md"
-				Target:   "/home/gopher/somewhere.md"
-				Terminal: "term1"
-				StepType: 2
-				Name:     "step1"
-			}
-			step0: {
-				Stmts: [{
-					Output:   "Hello"
-					ExitCode: 0
-					CmdStr:   "echo -n \"Hello\""
-					Negated:  false
-				}]
-				Order:     0
-				DoNotTrim: false
-				Terminal:  "term1"
-				StepType:  1
-				Name:      "step0"
-			}
+Steps: {
+	step1: {
+		Order: 1
+		Source: """
+			This is some markdown `with code`
+			Another line
+			A third line
+			"""
+		Renderer: {
+			RendererType: 1
 		}
+		Language: "md"
+		Target:   "/home/gopher/somewhere.md"
+		Terminal: "term1"
+		StepType: 2
+		Name:     "step1"
+	}
+	step0: {
+		Stmts: [{
+			Output:   "Hello"
+			ExitCode: 0
+			CmdStr:   "echo -n \"Hello\""
+			Negated:  false
+		}]
+		Order:     0
+		DoNotTrim: false
+		Terminal:  "term1"
+		StepType:  1
+		Name:      "step0"
 	}
 }
+Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
 Delims: ["{{", "}}"]

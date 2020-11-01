@@ -30,7 +30,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo -n "The answer is: $GREETING"
 """}
 -- myguide/out/gen_out.cue.golden --
@@ -51,24 +51,20 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-Langs: {
-	en: {
-		Hash: "95aec4e582ce6f9172c4e74915228af4bb57485147114ccfee8d24163d516952"
-		Steps: {
-			step1: {
-				Stmts: [{
-					Output:   "The answer is: hello"
-					ExitCode: 0
-					CmdStr:   "echo -n \"The answer is: $GREETING\""
-					Negated:  false
-				}]
-				Order:     0
-				DoNotTrim: false
-				Terminal:  "term1"
-				StepType:  1
-				Name:      "step1"
-			}
-		}
+Steps: {
+	step1: {
+		Stmts: [{
+			Output:   "The answer is: hello"
+			ExitCode: 0
+			CmdStr:   "echo -n \"The answer is: $GREETING\""
+			Negated:  false
+		}]
+		Order:     0
+		DoNotTrim: false
+		Terminal:  "term1"
+		StepType:  1
+		Name:      "step1"
 	}
 }
+Hash: "95aec4e582ce6f9172c4e74915228af4bb57485147114ccfee8d24163d516952"
 Delims: ["{{", "}}"]
