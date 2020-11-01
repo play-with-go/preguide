@@ -33,13 +33,13 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: en: preguide.#Command & {
+Steps: step0: preguide.#Command & {
 	Source: """
 echo -n "Hello"
 """
 }
 
-Steps: step1: en: preguide.#Upload & {
+Steps: step1: preguide.#Upload & {
 	Target:   "/home/gopher/somewhere.md"
 	Source: """
 This is some markdown `with code`
@@ -47,10 +47,10 @@ This is some markdown `with code`
 """
 }
 
-Steps: step2: en: preguide.#Upload & {
+Steps: step2: preguide.#Upload & {
 	Target:   "/home/gopher/somewhere.md"
 	Renderer: preguide.#RenderDiff & {
-		Pre: Steps.step1.en.Source
+		Pre: Steps.step1.Source
 	}
 	Source: """
 This is some markdown `with code`
@@ -101,60 +101,56 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-Langs: {
-	en: {
-		Hash: "e83870e6a40c0d17db288a9f7b405a090b7ba8e57f4c579d64802268bfa90f45"
-		Steps: {
-			step2: {
-				Order: 2
-				Source: """
-					This is some markdown `with code`
-					Another line
-					A third line
+Steps: {
+	step2: {
+		Order: 2
+		Source: """
+			This is some markdown `with code`
+			Another line
+			A third line
 
-					"""
-				Renderer: {
-					Pre: """
-						This is some markdown `with code`
+			"""
+		Renderer: {
+			Pre: """
+				This is some markdown `with code`
 
-						"""
-					RendererType: 3
-				}
-				Language: "md"
-				Target:   "/home/gopher/somewhere.md"
-				Terminal: "term1"
-				StepType: 2
-				Name:     "step2"
-			}
-			step1: {
-				Order: 1
-				Source: """
-					This is some markdown `with code`
-
-					"""
-				Renderer: {
-					RendererType: 1
-				}
-				Language: "md"
-				Target:   "/home/gopher/somewhere.md"
-				Terminal: "term1"
-				StepType: 2
-				Name:     "step1"
-			}
-			step0: {
-				Stmts: [{
-					Output:   "Hello"
-					ExitCode: 0
-					CmdStr:   "echo -n \"Hello\""
-					Negated:  false
-				}]
-				Order:     0
-				DoNotTrim: false
-				Terminal:  "term1"
-				StepType:  1
-				Name:      "step0"
-			}
+				"""
+			RendererType: 3
 		}
+		Language: "md"
+		Target:   "/home/gopher/somewhere.md"
+		Terminal: "term1"
+		StepType: 2
+		Name:     "step2"
+	}
+	step1: {
+		Order: 1
+		Source: """
+			This is some markdown `with code`
+
+			"""
+		Renderer: {
+			RendererType: 1
+		}
+		Language: "md"
+		Target:   "/home/gopher/somewhere.md"
+		Terminal: "term1"
+		StepType: 2
+		Name:     "step1"
+	}
+	step0: {
+		Stmts: [{
+			Output:   "Hello"
+			ExitCode: 0
+			CmdStr:   "echo -n \"Hello\""
+			Negated:  false
+		}]
+		Order:     0
+		DoNotTrim: false
+		Terminal:  "term1"
+		StepType:  1
+		Name:      "step0"
 	}
 }
+Hash: "e83870e6a40c0d17db288a9f7b405a090b7ba8e57f4c579d64802268bfa90f45"
 Delims: ["{{", "}}"]

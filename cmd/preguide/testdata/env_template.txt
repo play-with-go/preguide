@@ -66,7 +66,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo -n "The answer is: {{.GREETING}}!"
 """}
 -- myguide/en.markdown.golden --
@@ -132,26 +132,22 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-Langs: {
-	en: {
-		Hash: "e419ad5f6c5f02aa9c78658abb5b4ef480ebc0783a23072224c9c38d8c4ff830"
-		Steps: {
-			step1: {
-				Stmts: [{
-					Output:   "The answer is: Hello, world!!"
-					ExitCode: 0
-					CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
-					Negated:  false
-				}]
-				Order:     0
-				DoNotTrim: false
-				Terminal:  "term1"
-				StepType:  1
-				Name:      "step1"
-			}
-		}
+Steps: {
+	step1: {
+		Stmts: [{
+			Output:   "The answer is: Hello, world!!"
+			ExitCode: 0
+			CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
+			Negated:  false
+		}]
+		Order:     0
+		DoNotTrim: false
+		Terminal:  "term1"
+		StepType:  1
+		Name:      "step1"
 	}
 }
+Hash: "e419ad5f6c5f02aa9c78658abb5b4ef480ebc0783a23072224c9c38d8c4ff830"
 Delims: ["{{", "}}"]
 -- myguide/en.markdown.raw.golden --
 ---

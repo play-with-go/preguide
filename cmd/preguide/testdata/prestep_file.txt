@@ -50,7 +50,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo "The answer is: {{{.GREETING}}}!"
 """}
 -- myguide/en.markdown.golden --

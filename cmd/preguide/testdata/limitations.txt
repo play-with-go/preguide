@@ -5,13 +5,13 @@
 # hence non-English langage guide should fail
 ! preguide gen -out demarkdown/_output -dir demarkdown
 ! stdout .+
-stderr 'we only support English language guides for now'
+stderr 'error processing '$WORK'/demarkdown/guide: we only support English language guides for now'
 
 # Only support English language guides for now (hence a single language)
 # hence non-English steps should fail
 ! preguide gen -out desteps/_output -dir desteps
 ! stdout .+
-stderr 'we only support steps for English language guides for now'
+stderr 'error processing '$WORK'/desteps/guide: failed to validate CUE package: Steps.step1: field `de` not allowed:'
 
 # Only support a single terminal
 ! preguide gen -out multipleterminals/_output -dir multipleterminals
@@ -79,7 +79,7 @@ Scenarios: go115: {
 	Description: "Go 1.15"
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo -n "Hello, world!"
 """}
 -- multiplescenarios/guide/en.markdown --
@@ -106,7 +106,7 @@ Scenarios: {
 	}
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo -n "Hello, world!"
 """}
 -- badraw/guide/en.markdown --
@@ -132,6 +132,6 @@ Scenarios: {
 	}
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo -n "Hello, world!"
 """}

@@ -43,7 +43,7 @@ Terminals: term1: preguide.#Terminal & {
 
 Defs: world: "world"
 
-Steps: step1: en: preguide.#Command & { Source: """
+Steps: step1: preguide.#Command & { Source: """
 echo "Hello, world!"
 touch blah
 ! false
@@ -53,8 +53,8 @@ ls
 package out
 
 Defs: {
-	echo_out:         Langs.en.Steps.step1.Stmts[0].Output
-	cmd_false:        Langs.en.Steps.step1.Stmts[2].CmdStr
+	echo_out:         Steps.step1.Stmts[0].Output
+	cmd_false:        Steps.step1.Stmts[2].CmdStr
 }
 -- myguide/en.md.golden --
 ---

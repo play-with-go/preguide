@@ -441,7 +441,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 		dir:    pdc.guideDir,
 		name:   filepath.Base(pdc.guideDir),
 		target: target,
-		Langs:  make(map[types.LangCode]*langSteps),
+		Steps:  make(map[string]step),
 		varMap: make(map[string]string),
 	}
 
@@ -453,7 +453,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 		raise("%v did not contain a guide", pdc)
 	}
 
-	hasStepsToRun := pdc.loadAndValidateSteps(g)
+	pdc.loadAndValidateSteps(g)
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
@@ -465,63 +465,7 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 
 	pdc.validateStepAndRefDirs(g)
 
-	// If we have any steps to run, for each language build a bash file that
-	// represents the script to run. Then check whether the hash representing
-	// the contents of the bash file matches the hash in the out CUE package
-	// (i.e. the result of a previous run of this guide). If the hash matches,
-	// we don't have anything to do: the inputs are identical and hence (because
-	// guides should be idempotent) the output would be the same.
-	if hasStepsToRun {
-		for _, l := range g.langs {
-			ls := g.Langs[l]
-			pdc.buildBashFile(g, ls)
-			if !*pdc.fSkipCache {
-				if out := g.outputGuide; out != nil {
-					if ols := out.Langs[l]; ols != nil {
-						if ols.Hash == ls.Hash {
-							// At this stage we know we have a cache hit. That means,
-							// the input steps are equivalent, in execution terms, to the
-							// steps in the output schema.
-							//
-							// However. There are parameters on the input steps that do
-							// not affect execution. e.g. on an upload step, the Renderer
-							// used. Hence we need to copy across fields that represent
-							// execution output from the output steps onto the input steps.
-
-							pdc.debugf("cache hit for %v: will not re-run script\n", l)
-
-							for sn, ostep := range ols.Steps {
-								istep := ls.Steps[sn]
-								istep.setOutputFrom(ostep)
-							}
-							// Populate the guide's varMap based on the variables that resulted
-							// when the script did run. Empty values are fine, we just need
-							// the environment variable names.
-							for _, ps := range out.Presteps {
-								for _, v := range ps.Variables {
-									g.varMap[v] = ""
-								}
-							}
-							// Now set the guide's Presteps to be that of the output because
-							// we known they are equivalent in terms of inputs at this stage
-							// i.e. what presteps will run, the order, the args etc, because
-							// this check happened as part of the hash check.
-							g.Presteps = out.Presteps
-							continue
-						}
-					}
-				}
-			}
-			pdc.runBashFile(g, ls)
-		}
-		pdc.writeOutPackage(g)
-		if !*pdc.fRaw {
-			// This step can be made more efficient if we know there is not
-			// anything else in the out package other than the generated data
-			// written in the previous step
-			pdc.loadOutput(g, true)
-		}
-	}
+	pdc.runSteps(g)
 
 	pdc.validateOutRefsDirs(g)
 
@@ -530,6 +474,59 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 	pdc.writeLog(g)
 
 	return g, nil
+}
+
+func (pdc *processDirContext) runSteps(g *guide) {
+	// If we have any steps to run, build a bash file that represents the script
+	// to run. Then check whether the hash representing the contents of the bash
+	// file matches the hash in the out CUE package (i.e. the result of a
+	// previous run of this guide). If the hash matches, we don't have anything
+	// to do: the inputs are identical and hence (because guides should be
+	// idempotent) the output would be the same.
+	if len(g.Steps) == 0 {
+		return
+	}
+	pdc.buildBashFile(g)
+	out := g.outputGuide
+	if !*pdc.fSkipCache && out != nil && out.Hash == g.Hash {
+		// At this stage we know we have a cache hit. That means,
+		// the input steps are equivalent, in execution terms, to the
+		// steps in the output schema.
+		//
+		// However. There are parameters on the input steps that do
+		// not affect execution. e.g. on an upload step, the Renderer
+		// used. Hence we need to copy across fields that represent
+		// execution output from the output steps onto the input steps.
+
+		pdc.debugf("cache hit for %v: will not re-run script\n", g.dir)
+
+		for sn, ostep := range out.Steps {
+			istep := g.Steps[sn]
+			istep.setOutputFrom(ostep)
+		}
+		// Populate the guide's varMap based on the variables that resulted
+		// when the script did run. Empty values are fine, we just need
+		// the environment variable names.
+		for _, ps := range out.Presteps {
+			for _, v := range ps.Variables {
+				g.varMap[v] = ""
+			}
+		}
+		// Now set the guide's Presteps to be that of the output because
+		// we known they are equivalent in terms of inputs at this stage
+		// i.e. what presteps will run, the order, the args etc, because
+		// this check happened as part of the hash check.
+		g.Presteps = out.Presteps
+		return
+	}
+	pdc.runBashFile(g)
+	pdc.writeOutPackage(g)
+	if !*pdc.fRaw {
+		// This step can be made more efficient if we know there is not
+		// anything else in the out package other than the generated data
+		// written in the previous step
+		pdc.loadOutput(g, true)
+	}
 }
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
@@ -564,7 +561,7 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool) {
+func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 	lock := &pdc.cueLock
 	lock.Lock()
 	unlock := func() {
@@ -615,6 +612,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 	err = gv.Decode(&intGuide)
 	check(err, "failed to decode guide: %T %v", err, err)
 
+	g.langs = intGuide.Languages
 	g.Delims = intGuide.Delims
 	g.Networks = intGuide.Networks
 	g.Env = intGuide.Env
@@ -677,61 +675,42 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 		}
 	}
 
-	seenLangs := make(map[types.LangCode]bool)
-
-	for stepName, langSteps := range intGuide.Steps {
-
-		for _, code := range types.Langs {
-			v, ok := langSteps[code]
-			if !ok {
-				continue
+	for stepName, v := range intGuide.Steps {
+		var s step
+		switch is := v.(type) {
+		case *types.Command:
+			s, err = pdc.commandStepFromCommand(is)
+			check(err, "failed to parse #Command from step %v: %v", stepName, err)
+		case *types.CommandFile:
+			if !filepath.IsAbs(is.Path) {
+				is.Path = filepath.Join(g.dir, is.Path)
 			}
-			seenLangs[code] = true
-			var s step
-			switch is := v.(type) {
-			case *types.Command:
-				s, err = pdc.commandStepFromCommand(is)
-				check(err, "failed to parse #Command from step %v: %v", stepName, err)
-			case *types.CommandFile:
-				if !filepath.IsAbs(is.Path) {
-					is.Path = filepath.Join(g.dir, is.Path)
-				}
-				s, err = pdc.commandStepFromCommandFile(is)
-				check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
-			case *types.Upload:
-				// TODO: when we support non-Unix terminals,
-				s, err = pdc.uploadStepFromUpload(is)
-				check(err, "failed to parse #Upload from step %v: %v", stepName, err)
-			case *types.UploadFile:
-				if !filepath.IsAbs(is.Path) {
-					is.Path = filepath.Join(g.dir, is.Path)
-				}
-				s, err = pdc.uploadStepFromUploadFile(is)
-				check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
+			s, err = pdc.commandStepFromCommandFile(is)
+			check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
+		case *types.Upload:
+			// TODO: when we support non-Unix terminals,
+			s, err = pdc.uploadStepFromUpload(is)
+			check(err, "failed to parse #Upload from step %v: %v", stepName, err)
+		case *types.UploadFile:
+			if !filepath.IsAbs(is.Path) {
+				is.Path = filepath.Join(g.dir, is.Path)
 			}
-			// Validate various things about the step
-			switch s := s.(type) {
-			case *uploadStep:
-				// TODO: this check needs to be made platform specific, specific
-				// to the platform on which it will run (which is determined
-				// by the terminal scenario). However for now we assume Unix
-				if !isAbsolute(s.Target) {
-					raise("target path %q must be absolute", s.Target)
-				}
-			}
-			ls, ok := g.Langs[code]
-			if !ok {
-				ls = newLangSteps()
-				g.Langs[code] = ls
-			}
-			ls.Steps[stepName] = s
-			hasStepsToRun = true
+			s, err = pdc.uploadStepFromUploadFile(is)
+			check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
 		}
+		// Validate various things about the step
+		switch s := s.(type) {
+		case *uploadStep:
+			// TODO: this check needs to be made platform specific, specific
+			// to the platform on which it will run (which is determined
+			// by the terminal scenario). However for now we assume Unix
+			if !isAbsolute(s.Target) {
+				raise("target path %q must be absolute", s.Target)
+			}
+		}
+		g.Steps[stepName] = s
 	}
 
-	for code := range seenLangs {
-		g.langs = append(g.langs, code)
-	}
 	sort.Slice(g.langs, func(i, j int) bool {
 		return g.langs[i] < g.langs[j]
 	})
@@ -753,21 +732,11 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) (hasStepsToRun bool
 	sort.Slice(stepPositions, func(i, j int) bool {
 		return posLessThan(stepPositions[i].pos, stepPositions[j].pos)
 	})
-	for _, code := range types.Langs {
-		ls, ok := g.Langs[code]
-		if !ok {
-			continue
-		}
-		for i, sp := range stepPositions {
-			s, ok := ls.Steps[sp.name]
-			if !ok {
-				raise("lang %v does not define step %v; we don't yet support fallback logic", code, sp.name)
-			}
-			ls.steps = append(ls.steps, s)
-			s.setorder(i)
-		}
+	for i, sp := range stepPositions {
+		s := g.Steps[sp.name]
+		g.steps = append(g.steps, s)
+		s.setorder(i)
 	}
-	return
 }
 
 // sanityCheck performs a fresh load of the instance bi. It does so assuming
@@ -872,15 +841,15 @@ func (pdc *processDirContext) loadOutput(g *guide, full bool) {
 	}
 	check(err, "failed to decode Guide from out value: %v", errors.Details(err, &errors.Config{Cwd: g.dir}))
 
-	// Now populate the steps slice for each langSteps
-	for _, ls := range out.Langs {
-		for _, step := range ls.Steps {
-			ls.steps = append(ls.steps, step)
-		}
-		sort.Slice(ls.steps, func(i, j int) bool {
-			return ls.steps[i].order() < ls.steps[j].order()
-		})
+	// Set g.steps = nil because at this stage we know we have
+	// valid information in g.Steps
+	g.steps = nil
+	for _, step := range g.Steps {
+		g.steps = append(g.steps, step)
 	}
+	sort.Slice(g.steps, func(i, j int) bool {
+		return g.steps[i].order() < g.steps[j].order()
+	})
 
 	g.outputGuide = &out
 	g.outinstance = gi
@@ -898,22 +867,11 @@ func (pdc *processDirContext) validateStepAndRefDirs(g *guide) {
 	for _, mdf := range g.mdFiles {
 		mdf.frontMatter[guideFrontMatterKey] = g.name
 
-		// TODO: improve language steps fallback
-		ls, ok := g.Langs[mdf.lang]
-		if !ok {
-			ls = g.Langs["en"]
-		}
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
 			case *stepDirective:
 				var found bool
-				found = ls != nil
-				if found {
-					found = ls.Steps != nil
-				}
-				if found {
-					_, found = ls.Steps[d.key]
-				}
+				_, found = g.Steps[d.key]
 				if !found {
 					raise("unknown step %q referened in file %v", d.key, mdf.path)
 				}
@@ -1007,7 +965,7 @@ func (pdc *processDirContext) writeOutPackage(g *guide) {
 	check(err, "failed to write output to %v: %v", outFilePath, err)
 }
 
-func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
+func (pdc *processDirContext) runBashFile(g *guide) {
 	// Now run the pre-step if there is one
 	var toWrite string
 	for _, ps := range g.Presteps {
@@ -1056,7 +1014,7 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 	// templates instances {{.ENV}} that appear in the bashScript, and then
 	// append the result of that substitution. Note this substitution applies
 	// to both the commands AND the uploads
-	bashScript := ls.bashScript
+	bashScript := g.bashScript
 	if len(g.vars) > 0 {
 		t := template.New("pre-substitution bashScript")
 		t.Delims(g.Delims[0], g.Delims[1])
@@ -1176,7 +1134,7 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 			})
 		}
 	}
-	for _, step := range ls.steps {
+	for _, step := range g.steps {
 		switch step := step.(type) {
 		case *commandStep:
 			var stepOutput *bytes.Buffer
@@ -1236,7 +1194,7 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 		return len(lhs[0]) > len(rhs[0])
 	})
 	// Now sanitise everything
-	for _, step := range ls.steps {
+	for _, step := range g.steps {
 		switch step := step.(type) {
 		case *commandStep:
 			for _, stmt := range step.Stmts {
@@ -1256,7 +1214,7 @@ func (pdc *processDirContext) runBashFile(g *guide, ls *langSteps) {
 
 // buildBashFile creates a bash file to run for the language-specific steps of
 // a guide.
-func (pdc *processDirContext) buildBashFile(g *guide, ls *langSteps) {
+func (pdc *processDirContext) buildBashFile(g *guide) {
 	// TODO when we come to support multiple terminals this will need to be
 	// rethought. Perhaps something along the following lines:
 	//
@@ -1327,7 +1285,7 @@ func (pdc *processDirContext) buildBashFile(g *guide, ls *langSteps) {
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image())
 	pf("#!/usr/bin/env bash\n")
-	for _, step := range ls.steps {
+	for _, step := range g.steps {
 		switch step := step.(type) {
 		case *commandStep:
 			for i, stmt := range step.Stmts {
@@ -1368,8 +1326,8 @@ func (pdc *processDirContext) buildBashFile(g *guide, ls *langSteps) {
 		}
 	}
 	pdc.debugf("Bash script:\n%v", sb.String())
-	ls.bashScript = sb.String()
-	ls.Hash = fmt.Sprintf("%x", h.Sum(nil))
+	g.bashScript = sb.String()
+	g.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
 
 // structPos returns the position of the struct value v. This helper

@@ -26,7 +26,7 @@ cmp gen_guide_structures.cue gen_guide_structures.cue.golden
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for en: will not re-run script$'
+stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
 cmp _output/myguide.markdown myguide/en.markdown.golden
 cmp myguide/en_log.txt myguide/en_log.txt.golden
 
@@ -107,7 +107,7 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: en: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Source: """
 echo "The answer is: {{.GREETING}}!"
 """}
 -- myguide/en.markdown.golden --

@@ -35,7 +35,7 @@ type guide struct {
 	target string
 
 	mdFiles []mdFile
-	langs   []types.LangCode
+	langs   []string
 
 	// Embed guideStructure once we have a solution to cuelang.org/issue/376
 	Presteps  []*guidePrestep
@@ -44,7 +44,10 @@ type guide struct {
 	Networks  []string
 	Env       []string
 
-	Langs map[types.LangCode]*langSteps
+	Steps      steps
+	bashScript string
+	Hash       string
+	steps      []step
 
 	instance    *cue.Instance
 	outinstance *cue.Instance
@@ -132,16 +135,12 @@ func (pdc *processDirContext) writeGuideOutput(g *guide) {
 
 		if len(md.directives) > 0 {
 			// TODO: implement fallback to en for directives
-			var steps map[string]step
-			if ls := g.Langs[md.lang]; ls != nil {
-				steps = ls.Steps
-			}
 			pos := 0
 			for _, d := range md.directives {
 				buf.Write(md.content[pos:d.Pos()])
 				switch d := d.(type) {
 				case *stepDirective:
-					steps[d.Key()].render(pdc.fMode, &buf)
+					g.Steps[d.Key()].render(pdc.fMode, &buf)
 				case *refDirective:
 					switch d.val.Kind() {
 					case cue.StringKind:
@@ -231,13 +230,13 @@ func (pdc *processDirContext) writeGuideOutput(g *guide) {
 
 // writeLog writes a
 func (pdc *processDirContext) writeLog(g *guide) {
-	for lang, ls := range g.Langs {
+	for _, lang := range g.langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
 		if len(g.Presteps) > 0 {
 			fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
 		}
-		for _, step := range ls.steps {
+		for _, step := range g.steps {
 			step.renderLog(pdc.fMode, &buf)
 		}
 		logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", lang))
