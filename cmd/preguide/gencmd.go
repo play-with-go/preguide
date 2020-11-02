@@ -142,31 +142,31 @@ type genCmd struct {
 // getVersion returns the current version returned by the endpoint configured
 // to serve package pkg. If pkg does not resolve to a service config, an error
 // is raised.
-func (gc *genCmd) getVersion(pkg string) string {
-	gc.versionsLock.Lock()
-	v, ok := gc.versions[pkg]
-	gc.versionsLock.Unlock()
+func (pdc *processDirContext) getVersion(pkg string) string {
+	pdc.versionsLock.Lock()
+	v, ok := pdc.versions[pkg]
+	pdc.versionsLock.Unlock()
 	if ok {
 		return v
 	}
 
 	// We do not have a version, check if we have a request
 	// in flight
-	gc.versionChecksLock.Lock()
-	c, ok := gc.versionChecks[pkg]
+	pdc.versionChecksLock.Lock()
+	c, ok := pdc.versionChecks[pkg]
 	if !ok {
 		c = make(chan struct{})
-		gc.versionChecks[pkg] = c
+		pdc.versionChecks[pkg] = c
 	}
-	gc.versionChecksLock.Unlock()
+	pdc.versionChecksLock.Unlock()
 	if ok {
 		<-c
 		// We know that version will be available this time
-		return gc.getVersion(pkg)
+		return pdc.getVersion(pkg)
 	}
 
 	// Get the version
-	conf, ok := gc.config[pkg]
+	conf, ok := pdc.config[pkg]
 	if !ok {
 		raise("no config found for prestep %v", pkg)
 	}
@@ -174,11 +174,11 @@ func (gc *genCmd) getVersion(pkg string) string {
 	if conf.Endpoint.Scheme == "file" {
 		version = "file"
 	} else {
-		version = string(gc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
+		version = string(pdc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
 	}
-	gc.versionsLock.Lock()
-	gc.versions[pkg] = version
-	gc.versionsLock.Unlock()
+	pdc.versionsLock.Lock()
+	pdc.versions[pkg] = version
+	pdc.versionsLock.Unlock()
 	close(c)
 
 	return version
@@ -195,6 +195,11 @@ type processDirContext struct {
 	// we start to concurrently process guides
 	sanitiserHelper *sanitisers.S
 	stmtPrinter     *syntax.Printer
+}
+
+func (pdc *processDirContext) debugf(format string, args ...interface{}) {
+	format = fmt.Sprintf("%v: %v", pdc.relpath(pdc.guide.dir), format)
+	pdc.runner.debugf(format, args...)
 }
 
 func newGenCmd(r *runner) *genCmd {
@@ -535,7 +540,7 @@ func (pdc *processDirContext) runSteps() {
 		// used. Hence we need to copy across fields that represent
 		// execution output from the output steps onto the input steps.
 
-		pdc.debugf("cache hit for %v: will not re-run script\n", g.dir)
+		pdc.debugf("cache hit: will not re-run script\n")
 
 		for sn, ostep := range out.Steps {
 			istep := g.Steps[sn]
@@ -1262,7 +1267,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	slurp := func(end []byte) (res string) {
 		endI := bytes.Index(walk, end)
 		if endI == -1 {
-			raise("failed to find %q before end of output:\n%s", end, out)
+			raise("failed to find %q before end of output:\n%s\nOutput was: %s\n", end, walk, out)
 		}
 		res, walk = string(walk[:endI]), walk[endI+len(end):]
 		return res
@@ -1292,12 +1297,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 			for _, stmt := range step.Stmts {
 				// TODO: tidy this up
 				fence := []byte(stmt.outputFence + "\n")
-				if !bytes.HasPrefix(walk, fence) {
-					// Also log the bash script in this error case to try and track down
-					// the random failures we have been seeing
-					raise("failed to find %q at position %v in output:\n%s\nBash script was: %v\n", stmt.outputFence, len(out)-len(walk), out, toWrite)
-				}
-				walk = walk[len(fence):]
+				slurp(fence) // Ignore everything before the fence
 				stmt.Output = slurp(fence)
 				if doRandomReplace {
 					stepOutput.WriteString(stmt.Output)
@@ -1437,10 +1437,12 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 		case *commandStep:
 			for i, stmt := range step.Stmts {
 				hf("step: %q, command statement %v: %v\n\n", step.Name, i, stmt.CmdStr)
-				var b bytes.Buffer
-				binary.Write(&b, binary.BigEndian, time.Now().UnixNano())
-				h := sha256.Sum256(b.Bytes())
-				stmt.outputFence = fmt.Sprintf("%x", h)
+				// echo the command we will run
+				cmdEchoFence := getFence()
+				pf("cat <<'%v'\n", cmdEchoFence)
+				pf("$ %v\n", stmt.CmdStr)
+				pf("%v\n", cmdEchoFence)
+				stmt.outputFence = getFence()
 				pf("echo %v\n", stmt.outputFence)
 				pf("%v\n", stmt.CmdStr)
 				pf("x=$?\n")
@@ -1457,9 +1459,13 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 			}
 		case *uploadStep:
 			hf("step: %q, upload: target: %v, source: %v\n\n", step.Name, step.Target, step.Source)
-			var b bytes.Buffer
-			binary.Write(&b, binary.BigEndian, time.Now().UnixNano())
-			fence := fmt.Sprintf("%x", sha256.Sum256(b.Bytes()))
+			cmdEchoFence := getFence()
+			pf("cat <<'%v'\n", cmdEchoFence)
+			pf("$ cat <<EOD > %v\n", step.Target)
+			pf("%v\n", step.Source)
+			pf("EOD\n")
+			pf("%v\n", cmdEchoFence)
+			fence := getFence()
 			pf("cat <<'%v' > %v\n", fence, step.Target)
 			pf("%v\n", step.Source)
 			pf("%v\n", fence)
@@ -1472,9 +1478,14 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 			panic(fmt.Errorf("can't yet handle steps of type %T", step))
 		}
 	}
-	pdc.debugf("Bash script:\n%v", sb.String())
 	g.bashScript = sb.String()
 	g.Hash = fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func getFence() string {
+	var b bytes.Buffer
+	binary.Write(&b, binary.BigEndian, time.Now().UnixNano())
+	return fmt.Sprintf("%x", sha256.Sum256(b.Bytes()))
 }
 
 // structPos returns the position of the struct value v. This helper
@@ -1513,7 +1524,7 @@ func posLessThan(lhs, rhs token.Pos) bool {
 // In the special case that url is a file protocol, args is expected to be zero
 // length, and the -docker flag is ignored (that is to say, it is expected the
 // file can be accessed by the current process).
-func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
+func (pdc *processDirContext) doRequest(method string, endpoint string, conf *preguide.ServiceConfig, args ...interface{}) []byte {
 	var body io.Reader
 	if len(args) > 0 {
 		var w bytes.Buffer
@@ -1525,15 +1536,15 @@ func (gc *genCmd) doRequest(method string, endpoint string, conf *preguide.Servi
 		body = &w
 	}
 	// We need Docker if we need to connect to networks
-	if len(conf.Networks) > 0 && !*gc.fDocker {
-		cmd := gc.newDockerRunner(conf.Networks,
+	if len(conf.Networks) > 0 && !*pdc.fDocker {
+		cmd := pdc.newDockerRunner(conf.Networks,
 			// Don't leave this container around
 			"--rm",
 		)
 		for _, e := range conf.Env {
 			cmd.Args = append(cmd.Args, "-e", e)
 		}
-		gc.addSelfArgs(cmd)
+		pdc.addSelfArgs(cmd)
 		// Now add the arguments to "ourselves"
 		cmd.Args = append(cmd.Args, "/runbin/preguide", "docker", method, endpoint)
 		if body != nil {
@@ -1791,7 +1802,7 @@ func valueToFile(pkg string, v cue.Value) ([]byte, error) {
 // dance required to run a docker container with multiple
 // networks attached
 type dockerRunnner struct {
-	runner *runner
+	pdc *processDirContext
 
 	// DockerArgs are the flags to pass to each docker command
 	DockerArgs []string
@@ -1807,9 +1818,9 @@ type dockerRunnner struct {
 	Networks []string
 }
 
-func (r *runner) newDockerRunner(networks []string, args ...string) *dockerRunnner {
+func (pdc *processDirContext) newDockerRunner(networks []string, args ...string) *dockerRunnner {
 	return &dockerRunnner{
-		runner:   r,
+		pdc:      pdc,
 		Networks: append([]string{}, networks...),
 		Args:     append([]string{}, args...),
 	}
@@ -1823,7 +1834,7 @@ func (dr *dockerRunnner) Run() error {
 	createCmd.Stdout = &createStdout
 	createCmd.Stderr = &createStderr
 
-	dr.runner.debugf("about to run command> %v\n", createCmd)
+	dr.pdc.debugf("about to run command> %v\n", createCmd)
 	if err := createCmd.Run(); err != nil {
 		return fmt.Errorf("failed %v: %v\n%s", createCmd, err, createStderr.Bytes())
 	}
@@ -1832,7 +1843,7 @@ func (dr *dockerRunnner) Run() error {
 
 	for _, network := range dr.Networks {
 		connectCmd := exec.Command("docker", "network", "connect", network, instance)
-		dr.runner.debugf("about to run command> %v\n", connectCmd)
+		dr.pdc.debugf("about to run command> %v\n", connectCmd)
 		if out, err := connectCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed %v: %v\n%s", connectCmd, err, out)
 		}
@@ -1843,7 +1854,7 @@ func (dr *dockerRunnner) Run() error {
 	startCmd.Stdout = dr.Stdout
 	startCmd.Stderr = dr.Stderr
 
-	dr.runner.debugf("about to run command> %v\n", startCmd)
+	dr.pdc.debugf("about to run command> %v\n", startCmd)
 	return startCmd.Run()
 }
 

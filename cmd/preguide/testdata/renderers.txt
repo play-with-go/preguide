@@ -11,7 +11,7 @@ cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 # Check that we get a cache hit second time around
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
+stderr '^myguide: cache hit: will not re-run script$'
 cmp _output/myguide.markdown myguide/en_pre.markdown.golden
 cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 
@@ -20,7 +20,7 @@ cmp myguide/out/gen_out.cue myguide/out/gen_out_pre.cue.golden
 cp myguide/steps.cue.changed myguide/steps.cue
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
+stderr '^myguide: cache hit: will not re-run script$'
 cmp _output/myguide.markdown myguide/en_post.markdown.golden
 cmp myguide/out/gen_out.cue myguide/out/gen_out_post.cue.golden
 
