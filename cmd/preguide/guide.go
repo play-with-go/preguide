@@ -95,7 +95,8 @@ type guidePrestep struct {
 // writeGuideOutput writes the markdown files of output for a guide
 // that result from the combination of the configuration and input
 // to a guide.
-func (pdc *processDirContext) writeGuideOutput(g *guide) {
+func (pdc *processDirContext) writeGuideOutput() {
+	g := pdc.guide
 	if len(g.mdFiles) != 1 || g.mdFiles[0].lang != "en" {
 		raise("we only support English language guides for now")
 	}
@@ -229,7 +230,8 @@ func (pdc *processDirContext) writeGuideOutput(g *guide) {
 }
 
 // writeLog writes a
-func (pdc *processDirContext) writeLog(g *guide) {
+func (pdc *processDirContext) writeLog() {
+	g := pdc.guide
 	for _, lang := range g.langs {
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))

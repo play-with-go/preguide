@@ -188,6 +188,8 @@ type processDirContext struct {
 	*genCmd
 	guideDir string
 
+	guide *guide
+
 	// The following is context that current sits on genCmd but
 	// will likely have to move to a separate context object when
 	// we start to concurrently process guides
@@ -347,27 +349,50 @@ func (gc *genCmd) run(args []string) error {
 	for i := 0; i < concurrentyLimit; i++ {
 		limiter <- struct{}{}
 	}
+	var errs []error
+	raiseIfErrs := func() {
+		if len(errs) == 0 {
+			return
+		}
+		var errBuf bytes.Buffer
+		for _, err := range errs {
+			fmt.Fprintf(&errBuf, "%v\n", err)
+		}
+		raise("%s", errBuf.Bytes())
+	}
 	var wg sync.WaitGroup
 	var resLock sync.Mutex
 	var guides []*guide
-	var errs []error
+	var pdcs []*processDirContext
 	for _, d := range toWalk {
-		<-limiter
 		pdc := &processDirContext{
 			genCmd:          gc,
 			sanitiserHelper: sanitisers.NewS(),
 			stmtPrinter:     syntax.NewPrinter(),
 			guideDir:        d,
 		}
+		err := pdc.processDirPre(gotArgs)
+		if err != nil {
+			err = fmt.Errorf("error processing %v: %v", pdc.guideDir, err)
+			errs = append(errs, err)
+		}
+		if pdc.guide != nil {
+			pdcs = append(pdcs, pdc)
+		}
+	}
+	raiseIfErrs()
+	for i := range pdcs {
+		pdc := pdcs[i]
+		<-limiter
 		wg.Add(1)
 		go func() {
-			g, err := pdc.processDir(gotArgs)
+			err := pdc.processDirPost()
 			resLock.Lock()
 			if err != nil {
 				err = fmt.Errorf("error processing %v: %v", pdc.guideDir, err)
 				errs = append(errs, err)
-			} else if g != nil {
-				guides = append(guides, g)
+			} else if len(pdc.guide.mdFiles) > 0 {
+				guides = append(guides, pdc.guide)
 			}
 			resLock.Unlock()
 			wg.Done()
@@ -375,13 +400,7 @@ func (gc *genCmd) run(args []string) error {
 		}()
 	}
 	wg.Wait()
-	if len(errs) > 0 {
-		var errBuf bytes.Buffer
-		for _, err := range errs {
-			fmt.Fprintf(&errBuf, "%v\n", err)
-		}
-		raise("%s", errBuf.Bytes())
-	}
+	raiseIfErrs()
 	gc.guides = guides
 	if gotDir {
 		gc.writeGuideStructures()
@@ -428,10 +447,10 @@ func (gc *genCmd) loadConfig() {
 	}
 }
 
-// processDir processes the guide (CUE package and markdown files) found in
-// dir. See the documentation for genCmd for more details. Returns a guide if
-// markdown files are found and successfully processed, else nil.
-func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err error) {
+// processDirPre does initial processing for the guide (CUE package and
+// markdown files) found in dir. See the documentation for genCmd for more
+// details. This phase does not run any docker commands
+func (pdc *processDirContext) processDirPre(mustContainGuide bool) (err error) {
 	defer util.HandleKnown(&err)
 	target := *pdc.fOutput
 	if target == "" {
@@ -453,30 +472,45 @@ func (pdc *processDirContext) processDir(mustContainGuide bool) (_ *guide, err e
 		raise("%v did not contain a guide", pdc)
 	}
 
-	pdc.loadAndValidateSteps(g)
+	// Now we know there is a guide in that directory (because it is markdown
+	// files that basically establish a guide)
+	pdc.guide = g
+
+	pdc.loadAndValidateSteps()
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
 	// mode, we do want to try and load the out CUE package; this is
 	// in effect like the Go build cache check.
 	if !*pdc.fRaw {
-		pdc.loadOutput(g, false)
+		pdc.loadOutput(false)
 	}
 
-	pdc.validateStepAndRefDirs(g)
+	pdc.validateStepAndRefDirs()
 
-	pdc.runSteps(g)
-
-	pdc.validateOutRefsDirs(g)
-
-	pdc.writeGuideOutput(g)
-
-	pdc.writeLog(g)
-
-	return g, nil
+	return
 }
 
-func (pdc *processDirContext) runSteps(g *guide) {
+// processDirPost runs the Docker phase of processing for the guide (CUE
+// package and markdown files) found in dir
+func (pdc *processDirContext) processDirPost() (err error) {
+	defer util.HandleKnown(&err)
+
+	pdc.checkPresteps()
+
+	pdc.runSteps()
+
+	pdc.validateOutRefsDirs()
+
+	pdc.writeGuideOutput()
+
+	pdc.writeLog()
+
+	return
+}
+
+func (pdc *processDirContext) runSteps() {
+	g := pdc.guide
 	// If we have any steps to run, build a bash file that represents the script
 	// to run. Then check whether the hash representing the contents of the bash
 	// file matches the hash in the out CUE package (i.e. the result of a
@@ -525,7 +559,7 @@ func (pdc *processDirContext) runSteps(g *guide) {
 		// This step can be made more efficient if we know there is not
 		// anything else in the out package other than the generated data
 		// written in the previous step
-		pdc.loadOutput(g, true)
+		pdc.loadOutput(true)
 	}
 }
 
@@ -561,7 +595,8 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
+func (pdc *processDirContext) loadAndValidateSteps() {
+	g := pdc.guide
 	lock := &pdc.cueLock
 	lock.Lock()
 	unlock := func() {
@@ -658,21 +693,17 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 	}
 	unlock()
 
-	if len(intGuide.Steps) > 0 {
-		// We only investigate the presteps if we have any steps
-		// to run
-		for _, prestep := range intGuide.Presteps {
-			ps := guidePrestep{
-				Package: prestep.Package,
-				Path:    prestep.Path,
-				Args:    prestep.Args,
-			}
-			if ps.Package == "" {
-				raise("Prestep had empty package")
-			}
-			ps.Version = pdc.getVersion(ps.Package)
-			g.Presteps = append(g.Presteps, &ps)
+	// Create presteps - but we will check them later
+	for _, prestep := range intGuide.Presteps {
+		ps := guidePrestep{
+			Package: prestep.Package,
+			Path:    prestep.Path,
+			Args:    prestep.Args,
 		}
+		if ps.Package == "" {
+			raise("Prestep had empty package")
+		}
+		g.Presteps = append(g.Presteps, &ps)
 	}
 
 	for stepName, v := range intGuide.Steps {
@@ -739,6 +770,19 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide) {
 	}
 }
 
+func (pdc *processDirContext) checkPresteps() {
+	g := pdc.guide
+
+	// We only investigate the presteps if we have any steps
+	// to run
+	if len(g.Steps) == 0 {
+		return
+	}
+	for _, ps := range g.Presteps {
+		ps.Version = pdc.getVersion(ps.Package)
+	}
+}
+
 // sanityCheck performs a fresh load of the instance bi. It does so assuming
 // that instance is an instance of github.com/play-with-go/preguide.#Guide.
 // The load creates a temp file that imports and unifies both. The load
@@ -800,7 +844,8 @@ func (pdc *processDirContext) sanityCheck(bi *build.Instance) {
 // When we are not loading the full package, we also tolerate errors. This
 // simply has the side effect of not setting the output guide or output guide
 // instance.
-func (pdc *processDirContext) loadOutput(g *guide, full bool) {
+func (pdc *processDirContext) loadOutput(full bool) {
+	g := pdc.guide
 	pdc.cueLock.Lock()
 	defer pdc.cueLock.Unlock()
 
@@ -860,7 +905,8 @@ func (pdc *processDirContext) loadOutput(g *guide, full bool) {
 // files are valid. That is, they resolve to either a named step of a reference
 // directive. Out reference directives (e.g. <!-- outref: cmdoutput -->) are
 // checked later (once we are guaranteed the out CUE package exists).
-func (pdc *processDirContext) validateStepAndRefDirs(g *guide) {
+func (pdc *processDirContext) validateStepAndRefDirs() {
+	g := pdc.guide
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
 
@@ -906,7 +952,8 @@ func (pdc *processDirContext) validateStepAndRefDirs(g *guide) {
 // This second pass of checking the outrefs specifically is required because
 // only at this stage in the processing of a guide can we be guaranteed that
 // the out package exists (and hence any outref directives) resolve.
-func (pdc *processDirContext) validateOutRefsDirs(g *guide) {
+func (pdc *processDirContext) validateOutRefsDirs() {
+	g := pdc.guide
 	for _, mdf := range g.mdFiles {
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
