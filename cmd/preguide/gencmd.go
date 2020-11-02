@@ -1237,7 +1237,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	out, err := imageCheck.CombinedOutput()
 	if err != nil {
 		if *pdc.fPullImage == pullImageMissing {
-			pdc.debugf("failed to find docker image %v (%v); will attempt pull", image, err)
+			pdc.debugf("failed to find docker image %v (%v); will attempt pull\n", image, err)
 			pull := exec.Command("docker", "pull", image)
 			out, err = pull.CombinedOutput()
 			check(err, "failed to find docker image %v; also failed to pull it: %v\n%s", image, err, out)
@@ -1261,7 +1261,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	out, err = cmd.CombinedOutput()
 	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
 
-	pdc.debugf("output from [%v]:\n%s", strings.Join(cmd.Args, " "), out)
+	pdc.debugf("script output:\n%s", out)
 
 	walk := out
 	slurp := func(end []byte) (res string) {
@@ -1834,7 +1834,6 @@ func (dr *dockerRunnner) Run() error {
 	createCmd.Stdout = &createStdout
 	createCmd.Stderr = &createStderr
 
-	dr.pdc.debugf("about to run command> %v\n", createCmd)
 	if err := createCmd.Run(); err != nil {
 		return fmt.Errorf("failed %v: %v\n%s", createCmd, err, createStderr.Bytes())
 	}
@@ -1843,7 +1842,6 @@ func (dr *dockerRunnner) Run() error {
 
 	for _, network := range dr.Networks {
 		connectCmd := exec.Command("docker", "network", "connect", network, instance)
-		dr.pdc.debugf("about to run command> %v\n", connectCmd)
 		if out, err := connectCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed %v: %v\n%s", connectCmd, err, out)
 		}
@@ -1854,7 +1852,6 @@ func (dr *dockerRunnner) Run() error {
 	startCmd.Stdout = dr.Stdout
 	startCmd.Stderr = dr.Stderr
 
-	dr.pdc.debugf("about to run command> %v\n", startCmd)
 	return startCmd.Run()
 }
 
