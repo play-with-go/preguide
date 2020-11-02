@@ -284,7 +284,7 @@ func (gc *genCmd) run(args []string) error {
 		dir = "."
 	}
 	if gotDir {
-		gc.dir, err = filepath.Abs(*gc.fDir)
+		gc.dir, err = filepath.Abs(dir)
 		check(err, "failed to derive absolute directory from %q: %v", *gc.fDir, err)
 	}
 
@@ -373,7 +373,12 @@ func (gc *genCmd) run(args []string) error {
 		}
 		err := pdc.processDirPre(gotArgs)
 		if err != nil {
-			err = fmt.Errorf("error processing %v: %v", pdc.guideDir, err)
+			switch err.(type) {
+			case errList:
+				// We already have position information
+			default:
+				err = fmt.Errorf("%v: %v", pdc.relpath(pdc.guideDir), err)
+			}
 			errs = append(errs, err)
 		}
 		if pdc.guide != nil {
@@ -389,7 +394,7 @@ func (gc *genCmd) run(args []string) error {
 			err := pdc.processDirPost()
 			resLock.Lock()
 			if err != nil {
-				err = fmt.Errorf("error processing %v: %v", pdc.guideDir, err)
+				err = fmt.Errorf("%v: %v", pdc.relpath(pdc.guideDir), err)
 				errs = append(errs, err)
 			} else if len(pdc.guide.mdFiles) > 0 {
 				guides = append(guides, pdc.guide)
@@ -912,14 +917,18 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 	for _, mdf := range g.mdFiles {
 		mdf.frontMatter[guideFrontMatterKey] = g.name
 
+		var stepDirectivesToCheck []*stepDirective
+
+		// First ensure that we reference existent steps and references
+		// are correct.
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
 			case *stepDirective:
-				var found bool
-				_, found = g.Steps[d.key]
+				_, found := g.Steps[d.key]
 				if !found {
 					errs.Addf("%v:%v: unknown step %q referened", pdc.relpath(mdf.path), d.Pos(), d.key)
 				}
+				stepDirectivesToCheck = append(stepDirectivesToCheck, d)
 			case *refDirective:
 				if g.instance == nil {
 					// This should never really happen so raise as an error
@@ -949,6 +958,59 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 				panic(fmt.Errorf("don't yet know how to handle %T type", d))
 			}
 		}
+
+		// Now ensure that we have the correct ordering (this is a more
+		// terminal error, so we do this second). We know all the step
+		// directives reference valid steps, so don't need to check for
+		// the iteration through the step directives going beyond the end
+		// of the guide steps slice.
+
+		// nextStep keeps track of which step we are comparing against
+		// from the guide script. It essentially represents the expectaion
+		// on the next step. Once we have iterated through all the
+		// directives for a markdown file, if any guide script steps remain
+		// then these are errors.
+		//
+		// Notice below that we skipped
+		badOrder := false
+		stepsToCheck := g.steps
+	stepDirectives:
+		for _, stepDir := range stepDirectivesToCheck {
+			if len(stepsToCheck) == 0 {
+				// We will be covered by the check above that catches directives
+				// to steps that do not exist
+				break stepDirectives
+			}
+			for {
+				s := stepsToCheck[0]
+				stepsToCheck = stepsToCheck[1:]
+				// Regardless of whether we need to reference this step or not,
+				// if we do, move on to the next directive
+				if s.name() == stepDir.Key() {
+					continue stepDirectives
+				}
+				// We know the directive name and step name do not match. If
+				// we must reference this step, then that is an error.
+				if s.mustBeReferenced() {
+					badOrder = true
+					errs.Addf("%v:%v: saw step directive %v; expected to see %v", pdc.relpath(mdf.path), stepDir.Pos(), stepDir.Key(), s.name())
+					// This is a fairly terminal error... because the order of everything
+					// that follows is likely to be off as a result
+					break stepDirectives
+				}
+				// Continue looping over the guide script steps
+			}
+		}
+		if !badOrder {
+			missingLine := 1 + bytes.Count(mdf.source, []byte("\n"))
+			// Now walk through the remainder of the steps and add
+			// errors indicating they are not reference
+			for _, s := range stepsToCheck {
+				if s.mustBeReferenced() {
+					errs.Addf("%v:%v: step %q was not referenced", pdc.relpath(mdf.path), missingLine, s.name())
+				}
+			}
+		}
 	}
 
 	return errs.Err()
@@ -976,7 +1038,13 @@ func (l errList) Error() string {
 	if len(l) == 0 {
 		return "nil"
 	}
-	return l[0].Error()
+	var buf bytes.Buffer
+	prefix := ""
+	for _, e := range l {
+		fmt.Fprintf(&buf, "%v%v", prefix, e)
+		prefix = "\n\t"
+	}
+	return buf.String()
 }
 
 // validateOutRefsDirs ensures that outref directives (e.g. <!-- outref:
@@ -1517,6 +1585,7 @@ func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
 
 type mdFile struct {
 	path        string
+	source      []byte
 	content     []byte
 	frontMatter map[string]interface{}
 	frontFormat string
@@ -1590,6 +1659,11 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 		// This appears to be a bug with the pageparser package
 		content = source
 	}
+	// Again, rather a gross way of establishing the the line offset of the
+	// start of the content
+	startLine := 1
+	contentStart := bytes.Index(source, content)
+	startLine += bytes.Count(source[:contentStart], []byte("\n")) // Safe because we know content is a substring
 
 	// TODO: support all front-matter formats... and no front matter
 
@@ -1606,12 +1680,13 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 		path:        path,
 		lang:        lang,
 		ext:         ext,
+		source:      source,
 		content:     content,
 		frontMatter: front.FrontMatter,
 		frontFormat: string(front.FrontMatterFormat),
 		// dockerImage: image,
 	}
-	ch := newChunker(content, "<!--", "-->")
+	ch := newChunker(content, "<!--", "-->", startLine)
 	for {
 		ok, err := ch.next()
 		if err != nil {

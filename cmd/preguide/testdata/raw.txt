@@ -12,6 +12,8 @@ title: myguide
 ---
 
 <!--step: step1 -->
+
+<!--step: step2 -->
 -- myguide/steps.cue --
 package steps
 
