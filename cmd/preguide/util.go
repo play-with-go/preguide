@@ -65,47 +65,99 @@ func isMarkdown(name string) (string, bool) {
 // respectively, and the input is the guide prose that contains these
 // directives.
 type chunker struct {
-	b   string
-	e   string
+	// beginSeq is the sequence of bytes that start a chunk
+	beginSeq []byte
+
+	// endSeq is the sequence of bytes that end a chunk
+	endSeq []byte
+
+	// buf is the buffer we are scanning
 	buf []byte
-	p   int
-	ep  int
-	lp  int
+
+	// currPoint is the offset of start of the beingSeq of
+	// the current chunk. Hence currPoint != lastPoint is
+	// the invariant that holds whilst we are
+	currPoint position
+
+	// endPoint is the offset of the most last sequence found using find() as defined
+	// in next(). Because next() makes two calls
+	// to find (the begin and end sequences), this ensures that after the second
+	// call, endP refers to the start of the begin sequence.
+	// after the end of the last endSeq
+	endPoint position
+
+	// prevSeqStart is the byte offset of the start of the last but one sequence
+	// found using find() as defined in next(). Because next() makes two calls
+	// to find (the begin and end sequences), this ensures that after the second
+	// call, prevSeqStart refers to the start of the begin sequence.
+	prevSeqStart position
 }
 
 func newChunker(b []byte, beg, end string) *chunker {
-	return &chunker{
-		buf: b,
-		b:   beg,
-		e:   end,
+	if strings.Contains(beg, "\n") || strings.Contains(end, "\n") {
+		panic(fmt.Errorf("cannot have a begin or end sequence that contains newline"))
 	}
+	res := &chunker{
+		buf:      b,
+		beginSeq: []byte(beg),
+		endSeq:   []byte(end),
+	}
+	// 1-initialise line values
+	res.currPoint.line = 1
+	res.endPoint.line = 1
+	res.prevSeqStart.line = 1
+	return res
 }
 
 func (c *chunker) next() (bool, error) {
-	find := func(key string) bool {
-		p := bytes.Index(c.buf, []byte(key))
+	find := func(key []byte) bool {
+		p := bytes.Index(c.buf, key)
 		if p == -1 {
 			return false
 		}
-		c.lp = c.p
-		c.p = c.ep + p
-		c.ep += p + len(key)
+		c.prevSeqStart = c.currPoint
+
+		c.currPoint = c.endPoint
+		c.currPoint.offset += p
+		numLines := bytes.Count(c.buf[:p], []byte("\n"))
+		c.currPoint.line += numLines
+		col := p
+		if numLines > 0 {
+			col -= bytes.LastIndex(c.buf[:p], []byte("\n"))
+		}
+		c.currPoint.col = col
+
+		c.endPoint = c.currPoint
+		c.endPoint.offset += len(key)
+		c.endPoint.col += len(key)
+
 		c.buf = c.buf[p+len(key):]
 		return true
 	}
-	if !find(c.b) {
+	if !find(c.beginSeq) {
 		return false, nil
 	}
-	if !find(c.e) {
-		return false, fmt.Errorf("failed to find end %q terminator", c.e)
+	if !find(c.endSeq) {
+		return false, fmt.Errorf("failed to find end %q terminator", c.endSeq)
 	}
 	return true, nil
 }
 
-func (c *chunker) pos() int {
-	return c.lp
+type position struct {
+	offset int
+	line   int
+	col    int
 }
 
-func (c *chunker) end() int {
-	return c.ep
+// String returns the human readable line:col representation
+func (p position) String() string {
+	return fmt.Sprintf("%v:%v", p.line, p.col)
+}
+
+func (c *chunker) pos() position {
+	return c.prevSeqStart
+}
+
+func (c *chunker) end() position {
+	return c.endPoint
 }

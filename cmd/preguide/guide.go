@@ -138,7 +138,7 @@ func (pdc *processDirContext) writeGuideOutput() {
 			// TODO: implement fallback to en for directives
 			pos := 0
 			for _, d := range md.directives {
-				buf.Write(md.content[pos:d.Pos()])
+				buf.Write(md.content[pos:d.Pos().offset])
 				switch d := d.(type) {
 				case *stepDirective:
 					g.Steps[d.Key()].render(pdc.fMode, &buf)
@@ -157,7 +157,7 @@ func (pdc *processDirContext) writeGuideOutput() {
 				default:
 					panic(fmt.Errorf("don't yet know how to handle %T directives", d))
 				}
-				pos = d.End()
+				pos = d.End().offset
 			}
 			buf.Write(md.content[pos:])
 		} else {

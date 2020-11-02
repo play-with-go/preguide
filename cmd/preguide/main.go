@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 
 	"cuelang.org/go/cue"
@@ -95,12 +96,21 @@ type runner struct {
 	// seenPrestepPkgs is a cache of the presteps we have seen and resolved
 	// to a version in a given run of preguide
 	seenPrestepPkgs map[string]string
+
+	// cwd is the current working directory of the process, used when
+	// calcuating relative paths to files
+	cwd string
 }
 
 func newRunner() *runner {
 	res := &runner{
 		seenPrestepPkgs: make(map[string]string),
 	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err) // we have bigger problems than proper error handling
+	}
+	res.cwd = cwd
 	res.codec = gocodec.New(&res.runtime, nil)
 	return res
 }
@@ -163,6 +173,15 @@ func (r *runner) readBuildInfo() {
 	_, err = io.Copy(h, selfF)
 	check(err, "failed to hash self: %v", err)
 	r.versionString = string(h.Sum(nil))
+}
+
+// relpath returns p relative to r.cwd, or p in the case of any error
+func (r *runner) relpath(p string) string {
+	rel, err := filepath.Rel(r.cwd, p)
+	if err != nil {
+		return p
+	}
+	return rel
 }
 
 func (r *runner) debugf(format string, args ...interface{}) {
