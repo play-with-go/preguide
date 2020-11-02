@@ -93,7 +93,7 @@ type chunker struct {
 	prevSeqStart position
 }
 
-func newChunker(b []byte, beg, end string) *chunker {
+func newChunker(b []byte, beg, end string, startLine int) *chunker {
 	if strings.Contains(beg, "\n") || strings.Contains(end, "\n") {
 		panic(fmt.Errorf("cannot have a begin or end sequence that contains newline"))
 	}
@@ -103,9 +103,9 @@ func newChunker(b []byte, beg, end string) *chunker {
 		endSeq:   []byte(end),
 	}
 	// 1-initialise line values
-	res.currPoint.line = 1
-	res.endPoint.line = 1
-	res.prevSeqStart.line = 1
+	res.currPoint.line = startLine
+	res.endPoint.line = startLine
+	res.prevSeqStart.line = startLine
 	return res
 }
 

@@ -34,12 +34,6 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: preguide.#Command & {
-	Source: """
-mkdir nooutput
-"""
-}
-
 Steps: step1: preguide.#Command & {
 	Source: """
 echo "Hello, world! I am a #Command"
@@ -83,12 +77,6 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step0: preguide.#Command & {
-	Source: """
-mkdir nooutput
-"""
-}
-
 Steps: step1: preguide.#Command & {
 	Source: """
 echo "Hello, world! I am a #Command"
@@ -122,7 +110,6 @@ $ touch blah
 $ false
 $ ls
 blah
-nooutput
 ```
 {:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
 
@@ -144,14 +131,12 @@ Terminals: [
     }
   }
 ]
-$ mkdir nooutput
 $ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
 blah
-nooutput
 $ cat <<EOD > /scripts/somewhere.sh
 #!/usr/bin/env bash
 
@@ -172,7 +157,6 @@ $ touch blah
 $ false
 $ ls
 blah
-nooutput
 ```
 {:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
 
@@ -194,14 +178,12 @@ Terminals: [
     }
   }
 ]
-$ mkdir nooutput
 $ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
 blah
-nooutput
 $ cat <<EOD > /scripts/somewhere.sh
 #!/usr/bin/env bash
 

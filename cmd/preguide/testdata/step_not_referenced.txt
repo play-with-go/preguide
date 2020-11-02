@@ -1,0 +1,73 @@
+# Test that we get the expected error message when we fail to
+# reference a step
+
+! preguide gen -out _output
+! stdout .+
+cmp stderr myguide/stderr.txt
+
+-- myguide/en.markdown --
+---
+title: A test with all directives
+---
+
+# Step 0
+
+<!--step: step0 -->
+
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: preguide.#Command & {
+	Source: """
+mkdir nooutput
+"""
+}
+
+Steps: step1: preguide.#Command & {
+	Source: """
+echo "Hello, world! I am a #Command"
+touch blah
+! false
+ls
+"""
+}
+
+Steps: step2: preguide.#CommandFile & {
+	Path: "step2_commandFile.sh"
+}
+
+Steps: step3: preguide.#Upload & {
+	Target:   "/scripts/somewhere.sh"
+	Source: """
+#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"
+"""
+}
+
+Steps: step4: preguide.#UploadFile & {
+	Language: "bash" // Vary the language for fun
+	Target:   "/scripts/step2.sh"
+	Path:     "step2_uploadFile.sh"
+}
+-- myguide/step2_commandFile.sh --
+echo "Hello, world! I am a #CommandFile"
+-- myguide/step2_uploadFile.sh --
+echo "Hello, world! I am an #UploadFile"
+-- myguide/stderr.txt --
+myguide/en.markdown:9: step "step1" was not referenced
+	myguide/en.markdown:9: step "step2" was not referenced
+	myguide/en.markdown:9: step "step3" was not referenced
+	myguide/en.markdown:9: step "step4" was not referenced
+

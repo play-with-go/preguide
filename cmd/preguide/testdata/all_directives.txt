@@ -25,6 +25,11 @@ cmp myguide/en_log.txt myguide/en_log.txt.golden
 ---
 title: A test with all directives
 ---
+
+# Step 0
+
+<!--step: step0 -->
+
 # Step 1
 
 <!--step: step1 -->
@@ -97,6 +102,14 @@ guide: myguide
 lang: en
 title: A test with all directives
 ---
+
+# Step 0
+
+```.term1
+$ mkdir nooutput
+```
+{:data-command-src="bWtkaXIgbm9vdXRwdXQK"}
+
 # Step 1
 
 ```.term1

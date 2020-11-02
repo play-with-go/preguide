@@ -69,6 +69,7 @@ type step interface {
 	render(types.Mode, io.Writer)
 	renderLog(types.Mode, io.Writer)
 	setOutputFrom(step)
+	mustBeReferenced() bool
 }
 
 type commandStep struct {
@@ -241,6 +242,10 @@ func (c *commandStep) setOutputFrom(s step) {
 	}
 }
 
+func (c *commandStep) mustBeReferenced() bool {
+	return c.RandomReplace == nil
+}
+
 func trimTrailingNewline(s string) string {
 	trimmed := s
 	if len(trimmed) > 0 && trimmed[len(trimmed)-1] == '\n' {
@@ -349,6 +354,10 @@ func (u *uploadStep) render(mode types.Mode, w io.Writer) {
 		fmt.Fprintf(w, "%s", renderedSource)
 		fmt.Fprintf(w, "```n")
 	}
+}
+
+func (u *uploadStep) mustBeReferenced() bool {
+	return true
 }
 
 func base64Encode(s string) string {

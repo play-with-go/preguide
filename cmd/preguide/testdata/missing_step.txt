@@ -2,9 +2,15 @@
 
 ! preguide gen -out _output
 ! stdout .+
-stderr 'myguide/en.md:3:1: unknown step "step1" referened'
+stderr '^myguide/en.md:9:1: unknown step "step1" referened$'
 
 -- myguide/en.md --
+---
+layout: rubbish
+title:  "A bad title"
+categories: beginner
+---
+
 # Step 1
 
 <!--step: step1 -->

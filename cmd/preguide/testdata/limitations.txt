@@ -5,13 +5,13 @@
 # hence non-English langage guide should fail
 ! preguide gen -out demarkdown/_output -dir demarkdown
 ! stdout .+
-stderr 'error processing '$WORK'/demarkdown/guide: we only support English language guides for now'
+stderr 'demarkdown/guide: we only support English language guides for now'
 
 # Only support English language guides for now (hence a single language)
 # hence non-English steps should fail
 ! preguide gen -out desteps/_output -dir desteps
 ! stdout .+
-stderr 'error processing '$WORK'/desteps/guide: failed to validate CUE package: Steps.step1: field `de` not allowed:'
+stderr 'desteps/guide: failed to validate CUE package: Steps.step1: field `de` not allowed:'
 
 # Only support a single terminal
 ! preguide gen -out multipleterminals/_output -dir multipleterminals

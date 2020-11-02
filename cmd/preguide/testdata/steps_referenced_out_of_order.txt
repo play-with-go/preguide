@@ -1,0 +1,66 @@
+# Test that we get the expected error message when we reference
+# steps in the wrong order
+
+! preguide gen -out _output
+! stdout .+
+cmpenv stderr myguide/stderr.txt
+
+-- myguide/en.markdown --
+---
+title: A test with all directives
+---
+
+<!--step: step0 -->
+<!--step: step2 -->
+<!--step: step1 -->
+<!--step: step3 -->
+
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: preguide.#Command & {
+	Source: """
+mkdir nooutput
+"""
+}
+
+Steps: step1: preguide.#Command & {
+	Source: """
+echo "Hello, world! I am a #Command"
+touch blah
+! false
+ls
+"""
+}
+
+Steps: step2: preguide.#CommandFile & {
+	Path: "step2_commandFile.sh"
+}
+
+Steps: step3: preguide.#Upload & {
+	Target:   "/scripts/somewhere.sh"
+	Source: """
+#!/usr/bin/env bash
+
+echo "Hello, world! I am an #Upload"
+"""
+}
+
+-- myguide/step2_commandFile.sh --
+echo "Hello, world! I am a #CommandFile"
+-- myguide/step2_uploadFile.sh --
+echo "Hello, world! I am an #UploadFile"
+-- myguide/stderr.txt --
+myguide/en.markdown:6:1: saw step directive step2; expected to see step1
+
