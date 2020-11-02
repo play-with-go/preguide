@@ -10,7 +10,7 @@ cmp myguide/en_log.txt myguide/en_log.txt.golden
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
-stderr '^cache hit for '$WORK'/myguide: will not re-run script$'
+stderr '^myguide: cache hit: will not re-run script$'
 cmp _output/myguide.markdown myguide/en.markdown.golden
 cmp myguide/en_log.txt myguide/en_log.txt.golden
 
