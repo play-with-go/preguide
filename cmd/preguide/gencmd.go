@@ -1478,6 +1478,7 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 			panic(fmt.Errorf("can't yet handle steps of type %T", step))
 		}
 	}
+	pdc.debugf("bash script:\n%v", sb.String())
 	g.bashScript = sb.String()
 	g.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
