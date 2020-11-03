@@ -117,7 +117,7 @@ blah
 
 <pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
 
-echo "Hello, world! I am an #Upload"</code></pre>
+echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <script>let pageGuide="myguide1"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide1/en_log.txt.golden --
 Terminals: [
@@ -164,7 +164,7 @@ blah
 
 <pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
 
-echo "Hello, world! I am an #Upload"</code></pre>
+echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <script>let pageGuide="myguide2"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide2/en_log.txt.golden --
 Terminals: [

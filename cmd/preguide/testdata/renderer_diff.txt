@@ -56,6 +56,7 @@ Steps: step2: preguide.#Upload & {
 This is some markdown `with code`
 Another line
 A third line
+<nil>
 
 """
 }
@@ -77,9 +78,10 @@ Hello
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCg==" data-upload-term=".term1"><code class="language-md">This is some markdown `with code`
 </code></pre>
 
-<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmUK" data-upload-term=".term1"><code class="language-md">This is some markdown `with code`
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmUKPG5pbD4K" data-upload-term=".term1"><code class="language-md">This is some markdown `with code`
 <b style="color:darkblue">Another line</b>
 <b style="color:darkblue">A third line</b>
+<b style="color:darkblue">&lt;nil&gt;</b>
 </code></pre>
 
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
@@ -108,6 +110,7 @@ Steps: {
 			This is some markdown `with code`
 			Another line
 			A third line
+			<nil>
 
 			"""
 		Renderer: {
@@ -153,5 +156,5 @@ Steps: {
 		Name:            "step0"
 	}
 }
-Hash: "e83870e6a40c0d17db288a9f7b405a090b7ba8e57f4c579d64802268bfa90f45"
+Hash: "2841b23ef64f8d9cf3fd9f71066788dd07bcb2bec56c6c609070023b33c455fd"
 Delims: ["{{", "}}"]
