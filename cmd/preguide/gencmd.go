@@ -1435,6 +1435,8 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image())
 	pf("#!/usr/bin/env bash\n")
+	pf("export TERM=dumb\n")
+	pf("export NO_COLOR=true\n")
 	for _, step := range g.steps {
 		switch step := step.(type) {
 		case *commandStep:
