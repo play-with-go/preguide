@@ -30,12 +30,11 @@ import "github.com/play-with-go/preguide"
 	Env: [...string]
 }
 
-_#stepCommon: {
+_stepCommon: {
 	StepType: #StepType
 	Name:     string
 	Order:    int
 	Terminal: string
-	...
 }
 
 // TODO: keep this in sync with the Go definitions
@@ -55,10 +54,13 @@ _#stepCommon: {
 	Variables: [...string]
 }
 
-#Step: (#CommandStep | #UploadStep) & _#stepCommon
+#Step: (#CommandStep | #UploadStep) & _stepCommon
 
 #CommandStep: {
-	_#stepCommon
+	_stepCommon
+	DoNotTrim:       bool
+	RandomReplace:   string
+	InformationOnly: bool
 	Stmts: [...#Stmt]
 }
 
@@ -70,7 +72,7 @@ _#stepCommon: {
 }
 
 #UploadStep: {
-	_#stepCommon
+	_stepCommon
 	Renderer: preguide.#Renderer
 	Language: string
 	Source:   string
@@ -145,6 +147,12 @@ import (
 		// should not be trimmed (the default is to trim the trailing \n
 		// from the output) prior to sanitising the output from the script
 		DoNotTrim: *false | bool
+
+		// InformationOnly indicates that this field is not required for the
+		// successful execution of the script. Generally this is used by
+		// command blocks which are outputting random data for post-execution
+		// sanitisation, e.g. git commits.
+		InformationOnly: *false | bool
 	}
 
 	_#uploadCommon: {

@@ -177,11 +177,12 @@ Steps: {
 			CmdStr:   "echo -n \"Hello\""
 			Negated:  false
 		}]
-		Order:     0
-		DoNotTrim: false
-		Terminal:  "term1"
-		StepType:  1
-		Name:      "step0"
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
 	}
 }
 Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
@@ -228,11 +229,12 @@ Steps: {
 			CmdStr:   "echo -n \"Hello\""
 			Negated:  false
 		}]
-		Order:     0
-		DoNotTrim: false
-		Terminal:  "term1"
-		StepType:  1
-		Name:      "step0"
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
 	}
 }
 Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"

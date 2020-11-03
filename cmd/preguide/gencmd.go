@@ -627,7 +627,8 @@ func (pdc *processDirContext) loadAndValidateSteps() {
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
-	pdc.sanityCheck(gp)
+	err := pdc.sanityCheck(gp, "github.com/play-with-go/preguide", "preguide.#Guide")
+	check(err, "sanity check failed: %v", err)
 
 	gi, err := pdc.runtime.Build(gp)
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
@@ -800,14 +801,14 @@ func (pdc *processDirContext) checkPresteps() {
 //
 // TODO: remove once we have a fix for cuelang.org/issue/567. Because whilst
 // that issue remains the Unify check below is useless
-func (pdc *processDirContext) sanityCheck(bi *build.Instance) {
+func (pdc *processDirContext) sanityCheck(bi *build.Instance, pkg, def string) error {
 	tf, err := ioutil.TempFile("", "preguide_valid_check*.cue")
 	check(err, "failed to create temp file for valid check: %v", err)
 	defer os.Remove(tf.Name())
 	fmt.Fprintf(tf, "package x\n")
-	fmt.Fprintf(tf, "import  \"github.com/play-with-go/preguide\"\n")
+	fmt.Fprintf(tf, "import  \"%v\"\n", pkg)
 	fmt.Fprintf(tf, "import  x \"%v\"\n", bi.ImportPath)
-	fmt.Fprintf(tf, "x & preguide.#Guide\n")
+	fmt.Fprintf(tf, "x & %v\n", def)
 	err = tf.Close()
 	check(err, "failed to write %v: %v", tf.Name(), err)
 
@@ -816,16 +817,23 @@ func (pdc *processDirContext) sanityCheck(bi *build.Instance) {
 	}
 	bps := load.Instances([]string{tf.Name()}, conf)
 	gp := bps[0]
-	check(gp.Err, "failed to re-load CUE package: %v", gp.Err)
+	if gp.Err != nil {
+		return fmt.Errorf("failed to re-load CUE package: %v", gp.Err)
+	}
 	errStr := func(e error) string {
 		var errbuf bytes.Buffer
 		errors.Print(&errbuf, err, nil)
 		return errbuf.String()
 	}
 	i, err := pdc.runtime.Build(gp)
-	check(err, "failed to load CUE package: %s", errStr(err))
+	if err != nil {
+		return fmt.Errorf("failed to load CUE package: %s", errStr(err))
+	}
 	err = i.Value().Err()
-	check(err, "failed to validate CUE package: %v", errStr(err))
+	if err != nil {
+		return fmt.Errorf("failed to validate CUE package: %v", errStr(err))
+	}
+	return nil
 }
 
 // loadOutput attempts to load the out CUE package. Each successful run of
@@ -861,9 +869,12 @@ func (pdc *processDirContext) loadOutput(full bool) {
 		Dir: g.dir,
 	}
 	toLoad := outPkg
-	if !full {
-		toLoad = path.Join(toLoad, genOutCueFile)
-	}
+	// TODO: when we drop the sanityCheck call below (i.e. when we fix
+	// cuelang.org/issue/567) then we can re-enable this code that restricts
+	// the initial load to the generated part of the package
+	// if !full {
+	// 	toLoad = path.Join(toLoad, genOutCueFile)
+	// }
 	toLoad = "./" + toLoad
 	bps := load.Instances([]string{toLoad}, conf)
 	gp := bps[0]
@@ -871,6 +882,13 @@ func (pdc *processDirContext) loadOutput(full bool) {
 		return
 	}
 	check(gp.Err, "failed to load out CUE package from %v: %v", toLoad, gp.Err)
+
+	// Sanity check whilst we wait for cuelang.org/issue/567.
+	err := pdc.sanityCheck(gp, "github.com/play-with-go/preguide/out", "out.#GuideOutput")
+	if !full && err != nil {
+		return
+	}
+	check(err, "sanity check failed: %v", err)
 
 	gi, err := pdc.runtime.Build(gp)
 	if !full && err != nil {

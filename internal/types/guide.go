@@ -123,12 +123,13 @@ type Step interface {
 }
 
 type Command struct {
-	StepTypeVal   StepType `json:"StepType"`
-	Terminal      string
-	Name          string
-	RandomReplace *string
-	DoNotTrim     bool
-	Source        string
+	StepTypeVal     StepType `json:"StepType"`
+	Terminal        string
+	Name            string
+	RandomReplace   *string
+	DoNotTrim       bool
+	InformationOnly bool
+	Source          string
 }
 
 var _ Step = (*Command)(nil)
@@ -138,12 +139,13 @@ func (c *Command) StepType() StepType {
 }
 
 type CommandFile struct {
-	StepTypeVal   StepType `json:"StepType"`
-	Terminal      string
-	Name          string
-	RandomReplace *string
-	DoNotTrim     bool
-	Path          string
+	StepTypeVal     StepType `json:"StepType"`
+	Terminal        string
+	Name            string
+	RandomReplace   *string
+	DoNotTrim       bool
+	InformationOnly bool
+	Path            string
 }
 
 var _ Step = (*CommandFile)(nil)

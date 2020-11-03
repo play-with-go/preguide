@@ -145,11 +145,12 @@ Steps: {
 			CmdStr:   "echo -n \"Hello\""
 			Negated:  false
 		}]
-		Order:     0
-		DoNotTrim: false
-		Terminal:  "term1"
-		StepType:  1
-		Name:      "step0"
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
 	}
 }
 Hash: "e83870e6a40c0d17db288a9f7b405a090b7ba8e57f4c579d64802268bfa90f45"
