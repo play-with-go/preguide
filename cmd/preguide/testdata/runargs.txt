@@ -59,11 +59,12 @@ Steps: {
 			CmdStr:   "echo -n \"The answer is: $GREETING\""
 			Negated:  false
 		}]
-		Order:     0
-		DoNotTrim: false
-		Terminal:  "term1"
-		StepType:  1
-		Name:      "step1"
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step1"
 	}
 }
 Hash: "95aec4e582ce6f9172c4e74915228af4bb57485147114ccfee8d24163d516952"

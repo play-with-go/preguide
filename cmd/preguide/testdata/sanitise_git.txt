@@ -68,6 +68,7 @@ Steps: step3: preguide.#Command & {
 }
 
 Steps: step4: preguide.#Command & {
+	InformationOnly: true
 	RandomReplace: "abcdefg123456789"
 	Source: """
 		git rev-parse HEAD
@@ -75,6 +76,7 @@ Steps: step4: preguide.#Command & {
 }
 
 Steps: first_random_commit: preguide.#Command & {
+	InformationOnly: true
 	RandomReplace: "abcd123"
 	Source: """
 		git rev-parse --short HEAD
@@ -96,6 +98,7 @@ Steps: step6: preguide.#Command & {
 }
 
 Steps: second_random_commit: preguide.#Command & {
+	InformationOnly: true
 	RandomReplace: "abcd123"
 	Source: """
 		git rev-parse --short HEAD
@@ -103,6 +106,7 @@ Steps: second_random_commit: preguide.#Command & {
 }
 
 Steps: step7: preguide.#Command & {
+	InformationOnly: true
 	RandomReplace: "abcdefg123456789"
 	Source: """
 		git rev-parse HEAD

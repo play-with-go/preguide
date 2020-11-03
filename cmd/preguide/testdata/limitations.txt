@@ -11,7 +11,7 @@ stderr 'demarkdown/guide: we only support English language guides for now'
 # hence non-English steps should fail
 ! preguide gen -out desteps/_output -dir desteps
 ! stdout .+
-stderr 'desteps/guide: failed to validate CUE package: Steps.step1: field `de` not allowed:'
+stderr 'desteps/guide: sanity check failed: failed to validate CUE package: Steps.step1: field `de` not allowed:'
 
 # Only support a single terminal
 ! preguide gen -out multipleterminals/_output -dir multipleterminals
