@@ -134,11 +134,11 @@ Hello, world! I am a #CommandFile
 
 <pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
 
-echo "Hello, world! I am an #Upload"</code></pre>
+echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 
 # Step 4
 
-<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash">echo "Hello, world! I am an #UploadFile"
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash">echo &#34;Hello, world! I am an #UploadFile&#34;
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/en_log.txt.golden --

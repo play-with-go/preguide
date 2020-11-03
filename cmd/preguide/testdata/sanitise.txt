@@ -73,10 +73,10 @@ title: A test with output that should be sanitised
 
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG8uZ28=:cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQ==" data-upload-term=".term1"><code class="language-go">package main
 
-import "fmt"
+import &#34;fmt&#34;
 
 func main() {
-	fmt.Println("Hello, world!")
+	fmt.Println(&#34;Hello, world!&#34;)
 }</code></pre>
 
 # Create test file
@@ -84,12 +84,12 @@ func main() {
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG9fdGVzdC5nbw==:cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKCSJ0ZXN0aW5nIgopCgpmdW5jIFRlc3RIZWxsbyh0ICp0ZXN0aW5nLlQpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQuLi4gZnJvbSB0aGUgdGVzdCEiKQp9" data-upload-term=".term1"><code class="language-go">package main
 
 import (
-	"fmt"
-	"testing"
+	&#34;fmt&#34;
+	&#34;testing&#34;
 )
 
 func TestHello(t *testing.T) {
-	fmt.Println("Hello, world... from the test!")
+	fmt.Println(&#34;Hello, world... from the test!&#34;)
 }</code></pre>
 
 # Test

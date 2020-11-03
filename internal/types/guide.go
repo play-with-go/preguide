@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"text/template"
 
 	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/textutil"
@@ -252,6 +253,10 @@ func (r *RendererFull) rendererType() RendererType {
 }
 
 func (r *RendererFull) Render(m Mode, v string) (string, error) {
+	switch m {
+	case ModeJekyll:
+		v = template.HTMLEscapeString(v)
+	}
 	return v, nil
 }
 
@@ -288,7 +293,12 @@ func (r *RendererLineRanges) Render(m Mode, v string) (string, error) {
 			res = append(res, r.Ellipsis)
 		}
 	}
-	return strings.Join(res, "\n"), nil
+	result := strings.Join(res, "\n")
+	switch m {
+	case ModeJekyll:
+		result = template.HTMLEscapeString(result)
+	}
+	return result, nil
 }
 
 type RendererDiff struct {
@@ -315,7 +325,12 @@ func (r *RendererDiff) Render(m Mode, v string) (string, error) {
 	after := func(w io.Writer, s string) {
 		fmt.Fprintf(w, "<b style=\"color:darkblue\">%s</b>\n", s)
 	}
-	res := textutil.Diff(r.Pre, v, same, before, after)
+	pre, v := r.Pre, v
+	switch m {
+	case ModeJekyll:
+		pre, v = template.HTMLEscapeString(pre), template.HTMLEscapeString(v)
+	}
+	res := textutil.Diff(pre, v, same, before, after)
 	return res, nil
 }
 
