@@ -1248,6 +1248,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 
 	cmd := pdc.newDockerRunner(g.Networks,
 		"--rm",
+		"-t", // otherwise stderr is not line buffered
 		"-v", fmt.Sprintf("%v:/scripts", scriptsDir),
 	)
 	cmd.Args = append(cmd.Args, termRunArgs...)
@@ -1267,9 +1268,11 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	slurp := func(end []byte) (res string) {
 		endI := bytes.Index(walk, end)
 		if endI == -1 {
-			raise("failed to find %q before end of output:\n%s\nOutput was: %s\n", end, walk, out)
+			raise("failed to find %q before end of output:\n%q\nOutput was: %q\n", end, walk, out)
 		}
 		res, walk = string(walk[:endI]), walk[endI+len(end):]
+		// Because we are running in -t mode, replace all \r\n with \n
+		res = strings.ReplaceAll(res, "\r\n", "\n")
 		return res
 	}
 
@@ -1296,13 +1299,13 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 			}
 			for _, stmt := range step.Stmts {
 				// TODO: tidy this up
-				fence := []byte(stmt.outputFence + "\n")
+				fence := []byte(stmt.outputFence + "\r\n")
 				slurp(fence) // Ignore everything before the fence
 				stmt.Output = slurp(fence)
 				if doRandomReplace {
 					stepOutput.WriteString(stmt.Output)
 				}
-				exitCodeStr := slurp([]byte("\n"))
+				exitCodeStr := slurp([]byte("\r\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)
 				check(err, "failed to parse exit code from %q at position %v in output: %v\n%s", exitCodeStr, len(out)-len(walk)-len(exitCodeStr)-1, err, out)
 			}

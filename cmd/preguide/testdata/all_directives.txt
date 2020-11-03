@@ -118,8 +118,7 @@ Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
-blah
-nooutput
+blah  nooutput
 ```
 {:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
 
@@ -160,8 +159,7 @@ Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
-blah
-nooutput
+blah  nooutput
 $ echo "Hello, world! I am a #CommandFile"
 Hello, world! I am a #CommandFile
 $ cat <<EOD > /scripts/somewhere.sh
