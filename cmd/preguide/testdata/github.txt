@@ -4,7 +4,7 @@
 preguide gen -mode github myguide
 ! stdout .+
 ! stderr .+
-cmp myguide/myguide.markdown myguide/en.markdown.golden
+cmp myguide/myguide_go115_en.markdown myguide/go115_en.markdown.golden
 
 -- myguide/en.markdown --
 ---
@@ -50,7 +50,7 @@ echo "Hello, world! I am an #Upload"
 """
 }
 
--- myguide/en.markdown.golden --
+-- myguide/go115_en.markdown.golden --
 # Step 1
 
 ```

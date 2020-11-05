@@ -4,6 +4,16 @@
 ! stdout .+
 stderr '^myguide/en.md:9:1: unknown step "step1" referened$'
 
+-- myguide/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
 -- myguide/en.md --
 ---
 layout: rubbish

@@ -21,15 +21,15 @@ envsubst conf.cue
 preguide gen -config conf.cue -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 # Run with -raw
 preguide gen -raw -config conf.cue -out _output
 cmp stdout myguide/raw.cue.golden
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.raw.golden
-cmp myguide/en_log.txt myguide/en_log.txt.raw.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.raw.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.raw.golden
 
 -- prestep.txt --
 {
@@ -69,7 +69,7 @@ Terminals: term1: preguide.#Terminal & {
 Steps: step1: preguide.#Command & {Source: """
 echo -n "The answer is: {{.GREETING}}!"
 """}
--- myguide/en.markdown.golden --
+-- myguide/go115_en.markdown.golden --
 ---
 guide: myguide
 lang: en
@@ -83,7 +83,7 @@ The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en_log.txt.golden --
+-- myguide/go115_en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
@@ -150,7 +150,7 @@ Steps: {
 }
 Hash: "e419ad5f6c5f02aa9c78658abb5b4ef480ebc0783a23072224c9c38d8c4ff830"
 Delims: ["{{", "}}"]
--- myguide/en.markdown.raw.golden --
+-- myguide/go115_en.markdown.raw.golden --
 ---
 guide: myguide
 lang: en
@@ -164,7 +164,7 @@ The answer is: Hello, world!!
 ```
 {:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en_log.txt.raw.golden --
+-- myguide/go115_en_log.txt.raw.golden --
 Terminals: [
   {
     "Name": "term1",

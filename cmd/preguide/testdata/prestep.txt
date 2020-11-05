@@ -19,24 +19,24 @@ cp version.1 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 cmp gen_guide_structures.cue gen_guide_structures.cue.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^myguide: cache hit: will not re-run script$'
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 # Verify that changing the prestep causes a new output
 cp version.2 version
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.other.golden
-cmp myguide/en_log.txt myguide/en_log.txt.other.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.other.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.other.golden
 
 # Now do docker tests by running the server in a docker container.
 # Because this involves running ourselves, we need to set the
@@ -47,8 +47,8 @@ cp conf.docker.cue conf.cue
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 -- go.mod --
 module mod.com/init
@@ -110,7 +110,7 @@ Terminals: term1: preguide.#Terminal & {
 Steps: step1: preguide.#Command & {Source: """
 echo "The answer is: {{.GREETING}}!"
 """}
--- myguide/en.markdown.golden --
+-- myguide/go115_en.markdown.golden --
 ---
 guide: myguide
 lang: en
@@ -124,7 +124,7 @@ The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en_log.txt.golden --
+-- myguide/go115_en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
@@ -151,7 +151,7 @@ Presteps: [
 ]
 $ echo "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
--- myguide/en.markdown.other.golden --
+-- myguide/go115_en.markdown.other.golden --
 ---
 guide: myguide
 lang: en
@@ -165,7 +165,7 @@ The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 ```
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en_log.txt.other.golden --
+-- myguide/go115_en_log.txt.other.golden --
 Terminals: [
   {
     "Name": "term1",

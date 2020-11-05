@@ -4,22 +4,23 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+exec find -type f
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 # Check that we get a cache hit
 preguide -debug gen -out _output
 ! stdout .+
 stderr '^myguide: cache hit: will not re-run script$'
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 # Verify that when skipping the cache we get the same output
 preguide gen -skipcache -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 -- myguide/en.markdown --
 ---
@@ -96,7 +97,7 @@ Steps: step4: preguide.#UploadFile & {
 echo "Hello, world! I am a #CommandFile"
 -- myguide/step2_uploadFile.sh --
 echo "Hello, world! I am an #UploadFile"
--- myguide/en.markdown.golden --
+-- myguide/go115_en.markdown.golden --
 ---
 guide: myguide
 lang: en
@@ -141,7 +142,7 @@ echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash">echo &#34;Hello, world! I am an #UploadFile&#34;
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en_log.txt.golden --
+-- myguide/go115_en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

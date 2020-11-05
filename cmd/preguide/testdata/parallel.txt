@@ -4,10 +4,10 @@
 preguide gen -parallel 2 -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide1.markdown myguide1/en.markdown.golden
-cmp _output/myguide2.markdown myguide2/en.markdown.golden
-cmp myguide1/en_log.txt myguide1/en_log.txt.golden
-cmp myguide2/en_log.txt myguide2/en_log.txt.golden
+cmp _output/myguide1_go115_en.markdown myguide1/go115_en.markdown.golden
+cmp _output/myguide2_go115_en.markdown myguide2/go115_en.markdown.golden
+cmp myguide1/go115_en_log.txt myguide1/go115_en_log.txt.golden
+cmp myguide2/go115_en_log.txt myguide2/go115_en_log.txt.golden
 
 -- myguide1/en.markdown --
 ---
@@ -95,7 +95,7 @@ echo "Hello, world! I am an #Upload"
 """
 }
 
--- myguide1/en.markdown.golden --
+-- myguide1/go115_en.markdown.golden --
 ---
 guide: myguide1
 lang: en
@@ -119,7 +119,7 @@ blah
 
 echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <script>let pageGuide="myguide1"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide1/en_log.txt.golden --
+-- myguide1/go115_en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
@@ -142,7 +142,7 @@ $ cat <<EOD > /scripts/somewhere.sh
 
 echo "Hello, world! I am an #Upload"
 EOD
--- myguide2/en.markdown.golden --
+-- myguide2/go115_en.markdown.golden --
 ---
 guide: myguide2
 lang: en
@@ -166,7 +166,7 @@ blah
 
 echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <script>let pageGuide="myguide2"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide2/en_log.txt.golden --
+-- myguide2/go115_en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",
