@@ -3,7 +3,7 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.md myguide/en.md.golden
+cmp _output/myguide_en.md myguide/en.md.golden
 
 -- myguide/en.md --
 ---

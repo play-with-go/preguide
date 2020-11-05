@@ -474,19 +474,22 @@ func (pdc *processDirContext) processDirPre(mustContainGuide bool) (err error) {
 		varMap: make(map[string]string),
 	}
 
-	pdc.loadMarkdownFiles(g)
-	if len(g.mdFiles) == 0 {
-		if !mustContainGuide {
-			return
-		}
-		raise("%v did not contain a guide", pdc)
+	// A guide is established by the presence of a CUE package in a directory.
+	// If there are no markdown files for that guide, that is an error. If
+	// they are for a different language, that is an error. Etc
+
+	if !pdc.loadAndValidateSteps(g, mustContainGuide) {
+		return nil // No guide in this directory
 	}
 
-	// Now we know there is a guide in that directory (because it is markdown
-	// files that basically establish a guide)
-	pdc.guide = g
+	// At this point we were able to load a CUE package, so this directory
+	// must contain valid markdown files
 
-	pdc.loadAndValidateSteps()
+	if !pdc.loadMarkdownFiles(g) {
+		return nil // No guide in this directory
+	}
+
+	pdc.guide = g
 
 	// If we are running in -raw mode, then we want to skip checking
 	// the out CUE package in g.dir. If we are not running in -raw
@@ -573,9 +576,11 @@ func (pdc *processDirContext) runSteps() {
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
 // files are named according to isMarkdown, e.g en.markdown.
-func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
+func (pdc *processDirContext) loadMarkdownFiles(g *guide) bool {
 	es, err := ioutil.ReadDir(g.dir)
 	check(err, "failed to read directory %v: %v", g.dir, err)
+
+	var errs errList
 
 	for _, e := range es {
 		if !e.Mode().IsRegular() {
@@ -594,8 +599,26 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 		if !types.ValidLangCode(lang) {
 			continue
 		}
+		// Is this a valid language with respect to the guide?
+		guideLang := false
+		for _, l := range g.langs {
+			if l == lang {
+				guideLang = true
+				break
+			}
+		}
+		if !guideLang {
+			errs.Addf("%v: %q is not a valid language for this guide", pdc.relpath(path), lang)
+		}
 		g.mdFiles = append(g.mdFiles, g.buildMarkdownFile(path, types.LangCode(lang), ext))
 	}
+	if errs.Err() != nil {
+		panic(util.KnownErr{Err: errs.Err()})
+	}
+	if len(g.mdFiles) == 0 {
+		raise("failed to load markdown files")
+	}
+	return true
 }
 
 // loadAndValidateSteps loads the CUE package for a guide and ensures that
@@ -603,8 +626,7 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) {
 // Essentially this step involves loading CUE via the input types defined
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
-func (pdc *processDirContext) loadAndValidateSteps() {
-	g := pdc.guide
+func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bool) bool {
 	lock := &pdc.cueLock
 	lock.Lock()
 	unlock := func() {
@@ -620,9 +642,9 @@ func (pdc *processDirContext) loadAndValidateSteps() {
 	bps := load.Instances([]string{"."}, conf)
 	gp := bps[0]
 	if gp.Err != nil {
-		if _, ok := gp.Err.(*load.NoFilesError); ok {
+		if _, ok := gp.Err.(*load.NoFilesError); !mustContainGuide && ok {
 			// absorb this error - we have nothing to do
-			return
+			return false
 		}
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
@@ -777,6 +799,7 @@ func (pdc *processDirContext) loadAndValidateSteps() {
 		g.steps = append(g.steps, s)
 		s.setorder(i)
 	}
+	return true
 }
 
 func (pdc *processDirContext) checkPresteps() {

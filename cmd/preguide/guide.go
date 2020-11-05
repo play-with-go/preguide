@@ -83,6 +83,18 @@ func (g *guide) Image() string {
 	panic("should not be here")
 }
 
+// fileSuffix returns a filename suffix appropriate for guide g.
+// When we later come to add support for multiple languages and
+// scenarios, this signature and logic will need to change
+func (g *guide) fileSuffix() string {
+	lang := g.langs[0]
+	var scenario string
+	if len(g.steps) > 0 {
+		scenario = g.Scenarios[0].Name + "_"
+	}
+	return scenario + lang
+}
+
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376
 type guidePrestep struct {
 	Package   string
@@ -97,9 +109,11 @@ type guidePrestep struct {
 // to a guide.
 func (pdc *processDirContext) writeGuideOutput() {
 	g := pdc.guide
-	if len(g.mdFiles) != 1 || g.mdFiles[0].lang != "en" {
-		raise("we only support English language guides for now")
-	}
+
+	// TODO: multi language and scenario support. When we have multiple language
+	// support we will be running writeGuideOutput() in the context of a language (and
+	// scenario). For now we simply use the guide itself, knowing we will have exactly
+	// one language and one scenario if we steps, else we have zero scenarios
 
 	var err error
 
@@ -108,9 +122,8 @@ func (pdc *processDirContext) writeGuideOutput() {
 	check(err, "failed to os.MkdirAll %v: %v", postsDir, err)
 
 	for _, md := range g.mdFiles {
-		// TODO: multi-language support
 
-		outFilePath := filepath.Join(postsDir, fmt.Sprintf("%v%v", g.name, md.ext))
+		outFilePath := filepath.Join(postsDir, fmt.Sprintf("%v_%v%v", g.name, g.fileSuffix(), md.ext))
 		outFile, err := os.Create(outFilePath)
 		check(err, "failed to open %v for writing: %v", outFilePath, err)
 
@@ -232,19 +245,23 @@ func (pdc *processDirContext) writeGuideOutput() {
 // writeLog writes a
 func (pdc *processDirContext) writeLog() {
 	g := pdc.guide
-	for _, lang := range g.langs {
-		var buf bytes.Buffer
-		fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
-		if len(g.Presteps) > 0 {
-			fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
-		}
-		for _, step := range g.steps {
-			step.renderLog(pdc.fMode, &buf)
-		}
-		logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", lang))
-		err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
-		check(err, "failed to write log output to %v: %v", logFilePath, err)
+
+	// TODO: multi language and scenario support. When we have multiple language
+	// support we will be running writeLog() in the context of a language (and
+	// scenario). For now we simply use the guide itself, knowing we will have exactly
+	// one language and one scenario if we steps, else we have zero scenarios
+
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
+	if len(g.Presteps) > 0 {
+		fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
 	}
+	for _, step := range g.steps {
+		step.renderLog(pdc.fMode, &buf)
+	}
+	logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", g.fileSuffix()))
+	err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
+	check(err, "failed to write log output to %v: %v", logFilePath, err)
 }
 
 func mustJSONMarshalIndent(i interface{}) []byte {

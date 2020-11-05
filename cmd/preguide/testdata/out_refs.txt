@@ -3,7 +3,7 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.md myguide/en.md.golden
+cmp _output/myguide_go115_en.md myguide/go115_en.md.golden
 
 -- myguide/en.md --
 ---
@@ -56,7 +56,7 @@ Defs: {
 	echo_out:         Steps.step1.Stmts[0].Output
 	cmd_false:        Steps.step1.Stmts[2].CmdStr
 }
--- myguide/en.md.golden --
+-- myguide/go115_en.md.golden --
 ---
 guide: myguide
 lang: en

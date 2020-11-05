@@ -4,7 +4,7 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
 cmp myguide/out/gen_out.cue myguide/out/gen_out.cue.golden
 
 -- myguide/en.markdown --
@@ -61,7 +61,7 @@ A third line
 """
 }
 
--- myguide/en.markdown.golden --
+-- myguide/go115_en.markdown.golden --
 ---
 guide: myguide
 lang: en

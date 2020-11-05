@@ -4,8 +4,8 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.markdown myguide/en.markdown.golden
-cmp myguide/en_log.txt myguide/en_log.txt.golden
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 -- myguide/en.markdown --
 ---
@@ -63,7 +63,7 @@ Steps: step3: preguide.#Command & { Source: """
 go test
 """}
 
--- myguide/en.markdown.golden --
+-- myguide/go115_en.markdown.golden --
 ---
 guide: myguide
 lang: en
@@ -102,7 +102,7 @@ ok  	_/home/gopher	0.042s
 ```
 {:data-command-src="Z28gdGVzdAo="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
--- myguide/en_log.txt.golden --
+-- myguide/go115_en_log.txt.golden --
 Terminals: [
   {
     "Name": "term1",

@@ -5,7 +5,7 @@
 # hence non-English langage guide should fail
 ! preguide gen -out demarkdown/_output -dir demarkdown
 ! stdout .+
-stderr 'demarkdown/guide: we only support English language guides for now'
+stderr 'demarkdown/guide/de.markdown: "de" is not a valid language for this guide'
 
 # Only support English language guides for now (hence a single language)
 # hence non-English steps should fail
@@ -33,6 +33,16 @@ stderr 'input markdown and output from script blocks cannot contain \\{%'
 ---
 title: Test
 ---
+-- demarkdown/guide/guide.cue --
+package guide
+
+import "github.com/play-with-go/preguide"
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
 -- desteps/guide/en.markdown --
 ---
 title: Test

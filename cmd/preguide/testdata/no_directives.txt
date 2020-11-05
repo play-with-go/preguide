@@ -4,7 +4,11 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide.md myguide/en.md.golden
+exec find -type f
+cmp _output/myguide_en.md myguide/en.md.golden
+
+-- myguide/guide.cue --
+package guide
 
 -- myguide/en.md --
 ---

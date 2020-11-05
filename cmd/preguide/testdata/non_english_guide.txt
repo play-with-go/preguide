@@ -2,7 +2,10 @@
 # a markdown file
 
 ! preguide gen -out _output
-stderr 'we only support English language guides for now'
+stderr 'myguide/es.md: "es" is not a valid language for this guide'
+
+-- myguide/guide.cue --
+package guide
 
 -- myguide/en.md --
 ---
