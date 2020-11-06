@@ -376,6 +376,22 @@ func (gc *genCmd) run(args []string) error {
 			stmtPrinter:     syntax.NewPrinter(),
 			guideDir:        d,
 		}
+		pdcs = append(pdcs, pdc)
+	}
+
+	par := func(f func(pdc *processDirContext)) {
+		for i := range pdcs {
+			pdc := pdcs[i]
+			<-limiter
+			wg.Add(1)
+			go func() {
+				f(pdc)
+				wg.Done()
+				limiter <- struct{}{}
+			}()
+		}
+	}
+	par(func(pdc *processDirContext) {
 		err := pdc.processDirPre(gotArgs)
 		if err != nil {
 			switch err.(type) {
@@ -384,31 +400,27 @@ func (gc *genCmd) run(args []string) error {
 			default:
 				err = fmt.Errorf("%v: %v", pdc.relpath(pdc.guideDir), err)
 			}
-			errs = append(errs, err)
-		}
-		if pdc.guide != nil {
-			pdcs = append(pdcs, pdc)
-		}
-	}
-	raiseIfErrs()
-	for i := range pdcs {
-		pdc := pdcs[i]
-		<-limiter
-		wg.Add(1)
-		go func() {
-			err := pdc.processDirPost()
 			resLock.Lock()
-			if err != nil {
-				err = fmt.Errorf("%v: %v", pdc.relpath(pdc.guideDir), err)
-				errs = append(errs, err)
-			} else if len(pdc.guide.mdFiles) > 0 {
-				guides = append(guides, pdc.guide)
-			}
+			errs = append(errs, err)
 			resLock.Unlock()
-			wg.Done()
-			limiter <- struct{}{}
-		}()
-	}
+		}
+	})
+	wg.Wait()
+	raiseIfErrs()
+	par(func(pdc *processDirContext) {
+		if pdc.guide == nil {
+			return
+		}
+		err := pdc.processDirPost()
+		resLock.Lock()
+		if err != nil {
+			err = fmt.Errorf("%v: %v", pdc.relpath(pdc.guideDir), err)
+			errs = append(errs, err)
+		} else if len(pdc.guide.mdFiles) > 0 {
+			guides = append(guides, pdc.guide)
+		}
+		resLock.Unlock()
+	})
 	wg.Wait()
 	raiseIfErrs()
 	gc.guides = guides
@@ -627,14 +639,18 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) bool {
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
 func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bool) bool {
-	lock := &pdc.cueLock
-	lock.Lock()
+	var theLock *sync.Mutex
+	lock := func() {
+		pdc.cueLock.Lock()
+		theLock = &pdc.cueLock
+	}
 	unlock := func() {
-		if lock != nil {
-			lock.Unlock()
-			lock = nil
+		if theLock != nil {
+			theLock.Unlock()
+			theLock = nil
 		}
 	}
+	lock()
 	defer unlock()
 	conf := &load.Config{
 		Dir: g.dir,
@@ -649,7 +665,13 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
-	err := pdc.sanityCheck(gp, "github.com/play-with-go/preguide", "preguide.#Guide")
+	// Allow this section to be concurrent
+	unlock()
+	err := pdc.cueDef(gp)
+	check(err, "cue def check failed: %v", err)
+	lock()
+
+	err = pdc.sanityCheck(gp, "github.com/play-with-go/preguide", "preguide.#Guide")
 	check(err, "sanity check failed: %v", err)
 
 	gi, err := pdc.runtime.Build(gp)
@@ -815,6 +837,29 @@ func (pdc *processDirContext) checkPresteps() {
 	}
 }
 
+// cueDef performs a cue def check on the package instance bi. We perform
+// this check before sanityCheck because the error messages are better.
+//
+// TODO: remove once we have a fix for cuelang.org/issue/567. Because whilst
+// that issue remains the Unify check we have is useless.
+func (pdc *processDirContext) cueDef(bi *build.Instance) error {
+	rel, err := filepath.Rel(pdc.cwd, bi.Dir)
+	check(err, "failed to calculate %q relative to %q: %v", bi.Dir, pdc.cwd, err)
+	if rel[0] != '.' {
+		rel = fmt.Sprintf(".%v%v", string(os.PathSeparator), rel)
+	}
+	cmd := exec.Command(pdc.self, "cue", "def", rel)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		msg := bytes.TrimSpace(stderr.Bytes())
+		return fmt.Errorf("%s", msg)
+	}
+	return nil
+}
+
 // sanityCheck performs a fresh load of the instance bi. It does so assuming
 // that instance is an instance of github.com/play-with-go/preguide.#Guide.
 // The load creates a temp file that imports and unifies both. The load
@@ -823,7 +868,7 @@ func (pdc *processDirContext) checkPresteps() {
 // It is assumed we are holding the CUE lock when calling this method.
 //
 // TODO: remove once we have a fix for cuelang.org/issue/567. Because whilst
-// that issue remains the Unify check below is useless
+// that issue remains the Unify check we have is useless
 func (pdc *processDirContext) sanityCheck(bi *build.Instance, pkg, def string) error {
 	tf, err := ioutil.TempFile("", "preguide_valid_check*.cue")
 	check(err, "failed to create temp file for valid check: %v", err)
@@ -1633,12 +1678,8 @@ func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
 		dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
 		return
 	}
-	sself, err := os.Executable()
-	check(err, "failed to derive executable: %v", err)
-	self, err := filepath.EvalSymlinks(sself)
-	check(err, "failed to EvalSymlinks for %v: %v", sself, err)
 	dr.Args = append(dr.Args,
-		fmt.Sprintf("--volume=%s:/runbin/preguide", self),
+		fmt.Sprintf("--volume=%s:/runbin/preguide", gc.self),
 		imageBase,
 	)
 }

@@ -47,6 +47,7 @@ func main1() int {
 	r.initCmd = newInitCmd(r)
 	r.helpCmd = newHelpCmd(r)
 	r.dockerCmd = newDockerCmd(r)
+	r.cueCmd = newCueCmd(r)
 
 	err := r.mainerr()
 	if err == nil {
@@ -70,6 +71,7 @@ type runner struct {
 	initCmd   *initCmd
 	helpCmd   *helpCmd
 	dockerCmd *dockerCmd
+	cueCmd    *cueCmd
 
 	// runtime is the cue.Runtime used for all CUE operations
 	runtime cue.Runtime
@@ -100,6 +102,9 @@ type runner struct {
 	// cwd is the current working directory of the process, used when
 	// calcuating relative paths to files
 	cwd string
+
+	// self is the path to the current executable, as returned by os.Executable()
+	self string
 }
 
 func newRunner() *runner {
@@ -117,6 +122,11 @@ func newRunner() *runner {
 
 func (r *runner) mainerr() (err error) {
 	defer util.HandleKnown(&err)
+
+	self, err := os.Executable()
+	check(err, "failed to determine self: %v", err)
+	r.self, err = filepath.EvalSymlinks(self)
+	check(err, "failed to determine path to self from %q: %v", self, err)
 
 	r.readBuildInfo()
 
@@ -138,6 +148,8 @@ func (r *runner) mainerr() (err error) {
 		return r.dockerCmd.run(args[1:])
 	case "help":
 		return r.helpCmd.run(args[1:])
+	case "cue":
+		return r.cueCmd.run(args[1:])
 	default:
 		return r.rootCmd.usageErr("unknown command: " + cmd)
 	}
@@ -164,10 +176,8 @@ func (r *runner) readBuildInfo() {
 	}
 
 	// Use a sha256 sum of self
-	self, err := os.Executable()
-	check(err, "failed to derive self: %v", err)
 	h := sha256.New()
-	selfF, err := os.Open(self)
+	selfF, err := os.Open(r.self)
 	check(err, "failed to open self: %v", err)
 	defer selfF.Close()
 	_, err = io.Copy(h, selfF)
