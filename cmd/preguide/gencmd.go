@@ -639,19 +639,7 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) bool {
 // in github.com/play-with-go/preguide/internal/types, and results in g
 // being primed with steps, terminals etc that represent a guide.
 func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bool) bool {
-	var theLock *sync.Mutex
-	lock := func() {
-		pdc.cueLock.Lock()
-		theLock = &pdc.cueLock
-	}
-	unlock := func() {
-		if theLock != nil {
-			theLock.Unlock()
-			theLock = nil
-		}
-	}
-	lock()
-	defer unlock()
+	pdc.cueLock.Lock()
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -660,16 +648,17 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	if gp.Err != nil {
 		if _, ok := gp.Err.(*load.NoFilesError); !mustContainGuide && ok {
 			// absorb this error - we have nothing to do
+			pdc.cueLock.Unlock()
 			return false
 		}
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
 	// Allow this section to be concurrent
-	unlock()
+	pdc.cueLock.Unlock()
 	err := pdc.cueDef(gp)
 	check(err, "cue def check failed: %v", err)
-	lock()
+	pdc.cueLock.Lock()
 
 	err = pdc.sanityCheck(gp, "github.com/play-with-go/preguide", "preguide.#Guide")
 	check(err, "sanity check failed: %v", err)
@@ -744,7 +733,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 			pos:  structPos(gi.Lookup("Steps", stepName)),
 		})
 	}
-	unlock()
+	pdc.cueLock.Unlock()
 
 	// Create presteps - but we will check them later
 	for _, prestep := range intGuide.Presteps {
@@ -1000,6 +989,9 @@ func (pdc *processDirContext) loadOutput(full bool) {
 // directive. Out reference directives (e.g. <!-- outref: cmdoutput -->) are
 // checked later (once we are guaranteed the out CUE package exists).
 func (pdc *processDirContext) validateStepAndRefDirs() error {
+	pdc.cueLock.Lock()
+	defer pdc.cueLock.Unlock()
+
 	g := pdc.guide
 	// TODO: verify that we have identical sets of languages when we support
 	// multiple languages
