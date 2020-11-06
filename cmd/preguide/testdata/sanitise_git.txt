@@ -162,17 +162,6 @@ abcdefg123456789
 {:data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
 $ mkdir example
 $ cd example
 $ git init

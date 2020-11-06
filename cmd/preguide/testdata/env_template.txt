@@ -84,28 +84,6 @@ The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 {:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
-Presteps: [
-  {
-    "Package": "github.com/blah",
-    "Path": "/",
-    "Args": null,
-    "Version": "file",
-    "Variables": [
-      "GREETING"
-    ]
-  }
-]
 $ echo -n "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 -- myguide/raw.cue.golden --
@@ -165,27 +143,5 @@ The answer is: Hello, world!!
 {:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.raw.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
-Presteps: [
-  {
-    "Package": "github.com/blah",
-    "Path": "/",
-    "Args": null,
-    "Version": "file",
-    "Variables": [
-      "GREETING"
-    ]
-  }
-]
 $ echo -n "The answer is: {{.GREETING}}!"
 The answer is: Hello, world!!
