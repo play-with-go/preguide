@@ -1,0 +1,51 @@
+# Test that we get the expected error message when we have a superfluous
+# step directive
+
+! preguide gen -out _output
+! stdout .+
+cmp stderr myguide/stderr.txt
+
+-- myguide/en.markdown --
+---
+title: A test with all directives
+---
+
+# Step 0
+
+<!--step: step0 -->
+<!--step: step1 -->
+
+Try step 0 again?
+
+<!--step: step1 -->
+<!--step: step0 -->
+
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: preguide.#Command & {
+	Source: """
+echo hello
+"""
+}
+
+Steps: step1: preguide.#Command & {
+	Source: """
+echo world
+"""
+}
+-- myguide/stderr.txt --
+myguide/en.markdown:12:1: saw superfluous step directive step1
+	myguide/en.markdown:13:1: saw superfluous step directive step0
+
