@@ -120,17 +120,6 @@ blah
 echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <script>let pageGuide="myguide1"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide1/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
 $ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah
@@ -167,17 +156,6 @@ blah
 echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 <script>let pageGuide="myguide2"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide2/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
 $ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah

@@ -68,27 +68,5 @@ The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIK"}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
-Presteps: [
-  {
-    "Package": "github.com/blah",
-    "Path": "/",
-    "Args": null,
-    "Version": "file",
-    "Variables": [
-      "GREETING"
-    ]
-  }
-]
 $ echo "The answer is: {{{.GREETING}}}!"
 The answer is: {{{.GREETING}}}!

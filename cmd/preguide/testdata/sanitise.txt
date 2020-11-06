@@ -103,17 +103,6 @@ ok  	_/home/gopher	0.042s
 {:data-command-src="Z28gdGVzdAo="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
 $ cat <<EOD > /home/gopher/hello.go
 package main
 

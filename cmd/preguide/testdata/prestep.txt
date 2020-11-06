@@ -125,30 +125,6 @@ The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
-Presteps: [
-  {
-    "Package": "github.com/blah",
-    "Path": "/somewhere",
-    "Args": {
-      "Message": "Hello, world!"
-    },
-    "Version": "1",
-    "Variables": [
-      "GREETING"
-    ]
-  }
-]
 $ echo "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 -- myguide/go115_en.markdown.other.golden --
@@ -166,30 +142,6 @@ The answer is: {% raw %}{{.GREETING}}{% endraw %}!
 {:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.other.golden --
-Terminals: [
-  {
-    "Name": "term1",
-    "Description": "The main terminal",
-    "Scenarios": {
-      "go115": {
-        "Image": "this_will_never_be_used"
-      }
-    }
-  }
-]
-Presteps: [
-  {
-    "Package": "github.com/blah",
-    "Path": "/somewhere",
-    "Args": {
-      "Message": "Hello, world!"
-    },
-    "Version": "2",
-    "Variables": [
-      "GREETING"
-    ]
-  }
-]
 $ echo "The answer is: {{.GREETING}}!"
 The answer is: {{.GREETING}}!
 -- prestep_server.go --

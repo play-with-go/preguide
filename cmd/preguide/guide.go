@@ -252,10 +252,6 @@ func (pdc *processDirContext) writeLog() {
 	// one language and one scenario if we steps, else we have zero scenarios
 
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "Terminals: %s\n", mustJSONMarshalIndent(g.Terminals))
-	if len(g.Presteps) > 0 {
-		fmt.Fprintf(&buf, "Presteps: %s\n", mustJSONMarshalIndent(g.Presteps))
-	}
 	for _, step := range g.steps {
 		step.renderLog(pdc.fMode, &buf)
 	}
