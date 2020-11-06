@@ -1,0 +1,38 @@
+# Test that we get the a non-zero exit code and good error
+# message when we have a guide script that references a non-existent Def
+
+# Intial run
+! preguide gen -out _output
+! stdout .+
+cmp stderr myguide/stderr.txt
+
+-- myguide/en.markdown --
+---
+title: A title
+---
+<!--step: step1 -->
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Banana: 5
+
+Steps: step1: preguide.#Command & {
+	Source: """
+echo "\(Defs.hello)!"
+"""
+}
+-- myguide/stderr.txt --
+myguide: cue def check failed: Steps.step1.Source: reference "Defs" not found:
+    ./myguide/steps.cue:18:9
+
