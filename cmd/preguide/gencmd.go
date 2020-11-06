@@ -1023,9 +1023,11 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 	stepDirectives:
 		for _, stepDir := range stepDirectivesToCheck {
 			if len(stepsToCheck) == 0 {
-				// We will be covered by the check above that catches directives
-				// to steps that do not exist
-				break stepDirectives
+				// This can only happen when we have valid stepDirectives (i.e. they resolve
+				// to a step) that occur after the expected sequence of steps. i.e. these are superfluous
+				// step directives. Add errors for each one
+				errs.Addf("%v:%v: saw superfluous step directive %v", pdc.relpath(mdf.path), stepDir.Pos(), stepDir.Key())
+				continue stepDirectives
 			}
 			for {
 				s := stepsToCheck[0]
