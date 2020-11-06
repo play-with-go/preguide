@@ -15,7 +15,7 @@ smartcdAlias() {
 }
 
 githubExport() {
-	echo "::set-env name=$1::$(echo "$2" | sed ':a;N;$!ba;s/%/%25/g' |  sed ':a;N;$!ba;s/\r/%0D/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+	echo "$1=$(echo "$2" | sed ':a;N;$!ba;s/%/%25/g' |  sed ':a;N;$!ba;s/\r/%0D/g' | sed ':a;N;$!ba;s/\n/%0A/g')" >> $GITHUB_ENV
 }
 
 githubAlias() {
