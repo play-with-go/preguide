@@ -251,6 +251,7 @@ func (c *commandStep) setOutputFrom(s step) {
 	for i, s := range oc.Stmts {
 		c.Stmts[i].ExitCode = s.ExitCode
 		c.Stmts[i].Output = s.Output
+		c.Stmts[i].ComparisonOutput = s.ComparisonOutput
 	}
 }
 

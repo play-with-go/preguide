@@ -1456,10 +1456,10 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 		case *commandStep:
 			for _, stmt := range step.Stmts {
 				o := stmt.Output
-				cmpO := o
 				for _, san := range sanVals {
 					o = strings.ReplaceAll(o, san[0], san[1])
 				}
+				cmpO := o
 				// Now run sanitisers
 				if san := stmt.sanitiser; san != nil {
 					o = san.Output(nil, o)
