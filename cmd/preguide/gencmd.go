@@ -545,7 +545,8 @@ func (pdc *processDirContext) runSteps() {
 	}
 	pdc.buildBashFile(g)
 	out := g.outputGuide
-	if !*pdc.fSkipCache && out != nil && out.Hash == g.Hash {
+	cacheHit := out != nil && out.Hash == g.Hash
+	if !*pdc.fSkipCache && cacheHit {
 		// At this stage we know we have a cache hit. That means,
 		// the input steps are equivalent, in execution terms, to the
 		// steps in the output schema.
@@ -577,13 +578,37 @@ func (pdc *processDirContext) runSteps() {
 		return
 	}
 	pdc.runBashFile(g)
-	pdc.writeOutPackage(g)
+	// Write the out package if we did not have a cache hit, or the re-generated
+	// guide does not compare equal (post comparison output sanitisers)
+	if !cacheHit || !pdc.comparisonEqual(g, out) {
+		pdc.writeOutPackage(g)
+	}
 	if !*pdc.fRaw {
 		// This step can be made more efficient if we know there is not
 		// anything else in the out package other than the generated data
 		// written in the previous step
 		pdc.loadOutput(true)
 	}
+}
+
+func (pdc *processDirContext) comparisonEqual(regen, out *guide) bool {
+	// At this point we know we had the same input, i.e. a cache hit.
+	// So we can safely iterate each step and simply compare comparison
+	// output
+	for _, r := range regen.steps {
+		o := out.Steps[r.name()]
+		switch r := r.(type) {
+		case *commandStep:
+			o := o.(*commandStep)
+			for j, rs := range r.Stmts {
+				os := o.Stmts[j]
+				if rs.ComparisonOutput != os.ComparisonOutput {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
@@ -922,6 +947,8 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	pdc.cueLock.Lock()
 	defer pdc.cueLock.Unlock()
 
+	var err error
+
 	conf := &load.Config{
 		Dir: g.dir,
 	}
@@ -941,7 +968,7 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	check(gp.Err, "failed to load out CUE package from %v: %v", toLoad, gp.Err)
 
 	// Sanity check whilst we wait for cuelang.org/issue/567.
-	err := pdc.sanityCheck(gp, "github.com/play-with-go/preguide/out", "out.#GuideOutput")
+	err = pdc.sanityCheck(gp, "github.com/play-with-go/preguide/out", "out.#GuideOutput")
 	if !full && err != nil {
 		return
 	}
@@ -1429,14 +1456,17 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 		case *commandStep:
 			for _, stmt := range step.Stmts {
 				o := stmt.Output
+				cmpO := o
 				for _, san := range sanVals {
 					o = strings.ReplaceAll(o, san[0], san[1])
 				}
 				// Now run sanitisers
-				for _, s := range stmt.sanitisers {
-					o = s(nil, o)
+				if san := stmt.sanitiser; san != nil {
+					o = san.Output(nil, o)
+					cmpO = san.ComparisonOutput(nil, o)
 				}
 				stmt.Output = o
+				stmt.ComparisonOutput = cmpO
 			}
 		}
 	}

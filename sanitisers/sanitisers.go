@@ -11,7 +11,10 @@ import (
 )
 
 type StmtSanitiser func(*S, *syntax.Stmt) Sanitiser
-type Sanitiser func(envVars []string, output string) string
+type Sanitiser interface {
+	Output(envVars []string, output string) string
+	ComparisonOutput(envVars []string, output string) string
+}
 
 type S struct {
 	printer *syntax.Printer
