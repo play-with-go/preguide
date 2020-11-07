@@ -1,0 +1,103 @@
+# Test that we get the expected output when skipping the cache but with
+# output from go get in a different order
+#
+# Note that the actual Output in the golden file below is wrong. This is
+# deliberate, in order to test that the gen_out.cue file is _not_ written
+# if the comparison out compares as equal.
+
+cp myguide/out/gen_out.cue.golden myguide/out/gen_out.cue
+preguide -debug gen -skipcache -out _output
+! stdout .+
+cmp myguide/out/gen_out.cue myguide/out/gen_out.cue.golden
+
+-- myguide/en.markdown --
+---
+title: A test with all directives
+---
+
+# Step 0
+
+<!--step: step0 -->
+
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: preguide.#Command & {
+	Source: """
+go mod init mod.com
+go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360
+"""
+}
+
+-- myguide/out/gen_out.cue.golden --
+package out
+
+Terminals: [{
+	Description: "The main terminal"
+	Scenarios: {
+		go115: {
+			Image: "this_will_never_be_used"
+		}
+	}
+	Name: "term1"
+}]
+Scenarios: [{
+	Description: "Go 1.15"
+	Name:        "go115"
+}]
+Networks: []
+Env: []
+Steps: {
+	step0: {
+		Stmts: [{
+			ComparisonOutput: """
+				go: creating new go.mod: module mod.com
+
+				"""
+			Output: """
+				go: creating new go.mod: module mod.com
+
+				"""
+			ExitCode: 0
+			CmdStr:   "go mod init mod.com"
+			Negated:  false
+		}, {
+			ComparisonOutput: """
+
+				go: downloading golang.org/x/mod v0.3.0
+				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+				go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				"""
+			Output: """
+				go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: downloading golang.org/x/mod v0.3.0
+				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+
+				"""
+			ExitCode: 0
+			CmdStr:   "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
+			Negated:  false
+		}]
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
+	}
+}
+Hash: "8f5ce36fc6fd4718bc7410da4fa958290db1a37040ade5160857ba93b38f157c"
+Delims: ["{{", "}}"]

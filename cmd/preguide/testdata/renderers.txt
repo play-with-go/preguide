@@ -172,10 +172,11 @@ Steps: {
 	}
 	step0: {
 		Stmts: [{
-			Output:   "Hello"
-			ExitCode: 0
-			CmdStr:   "echo -n \"Hello\""
-			Negated:  false
+			ComparisonOutput: "Hello"
+			Output:           "Hello"
+			ExitCode:         0
+			CmdStr:           "echo -n \"Hello\""
+			Negated:          false
 		}]
 		Order:           0
 		InformationOnly: false
@@ -224,10 +225,11 @@ Steps: {
 	}
 	step0: {
 		Stmts: [{
-			Output:   "Hello"
-			ExitCode: 0
-			CmdStr:   "echo -n \"Hello\""
-			Negated:  false
+			ComparisonOutput: "Hello"
+			Output:           "Hello"
+			ExitCode:         0
+			CmdStr:           "echo -n \"Hello\""
+			Negated:          false
 		}]
 		Order:           0
 		InformationOnly: false

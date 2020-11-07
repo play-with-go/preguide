@@ -113,10 +113,11 @@ Env: []
 Steps: {
 	step1: {
 		Stmts: [{
-			Output:   "The answer is: Hello, world!!"
-			ExitCode: 0
-			CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
-			Negated:  false
+			ComparisonOutput: "The answer is: Hello, world!!"
+			Output:           "The answer is: Hello, world!!"
+			ExitCode:         0
+			CmdStr:           "echo -n \"The answer is: {{.GREETING}}!\""
+			Negated:          false
 		}]
 		Order:           0
 		InformationOnly: false

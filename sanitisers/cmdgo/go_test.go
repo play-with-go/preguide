@@ -11,7 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestSanitiseGoTest(t *testing.T) {
+func TestSanitiseOutputGoTest(t *testing.T) {
 	testCases := []struct {
 		in   string
 		want string
@@ -56,8 +56,36 @@ FAIL
 `,
 	}}
 	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("TestSanitiseGoTest_%v", i), func(t *testing.T) {
-			got := sanitiseGoTest(nil, tc.in)
+		t.Run(fmt.Sprintf("TestSanitiseOuputGoTest_%v", i), func(t *testing.T) {
+			var san sanitiseGoTest
+			got := san.Output(nil, tc.in)
+			if got != tc.want {
+				t.Fatalf("failed to get sanitised output: %v", cmp.Diff(got, tc.want))
+			}
+		})
+	}
+}
+
+func TestSanitiseComparisonOutputGoGet(t *testing.T) {
+	testCases := []struct {
+		in   string
+		want string
+	}{{
+		in: `go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
+go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360
+go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+go: downloading golang.org/x/mod v0.3.0
+`,
+		want: `
+go: downloading golang.org/x/mod v0.3.0
+go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
+go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360`,
+	}}
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("TestSanitiseComparisonOutputGoGet_%v", i), func(t *testing.T) {
+			var san sanitiseGoGet
+			got := san.ComparisonOutput(nil, tc.in)
 			if got != tc.want {
 				t.Fatalf("failed to get sanitised output: %v", cmp.Diff(got, tc.want))
 			}

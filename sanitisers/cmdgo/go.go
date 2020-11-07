@@ -7,6 +7,7 @@ package cmdgo
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/play-with-go/preguide/sanitisers"
@@ -25,16 +26,38 @@ var (
 
 func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
 	if s.StmtHasCallExprPrefix(stmt, "go", "test") {
-		return sanitiseGoTest
+		return sanitiseGoTest{}
+	}
+	if s.StmtHasCallExprPrefix(stmt, "go", "get") {
+		return sanitiseGoGet{}
 	}
 	return nil
 }
 
-func sanitiseGoTest(varNames []string, s string) string {
+type sanitiseGoTest struct{}
+
+func (sanitiseGoTest) Output(varNames []string, s string) string {
 	lines := strings.Split(s, "\n")
 	for i := range lines {
 		lines[i] = goTestPassRunHeading.ReplaceAllString(lines[i], fmt.Sprintf("${1}%v)", goTestMagicTime))
 		lines[i] = goTestFailSummary.ReplaceAllString(lines[i], "${1}"+goTestMagicTime)
 	}
+	return strings.Join(lines, "\n")
+}
+
+func (sanitiseGoTest) ComparisonOutput(varNames []string, s string) string {
+	return s
+}
+
+type sanitiseGoGet struct{}
+
+func (sanitiseGoGet) Output(varNames []string, s string) string {
+	return s
+}
+
+func (sanitiseGoGet) ComparisonOutput(varNames []string, s string) string {
+	// TODO: be more precise, and only do when "downloading" appears?
+	lines := strings.Split(s, "\n")
+	sort.Stable(sort.StringSlice(lines))
 	return strings.Join(lines, "\n")
 }

@@ -107,13 +107,14 @@ func (c *commandStep) setorder(i int) {
 }
 
 type commandStmt struct {
-	Negated     bool
-	CmdStr      string
-	ExitCode    int
-	Output      string
-	outputFence string
+	Negated          bool
+	CmdStr           string
+	ExitCode         int
+	Output           string
+	ComparisonOutput string
+	outputFence      string
 
-	sanitisers []sanitisers.Sanitiser
+	sanitiser sanitisers.Sanitiser
 }
 
 // commandStepFromCommand takes a string value that is a sequence of shell
@@ -174,16 +175,24 @@ func (pdc *processDirContext) commadStepFromSyntaxFile(res *commandStep, f *synt
 		if err := pdc.stmtPrinter.Print(&sb, stmt); err != nil {
 			return res, fmt.Errorf("failed to print statement %v: %v", i, err)
 		}
-		var sanitiers []sanitisers.Sanitiser
+		var sans []sanitisers.Sanitiser
 		for _, d := range stmtSanitisers {
 			if san := d(pdc.sanitiserHelper, stmt); san != nil {
-				sanitiers = append(sanitiers, san)
+				sans = append(sans, san)
 			}
 		}
+		var san sanitisers.Sanitiser
+		switch len(sans) {
+		case 0:
+		case 1:
+			san = sans[0]
+		default:
+			return nil, fmt.Errorf("statement %v resulted in multiple sanitisers", stmt.Cmd)
+		}
 		res.Stmts = append(res.Stmts, &commandStmt{
-			CmdStr:     sb.String(),
-			Negated:    negated,
-			sanitisers: sanitiers,
+			CmdStr:    sb.String(),
+			Negated:   negated,
+			sanitiser: san,
 		})
 	}
 	return res, nil
