@@ -547,40 +547,14 @@ func (pdc *processDirContext) runSteps() {
 	out := g.outputGuide
 	cacheHit := out != nil && out.Hash == g.Hash
 	if !*pdc.fSkipCache && cacheHit {
-		// At this stage we know we have a cache hit. That means,
-		// the input steps are equivalent, in execution terms, to the
-		// steps in the output schema.
-		//
-		// However. There are parameters on the input steps that do
-		// not affect execution. e.g. on an upload step, the Renderer
-		// used. Hence we need to copy across fields that represent
-		// execution output from the output steps onto the input steps.
-
 		pdc.debugf("cache hit: will not re-run script\n")
-
-		for sn, ostep := range out.Steps {
-			istep := g.Steps[sn]
-			istep.setOutputFrom(ostep)
-		}
-		// Populate the guide's varMap based on the variables that resulted
-		// when the script did run. Empty values are fine, we just need
-		// the environment variable names.
-		for _, ps := range out.Presteps {
-			for _, v := range ps.Variables {
-				g.varMap[v] = ""
-			}
-		}
-		// Now set the guide's Presteps to be that of the output because
-		// we known they are equivalent in terms of inputs at this stage
-		// i.e. what presteps will run, the order, the args etc, because
-		// this check happened as part of the hash check.
-		g.Presteps = out.Presteps
+		g.updateFromOutput(out)
 		return
 	}
 	pdc.runBashFile(g)
-	// Write the out package if we did not have a cache hit, or the re-generated
-	// guide does not compare equal (post comparison output sanitisers)
-	if !cacheHit || !pdc.comparisonEqual(g, out) {
+	if cacheHit && pdc.comparisonEqual(g, out) {
+		g.updateFromOutput(out)
+	} else {
 		pdc.writeOutPackage(g)
 	}
 	if !*pdc.fRaw {

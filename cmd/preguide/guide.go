@@ -95,6 +95,36 @@ func (g *guide) fileSuffix() string {
 	return scenario + lang
 }
 
+// updateFromOutput is used to update g from an ouput guide out.
+// This is typically used when we have a cache hit. That means,
+// the input steps are equivalent, in execution terms, to the
+// steps in the output schema.
+//
+// However. There are parameters on the input steps that do
+// not affect execution. e.g. on an upload step, the Renderer
+// used. Hence we need to copy across fields that represent
+// execution output from the output steps onto the input steps.
+func (g *guide) updateFromOutput(out *guide) {
+	for sn, ostep := range out.Steps {
+		istep := g.Steps[sn]
+		istep.setOutputFrom(ostep)
+	}
+	// Populate the guide's varMap based on the variables that resulted
+	// when the script did run. Empty values are fine, we just need
+	// the environment variable names.
+	for _, ps := range out.Presteps {
+		for _, v := range ps.Variables {
+			g.varMap[v] = ""
+		}
+	}
+	// Now set the guide's Presteps to be that of the output because
+	// we known they are equivalent in terms of inputs at this stage
+	// i.e. what presteps will run, the order, the args etc, because
+	// this check happened as part of the hash check.
+	g.Presteps = out.Presteps
+
+}
+
 // Embed *types.Prestep once we have a solution to cuelang.org/issue/376
 type guidePrestep struct {
 	Package   string
