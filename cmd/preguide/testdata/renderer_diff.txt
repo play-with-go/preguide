@@ -79,9 +79,9 @@ Hello
 </code></pre>
 
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmUKPG5pbD4K" data-upload-term=".term1"><code class="language-md">This is some markdown `with code`
-<b style="color:darkblue">Another line</b>
-<b style="color:darkblue">A third line</b>
-<b style="color:darkblue">&lt;nil&gt;</b>
+<b>Another line</b>
+<b>A third line</b>
+<b>&lt;nil&gt;</b>
 </code></pre>
 
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
