@@ -323,7 +323,7 @@ func (r *RendererDiff) Render(m Mode, v string) (string, error) {
 	}
 	before := func(w io.Writer, s string) {}
 	after := func(w io.Writer, s string) {
-		fmt.Fprintf(w, "<b style=\"color:darkblue\">%s</b>\n", s)
+		fmt.Fprintf(w, "<b>%s</b>\n", s)
 	}
 	pre, v := r.Pre, v
 	switch m {
