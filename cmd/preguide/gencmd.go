@@ -5,6 +5,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -1340,8 +1341,34 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 		cmd.Args = append(cmd.Args, "-e", v)
 	}
 	cmd.Args = append(cmd.Args, image, "/scripts/script.sh")
-	out, err = cmd.CombinedOutput()
-	check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
+
+	if os.Getenv("PREGUIDE_PROGRESS") == "true" {
+		var outbuf bytes.Buffer
+		pipeRead, pipeWrite := io.Pipe()
+		cmd.Stdout = io.MultiWriter(&outbuf, pipeWrite)
+		cmd.Stderr = cmd.Stdout
+		pipeDone := make(chan error)
+		go func() {
+			s := bufio.NewScanner(pipeRead)
+			for s.Scan() {
+				fmt.Printf("%v: %v\n", pdc.relpath(g.dir), s.Text())
+			}
+			if err := s.Err(); err != nil && err != io.EOF {
+				pipeDone <- err
+			}
+			close(pipeDone)
+		}()
+		err = cmd.Run()
+		check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
+		err = pipeWrite.Close()
+		check(err, "failed to close write pipe for [%v]: %v", strings.Join(cmd.Args, " "), cmd)
+		err = <-pipeDone
+		check(err, "failed to write output from [%v]: %v", strings.Join(cmd.Args, " "), err)
+		out = outbuf.Bytes()
+	} else {
+		out, err = cmd.CombinedOutput()
+		check(err, "failed to run [%v]: %v\n%s", strings.Join(cmd.Args, " "), err, out)
+	}
 
 	pdc.debugf("script output:\n%s", out)
 
