@@ -374,7 +374,7 @@ func (gc *genCmd) run(args []string) error {
 		pdc := &processDirContext{
 			genCmd:          gc,
 			sanitiserHelper: sanitisers.NewS(),
-			stmtPrinter:     syntax.NewPrinter(),
+			stmtPrinter:     syntax.NewPrinter(syntax.SingleLine(true)),
 			guideDir:        d,
 		}
 		pdcs = append(pdcs, pdc)

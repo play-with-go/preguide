@@ -22,7 +22,7 @@ type S struct {
 
 func NewS() *S {
 	return &S{
-		printer: syntax.NewPrinter(),
+		printer: syntax.NewPrinter(syntax.SingleLine(true)),
 	}
 }
 
