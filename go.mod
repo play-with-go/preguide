@@ -15,5 +15,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.2.7
 	honnef.co/go/tools v0.0.1-2020.1.4
-	mvdan.cc/sh/v3 v3.2.1-0.20201105115647-644898f19775
+	mvdan.cc/sh/v3 v3.2.1-0.20201112215727-d1534f74152d
 )

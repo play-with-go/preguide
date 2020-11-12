@@ -72,6 +72,7 @@ echo "Hello, world! I am a #Command"
 touch blah
 ! false
 ls
+(cd $(mktemp -d); echo hello)
 """
 }
 
@@ -120,8 +121,10 @@ $ touch blah
 $ false
 $ ls
 blah  nooutput
+$ (cd $(mktemp -d); echo hello)
+hello
 ```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
+{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMKKGNkICQobWt0ZW1wIC1kKTsgZWNobyBoZWxsbykK"}
 
 # Step 2
 
@@ -150,6 +153,8 @@ $ touch blah
 $ false
 $ ls
 blah  nooutput
+$ (cd $(mktemp -d); echo hello)
+hello
 $ echo "Hello, world! I am a #CommandFile"
 Hello, world! I am a #CommandFile
 $ cat <<EOD > /scripts/somewhere.sh
