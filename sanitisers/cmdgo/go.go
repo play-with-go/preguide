@@ -17,11 +17,15 @@ import (
 const (
 	goTestTestTime  = `\d+(\.\d+)?s`
 	goTestMagicTime = `0.042s`
+
+	goGetModVCSPathMagic = "0123456789abcdef"
 )
 
 var (
 	goTestPassRunHeading = regexp.MustCompile(`^( *--- (PASS|FAIL): .+\()` + goTestTestTime + `\)$`)
 	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `$`)
+
+	goGetModVCSPath = regexp.MustCompile(`(pkg/mod/cache/vcs/)[0-9a-f]+`)
 )
 
 func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
@@ -52,6 +56,10 @@ func (sanitiseGoTest) ComparisonOutput(varNames []string, s string) string {
 type sanitiseGoGet struct{}
 
 func (sanitiseGoGet) Output(varNames []string, s string) string {
+	// If we ever see something that looks like it's from the module vcs cache
+	// sanitise that to something standard.. because there is no command that
+	// can be run to list that path
+	s = goGetModVCSPath.ReplaceAllString(s, fmt.Sprintf("${1}%v", goGetModVCSPathMagic))
 	return s
 }
 
