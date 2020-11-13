@@ -1556,7 +1556,7 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 	// We write the docker image to the hash, because if the user want to ensure
 	// reproducibility they should specify the full digest.
 	hf("image: %v\n", g.Image())
-	pf("#!/usr/bin/env bash\n")
+	pf("#!/usr/bin/env -S bash -l\n")
 	pf("export TERM=dumb\n")
 	pf("export NO_COLOR=true\n")
 	for _, step := range g.steps {
