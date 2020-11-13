@@ -26,6 +26,8 @@ var (
 	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `$`)
 
 	goGetModVCSPath = regexp.MustCompile(`(pkg/mod/cache/vcs/)[0-9a-f]+`)
+
+	goEnvGoGCCFlags = regexp.MustCompile(`(^GOGCCFLAGS=.*-fdebug-prefix-map=)[^ ]*(.*$)`)
 )
 
 func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
@@ -35,6 +37,9 @@ func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser
 	// TODO: need to work out how to generalise the hack for subshell go get
 	if s.StmtHasCallExprPrefix(stmt, "go", "get") || s.StmtHasStringPrefix(stmt, "(cd $(mktemp -d); GO111MODULE=on go get") {
 		return sanitiseGoGet{}
+	}
+	if s.StmtHasCallExprPrefix(stmt, "go", "env") {
+		return sanitiseGoEnv{}
 	}
 	return nil
 }
@@ -69,4 +74,19 @@ func (sanitiseGoGet) ComparisonOutput(varNames []string, s string) string {
 	lines := strings.Split(s, "\n")
 	sort.Stable(sort.StringSlice(lines))
 	return strings.Join(lines, "\n")
+}
+
+type sanitiseGoEnv struct{}
+
+func (sanitiseGoEnv) Output(varNames []string, s string) string {
+	// Deal with the fact that go env is not stable when it comes to GOGCCFLAGS=
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		lines[i] = goEnvGoGCCFlags.ReplaceAllString(l, "${1}/tmp/go-build${2}")
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (sanitiseGoEnv) ComparisonOutput(varNames []string, s string) string {
+	return s
 }
