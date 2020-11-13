@@ -32,7 +32,8 @@ func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser
 	if s.StmtHasCallExprPrefix(stmt, "go", "test") {
 		return sanitiseGoTest{}
 	}
-	if s.StmtHasCallExprPrefix(stmt, "go", "get") {
+	// TODO: need to work out how to generalise the hack for subshell go get
+	if s.StmtHasCallExprPrefix(stmt, "go", "get") || s.StmtHasStringPrefix(stmt, "(cd $(mktemp -d); GO111MODULE=on go get") {
 		return sanitiseGoGet{}
 	}
 	return nil
