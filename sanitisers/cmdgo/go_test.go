@@ -6,10 +6,12 @@ package cmdgo
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/play-with-go/preguide/sanitisers"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func TestSanitiseOutputGoTest(t *testing.T) {
@@ -114,5 +116,21 @@ go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-202011052
 				t.Fatalf("failed to get sanitised output: %v", cmp.Diff(got, tc.want))
 			}
 		})
+	}
+}
+
+func TestCmdGoStmtSanitiser(t *testing.T) {
+	// Deliberately make the input multiline
+	input := "(\n cd $(mktemp -d);\nGO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck@v0.0.1-2020.1.6)"
+	r := strings.NewReader(input)
+	f, err := syntax.NewParser().Parse(r, "")
+	if err != nil {
+		t.Fatalf("failed to parse control input: %v", err)
+	}
+	stmt := f.Stmts[0]
+	s := sanitisers.NewS()
+	var want sanitiseGoGet
+	if got := CmdGoStmtSanitiser(s, stmt); want != got {
+		t.Fatalf("CmdGoStmtSanitiser(%q) == %T; wanted %T", input, got, want)
 	}
 }

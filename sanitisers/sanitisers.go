@@ -43,3 +43,9 @@ func (sm *S) StmtHasCallExprPrefix(stmt *syntax.Stmt, words ...string) bool {
 	}
 	return true
 }
+
+func (sm *S) StmtHasStringPrefix(stmt *syntax.Stmt, prefix string) bool {
+	var sb strings.Builder
+	sm.printer.Print(&sb, stmt)
+	return strings.HasPrefix(sb.String(), prefix)
+}
