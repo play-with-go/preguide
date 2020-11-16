@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"text/template/parse"
 	"time"
 
 	"cuelang.org/go/cue"
@@ -34,7 +35,6 @@ import (
 	"cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
-	"cuelang.org/go/cue/parser"
 	"cuelang.org/go/cue/token"
 	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
@@ -43,7 +43,6 @@ import (
 	"github.com/play-with-go/preguide/internal/types"
 	"github.com/play-with-go/preguide/internal/util"
 	"github.com/play-with-go/preguide/sanitisers"
-	"golang.org/x/net/html"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -622,7 +621,7 @@ func (pdc *processDirContext) loadMarkdownFiles(g *guide) bool {
 		if !guideLang {
 			errs.Addf("%v: %q is not a valid language for this guide", pdc.relpath(path), lang)
 		}
-		g.mdFiles = append(g.mdFiles, g.buildMarkdownFile(path, types.LangCode(lang), ext))
+		g.mdFiles = append(g.mdFiles, pdc.buildMarkdownFile(g, path, types.LangCode(lang), ext))
 	}
 	if errs.Err() != nil {
 		panic(util.KnownErr{Err: errs.Err()})
@@ -1021,31 +1020,28 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 		for _, d := range mdf.directives {
 			switch d := d.(type) {
 			case *stepDirective:
-				_, found := g.Steps[d.key]
+				_, found := g.Steps[d.name]
 				if !found {
-					errs.Addf("%v:%v: unknown step %q referened", pdc.relpath(mdf.path), d.Pos(), d.key)
+					errs.Addf("%v:%v: unknown step %q referened", pdc.relpath(mdf.path), d.Pos(), d.name)
 				}
 				stepDirectivesToCheck = append(stepDirectivesToCheck, d)
 			case *refDirective:
 				if g.instance == nil {
 					// This should never really happen so raise as an error
-					raise("found a ref directive %v but no CUE instance?", d.key)
+					raise("found a ref directive %v but no CUE instance?", d.String())
 				}
-				key := "Defs." + d.key
-				expr, err := parser.ParseExpr("dummy", key)
-				if err != nil {
-					errs.Addf("%v:%v: failed to parse CUE expression {%v}: %v", pdc.relpath(mdf.path), d.Pos(), key, err)
-					continue
-				}
-				v := g.instance.Eval(expr)
+				sels := []cue.Selector{cue.Str("Defs")}
+				sels = append(sels, d.path.Selectors()...)
+				path := cue.MakePath(sels...)
+				v := g.instance.Value().LookupPath(path)
 				if err := v.Err(); err != nil {
-					errs.Addf("%v:%v: failed to evaluate {%v}: %v", pdc.relpath(mdf.path), d.Pos(), key, err)
+					errs.Addf("%v:%v: failed to evaluate {%v}: %v", pdc.relpath(mdf.path), d.Pos(), d.String(), err)
 					continue
 				}
 				switch v.Kind() {
 				case cue.StringKind:
 				default:
-					errs.Addf("%v:%v: value resulting from {%v} is of unsupported kind %v", pdc.relpath(mdf.path), d.Pos(), key, v.Kind())
+					errs.Addf("%v:%v: value resulting from {%v} is of unsupported kind %v", pdc.relpath(mdf.path), d.Pos(), d.String(), v.Kind())
 					continue
 				}
 				d.val = v
@@ -1077,7 +1073,7 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 				// This can only happen when we have valid stepDirectives (i.e. they resolve
 				// to a step) that occur after the expected sequence of steps. i.e. these are superfluous
 				// step directives. Add errors for each one
-				errs.Addf("%v:%v: saw superfluous step directive %v", pdc.relpath(mdf.path), stepDir.Pos(), stepDir.Key())
+				errs.Addf("%v:%v: saw superfluous step directive %v", pdc.relpath(mdf.path), stepDir.Pos(), stepDir.name)
 				continue stepDirectives
 			}
 			for {
@@ -1085,14 +1081,14 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 				stepsToCheck = stepsToCheck[1:]
 				// Regardless of whether we need to reference this step or not,
 				// if we do, move on to the next directive
-				if s.name() == stepDir.Key() {
+				if s.name() == stepDir.name {
 					continue stepDirectives
 				}
 				// We know the directive name and step name do not match. If
 				// we must reference this step, then that is an error.
 				if s.mustBeReferenced() {
 					badOrder = true
-					errs.Addf("%v:%v: saw step directive %v; expected to see %v", pdc.relpath(mdf.path), stepDir.Pos(), stepDir.Key(), s.name())
+					errs.Addf("%v:%v: saw step directive %v; expected to see %v", pdc.relpath(mdf.path), stepDir.Pos(), stepDir.name, s.name())
 					// This is a fairly terminal error... because the order of everything
 					// that follows is likely to be off as a result
 					break stepDirectives
@@ -1138,10 +1134,10 @@ func (l errList) Error() string {
 		return "nil"
 	}
 	var buf bytes.Buffer
-	prefix := ""
+	var prefix string
 	for _, e := range l {
 		fmt.Fprintf(&buf, "%v%v", prefix, e)
-		prefix = "\n\t"
+		prefix = "\n"
 	}
 	return buf.String()
 }
@@ -1160,19 +1156,19 @@ func (pdc *processDirContext) validateOutRefsDirs() {
 			case *refDirective:
 			case *outrefDirective:
 				if g.outinstance == nil {
-					raise("found an outref directive %v but no out CUE instance?", d.key)
+					raise("found an outref directive %v but no out CUE instance?", d.String())
 				}
-				key := "Defs." + d.key
-				expr, err := parser.ParseExpr("dummy", key)
-				check(err, "failed to parse CUE expression from %q: %v", key, err)
-				v := g.outinstance.Eval(expr)
+				sels := []cue.Selector{cue.Str("Defs")}
+				sels = append(sels, d.path.Selectors()...)
+				path := cue.MakePath(sels...)
+				v := g.outinstance.Value().LookupPath(path)
 				if err := v.Err(); err != nil {
-					raise("failed to evaluate %v: %v", key, err)
+					raise("failed to evaluate %v: %v", d.String(), err)
 				}
 				switch v.Kind() {
 				case cue.StringKind:
 				default:
-					raise("value at %v is of unsupported kind %v", key, v.Kind())
+					raise("value at %v is of unsupported kind %v", d.String(), v.Kind())
 				}
 				d.val = v
 				// we don't validate this at this point
@@ -1731,23 +1727,17 @@ type mdFile struct {
 }
 
 type directive interface {
-	Key() string
 	Pos() position
 	End() position
+	String() string
 }
 
 type baseDirective struct {
-	key string
-
 	// pos is the position of the start of the directive
 	pos position
 
 	// end is the position of the end of the directive
 	end position
-}
-
-func (b *baseDirective) Key() string {
-	return b.key
 }
 
 func (b *baseDirective) Pos() position {
@@ -1759,30 +1749,45 @@ func (b *baseDirective) End() position {
 }
 
 type stepDirective struct {
-	baseDirective
+	*baseDirective
+	name string
+}
+
+func (s stepDirective) String() string {
+	return s.name
 }
 
 type refDirective struct {
-	baseDirective
-	val cue.Value
+	*baseDirective
+	path cue.Path
+	val  cue.Value
+}
+
+func (r refDirective) String() string {
+	return r.path.String()
 }
 
 type outrefDirective struct {
-	baseDirective
-	val cue.Value
+	*baseDirective
+	path cue.Path
+	val  cue.Value
+}
+
+func (o outrefDirective) String() string {
+	return o.path.String()
 }
 
 const (
-	stepDirectivePrefix       = "step:"
-	refDirectivePrefix        = "ref:"
-	outrefDirectivePrefix     = "outref:"
+	stepDirectiveName         = "step"
+	refDirectiveName          = "ref"
+	outrefDirectiveName       = "outref"
 	dockerImageFrontMatterKey = "image"
 	guideFrontMatterKey       = "guide"
 	langFrontMatterKey        = "lang"
 	scnearioFrontMatterKey    = "scenario"
 )
 
-func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) mdFile {
+func (pdc *processDirContext) buildMarkdownFile(g *guide, path string, lang types.LangCode, ext string) mdFile {
 	source, err := ioutil.ReadFile(path)
 	check(err, "failed to read %v: %v", path, err)
 
@@ -1795,11 +1800,6 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 		// This appears to be a bug with the pageparser package
 		content = source
 	}
-	// Again, rather a gross way of establishing the the line offset of the
-	// start of the content
-	startLine := 1
-	contentStart := bytes.Index(source, content)
-	startLine += bytes.Count(source[:contentStart], []byte("\n")) // Safe because we know content is a substring
 
 	// TODO: support all front-matter formats... and no front matter
 
@@ -1820,49 +1820,144 @@ func (g *guide) buildMarkdownFile(path string, lang types.LangCode, ext string) 
 		content:     content,
 		frontMatter: front.FrontMatter,
 		frontFormat: string(front.FrontMatterFormat),
-		// dockerImage: image,
 	}
-	ch := newChunker(content, "<!--", "-->", startLine)
-	for {
-		ok, err := ch.next()
-		if err != nil {
-			raise("got an error parsing markdown body: %v", err)
+	// Parse the directives accordign to the following constraints:
+	//
+	// 1. There can be no directives in the header section
+	// 2. The only valid directives are {{{.ENV}}}, {{{ref "ENV"}}}, {{{step stepDirectiveName}}},
+	// hence we will only ever have a list of nodes to walk.
+
+	funcs := map[string]interface{}{
+		outrefDirectiveName: true,
+		refDirectiveName:    true,
+		stepDirectiveName:   true,
+	}
+	contentStart := bytes.Index(source, content)
+	parseTrees, err := parse.Parse("guide", string(content), g.Delims[0], g.Delims[1], funcs)
+	check(err, "failed to parse markdown body: %v", err)
+	tree := parseTrees["guide"]
+	line := 1 + bytes.Count(source[:contentStart], []byte("\n")) // Safe because we know content is a substring
+	lastOffset := 0
+	var nl = []byte("\n")
+	offsetToPosition := func(offset int) position {
+		line += bytes.Count(content[lastOffset:offset], nl)
+		col := offset
+		if lastnl := bytes.LastIndex(content[:offset], nl); lastnl != -1 {
+			col -= lastnl
 		}
-		if !ok {
-			break
+		lastOffset = offset
+		return position{
+			col:    col,
+			line:   line,
+			offset: offset,
 		}
-		pos := ch.pos()
-		end := ch.end()
-		match := content[pos.offset:end.offset]
-		htmldoc, err := html.Parse(bytes.NewReader(match))
-		check(err, "failed to parse HTML comment %q: %v", match, err)
-		if htmldoc.FirstChild.Type != html.CommentNode {
+	}
+	nodeToPosition := func(n parse.Node) position {
+		// Calculate the offset, remembering that we need to work
+		// backwards to the start of the directive
+		offset := int(n.Position())
+		switch n.(type) {
+		case *parse.ActionNode:
+			offset = bytes.LastIndex(content[:offset], []byte(g.Delims[0]))
+		}
+		return offsetToPosition(offset)
+	}
+	var lastEnd *position
+	var errs errList
+	for _, n := range tree.Root.Nodes {
+		start := nodeToPosition(n)
+		if lastEnd != nil {
+			*lastEnd = start
+			lastEnd = nil
+		}
+		switch n.(type) {
+		case *parse.TextNode:
+			continue
+		case *parse.ActionNode:
+		default:
+			errs.Addf("%v:%v: expected to see action node; saw %T", pdc.relpath(path), start, n)
 			continue
 		}
-		commentStr := htmldoc.FirstChild.Data
-		switch {
-		case strings.HasPrefix(commentStr, stepDirectivePrefix):
-			step := &stepDirective{baseDirective: baseDirective{
-				key: strings.TrimSpace(strings.TrimPrefix(commentStr, stepDirectivePrefix)),
-				pos: pos,
-				end: end,
-			}}
-			res.directives = append(res.directives, step)
-		case strings.HasPrefix(commentStr, refDirectivePrefix):
-			ref := &refDirective{baseDirective: baseDirective{
-				key: strings.TrimSpace(strings.TrimPrefix(commentStr, refDirectivePrefix)),
-				pos: pos,
-				end: end,
-			}}
-			res.directives = append(res.directives, ref)
-		case strings.HasPrefix(commentStr, outrefDirectivePrefix):
-			outref := &outrefDirective{baseDirective: baseDirective{
-				key: strings.TrimSpace(strings.TrimPrefix(commentStr, outrefDirectivePrefix)),
-				pos: pos,
-				end: end,
-			}}
-			res.directives = append(res.directives, outref)
+		action := n.(*parse.ActionNode)
+		if numCmds := len(action.Pipe.Cmds); numCmds != 1 {
+			errs.Addf("%v:%v: expected to see a single command; saw %v", pdc.relpath(path), start, numCmds)
+			continue
 		}
+		cmd := action.Pipe.Cmds[0]
+		// At this point we can either have
+		// .ENV
+		// ref "ENV"
+		// step stepDirectiveName
+		var bd baseDirective
+		lastEnd = &bd.end
+		switch first := cmd.Args[0].(type) {
+		case *parse.FieldNode:
+			var sels []cue.Selector
+			for _, f := range first.Ident {
+				sels = append(sels, cue.Str(f))
+			}
+			path := cue.MakePath(sels...)
+			bd.pos = start
+			res.directives = append(res.directives, &refDirective{
+				baseDirective: &bd,
+				path:          path,
+			})
+		case *parse.IdentifierNode:
+			rem := cmd.Args[1:]
+			switch first.Ident {
+			case refDirectiveName, outrefDirectiveName:
+				var sels []cue.Selector
+				for _, a := range rem {
+					sn, ok := a.(*parse.StringNode)
+					if !ok {
+						errs.Addf("%v:%v: %v expected string arg; saw %T", pdc.relpath(path), start, first.Ident, a)
+						continue
+					}
+					sels = append(sels, cue.Str(sn.Text))
+				}
+				path := cue.MakePath(sels...)
+				bd.pos = start
+				switch first.Ident {
+				case refDirectiveName:
+					res.directives = append(res.directives, &refDirective{
+						baseDirective: &bd,
+						path:          path,
+					})
+				case outrefDirectiveName:
+					res.directives = append(res.directives, &outrefDirective{
+						baseDirective: &bd,
+						path:          path,
+					})
+				}
+			case stepDirectiveName:
+				if len(rem) != 1 {
+					errs.Addf("%v:%v: step takes a single string argument; saw %v argument(s)", pdc.relpath(path), start, len(rem))
+					continue
+				}
+				strArg, ok := rem[0].(*parse.StringNode)
+				if !ok {
+					errs.Addf("%v:%v: expected string argument; saw %T", pdc.relpath(path), start, rem[0])
+					continue
+				}
+				bd.pos = start
+				res.directives = append(res.directives, &stepDirective{
+					baseDirective: &bd,
+					name:          strArg.Text,
+				})
+			default:
+				errs.Addf("%v:%v: unknown function %q", pdc.relpath(path), start, first.Ident)
+				continue
+			}
+		default:
+			errs.Addf("%v:%v: unexpected node %T", pdc.relpath(path), start, n)
+			continue
+		}
+	}
+	if lastEnd != nil {
+		*lastEnd = offsetToPosition(len(content))
+	}
+	if errs.Err() != nil {
+		panic(util.KnownErr{Err: errs.Err()})
 	}
 	return res
 }

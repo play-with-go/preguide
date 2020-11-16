@@ -30,9 +30,9 @@ title: A test with all directives
 ---
 # Step 1
 
-<!--step: step0 -->
+{{ step "step0" }}
 
-<!--step: step1 -->
+{{ step "step1" }}
 
 -- myguide/steps.cue --
 package steps

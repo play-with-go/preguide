@@ -184,7 +184,7 @@ func (pdc *processDirContext) writeGuideOutput() {
 				buf.Write(md.content[pos:d.Pos().offset])
 				switch d := d.(type) {
 				case *stepDirective:
-					g.Steps[d.Key()].render(pdc.fMode, &buf)
+					g.Steps[d.name].render(pdc.fMode, &buf)
 				case *refDirective:
 					switch d.val.Kind() {
 					case cue.StringKind:

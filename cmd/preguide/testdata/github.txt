@@ -12,11 +12,11 @@ title: A test with all directives
 ---
 # Step 1
 
-<!--step: step1 -->
+{{ step "step1" }}
 
 # Step 2
 
-<!--step: step2 -->
+{{ step "step2" }}
 -- myguide/steps.cue --
 package steps
 

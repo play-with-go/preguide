@@ -12,13 +12,13 @@ title: A test with all directives
 
 # Step 0
 
-<!--step: step0 -->
-<!--step: step1 -->
+{{ step "step0" }}
+{{ step "step1" }}
 
 Try step 0 again?
 
-<!--step: step1 -->
-<!--step: step0 -->
+{{ step "step1" }}
+{{ step "step0" }}
 
 -- myguide/steps.cue --
 package steps
@@ -47,5 +47,5 @@ echo world
 }
 -- myguide/stderr.txt --
 myguide/en.markdown:12:1: saw superfluous step directive step1
-	myguide/en.markdown:13:1: saw superfluous step directive step0
+myguide/en.markdown:13:1: saw superfluous step directive step0
 

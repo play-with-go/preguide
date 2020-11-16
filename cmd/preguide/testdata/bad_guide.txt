@@ -10,7 +10,7 @@ stderr 'myguide: sanity check failed: failed to validate CUE package: field `Ban
 ---
 title: A title
 ---
-<!--step: step1 -->
+{{ step "step1" }}
 -- myguide/steps.cue --
 package steps
 

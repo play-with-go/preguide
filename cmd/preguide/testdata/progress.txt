@@ -13,7 +13,7 @@ stdout '^myguide: 0$'
 title: myguide
 ---
 
-<!--step: step1 -->
+{{ step "step1" }}
 -- myguide/steps.cue --
 package steps
 

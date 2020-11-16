@@ -11,9 +11,9 @@ cmp stdout myguide/stdout
 title: myguide
 ---
 
-<!--step: step1 -->
+{{ step "step1" }}
 
-<!--step: step2 -->
+{{ step "step2" }}
 -- myguide/steps.cue --
 package steps
 

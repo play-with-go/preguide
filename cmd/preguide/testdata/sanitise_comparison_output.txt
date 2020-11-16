@@ -17,7 +17,7 @@ title: A test with all directives
 
 # Step 0
 
-<!--step: step0 -->
+{{ step "step0" }}
 
 -- myguide/steps.cue --
 package steps

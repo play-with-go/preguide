@@ -12,7 +12,7 @@ title: A test with all directives
 
 # Step 0
 
-<!--step: step0 -->
+{{ step "step0" }}
 
 -- myguide/steps.cue --
 package steps
@@ -67,7 +67,7 @@ echo "Hello, world! I am a #CommandFile"
 echo "Hello, world! I am an #UploadFile"
 -- myguide/stderr.txt --
 myguide/en.markdown:9: step "step1" was not referenced
-	myguide/en.markdown:9: step "step2" was not referenced
-	myguide/en.markdown:9: step "step3" was not referenced
-	myguide/en.markdown:9: step "step4" was not referenced
+myguide/en.markdown:9: step "step2" was not referenced
+myguide/en.markdown:9: step "step3" was not referenced
+myguide/en.markdown:9: step "step4" was not referenced
 

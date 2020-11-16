@@ -9,19 +9,22 @@ cmp _output/myguide_en.md myguide/en.md.golden
 ---
 title: myguide
 ---
-# Hello <!--ref: world-->
+# Hello {{.world }}
 
-Here is a `<!--ref: world-->` code example.
+Here is a `{{ .world }}` code example.
 
 And a fence block:
 
 ```
-<!--ref: world-->
+{{ ref "world" }}
 ```
+
+Right at the end {{ref "something else" "again"}}
 -- myguide/guide.cue --
 package guide
 
 Defs: world: "world"
+Defs: "something else": again: "5"
 -- myguide/en.md.golden --
 ---
 guide: myguide
@@ -37,3 +40,5 @@ And a fence block:
 ```
 world
 ```
+
+Right at the end 5
