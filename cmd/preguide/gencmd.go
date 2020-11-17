@@ -717,9 +717,10 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 		raise("we only support a single terminal currently")
 	}
 	for n := range intGuide.Terminals {
+		path := cue.MakePath(cue.Str("Terminals"), cue.Str(n))
 		termPositions = append(termPositions, termPosition{
 			name: n,
-			pos:  structPos(gv.Lookup("Terminals", n)),
+			pos:  structPos(gv.LookupPath(path)),
 		})
 	}
 	sort.Slice(termPositions, func(i, j int) bool {
