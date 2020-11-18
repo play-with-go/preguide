@@ -4,7 +4,7 @@
 # Intial run
 ! preguide gen -out _output
 ! stdout .+
-cmp stderr myguide/stderr.txt
+cmpenv stderr myguide/stderr.txt
 
 -- myguide/en.markdown --
 ---
@@ -33,6 +33,5 @@ echo "\(Defs.hello)!"
 """
 }
 -- myguide/stderr.txt --
-myguide: cue def check failed: Steps.step1.Source: reference "Defs" not found:
-    ./myguide/steps.cue:18:9
+myguide: failed to build mod.com/myguide:steps: $WORK/myguide/steps.cue:18:9: reference "Defs" not found
 

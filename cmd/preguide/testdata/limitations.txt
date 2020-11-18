@@ -11,7 +11,7 @@ stderr 'demarkdown/guide/de.markdown: "de" is not a valid language for this guid
 # hence non-English steps should fail
 ! preguide gen -out desteps/_output -dir desteps
 ! stdout .+
-stderr 'desteps/guide: sanity check failed: failed to validate CUE package: Steps.step1: field `de` not allowed:'
+stderr 'desteps/guide: failed to decode guide: \*cue.marshalError cue: marshal error: #Guide.Steps.step1: cannot convert incomplete value'
 
 # Only support a single terminal
 ! preguide gen -out multipleterminals/_output -dir multipleterminals
@@ -22,7 +22,6 @@ stderr 'we only support a single terminal currently'
 ! preguide gen -out multiplescenarios/_output -dir multiplescenarios
 ! stdout .+
 stderr 'we only support a single scenario for now'
-
 
 
 -- demarkdown/guide/de.markdown --

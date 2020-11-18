@@ -31,7 +31,6 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/ast"
-	"cuelang.org/go/cue/build"
 	"cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
@@ -448,7 +447,7 @@ func (gc *genCmd) loadConfig() {
 		res = res.Unify(inst.Value())
 	}
 
-	res = gc.schemas.PrestepServiceConfig.Unify(res)
+	res = gc.schemas.PrestepServiceConfig.UnifyAccept(res, gc.schemas.PrestepServiceConfig)
 	err := res.Validate()
 	check(err, "failed to validate input config: %v", err)
 
@@ -664,15 +663,6 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
-	// Allow this section to be concurrent
-	unlock()
-	err := pdc.cueDef(gp)
-	check(err, "cue def check failed: %v", err)
-	lock()
-
-	err = pdc.sanityCheck(gp, "github.com/play-with-go/preguide", "preguide.#Guide")
-	check(err, "sanity check failed: %v", err)
-
 	gi, err := pdc.runtime.Build(gp)
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
 
@@ -687,7 +677,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	// We derive dv here because default values will be available via that
 	// where required, but will not have source information (which is required
 	// below)
-	gv = gv.Unify(pdc.schemas.Guide)
+	gv = pdc.schemas.Guide.UnifyAccept(gv, pdc.schemas.Guide)
 	err = gv.Validate()
 	if err != nil {
 		var errstr strings.Builder
@@ -837,73 +827,6 @@ func (pdc *processDirContext) checkPresteps() {
 	}
 }
 
-// cueDef performs a cue def check on the package instance bi. We perform
-// this check before sanityCheck because the error messages are better.
-//
-// TODO: remove once we have a fix for cuelang.org/issue/567. Because whilst
-// that issue remains the Unify check we have is useless.
-func (pdc *processDirContext) cueDef(bi *build.Instance) error {
-	rel, err := filepath.Rel(pdc.cwd, bi.Dir)
-	check(err, "failed to calculate %q relative to %q: %v", bi.Dir, pdc.cwd, err)
-	if rel[0] != '.' {
-		rel = fmt.Sprintf(".%v%v", string(os.PathSeparator), rel)
-	}
-	cmd := exec.Command(pdc.self, "cue", "def", rel)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		msg := bytes.TrimSpace(stderr.Bytes())
-		return fmt.Errorf("%s", msg)
-	}
-	return nil
-}
-
-// sanityCheck performs a fresh load of the instance bi. It does so assuming
-// that instance is an instance of github.com/play-with-go/preguide.#Guide.
-// The load creates a temp file that imports and unifies both. The load
-// therefore helps to verify that bi does indeed satisfy the #Guide schema.
-//
-// It is assumed we are holding the CUE lock when calling this method.
-//
-// TODO: remove once we have a fix for cuelang.org/issue/567. Because whilst
-// that issue remains the Unify check we have is useless
-func (pdc *processDirContext) sanityCheck(bi *build.Instance, pkg, def string) error {
-	tf, err := ioutil.TempFile("", "preguide_valid_check*.cue")
-	check(err, "failed to create temp file for valid check: %v", err)
-	defer os.Remove(tf.Name())
-	fmt.Fprintf(tf, "package x\n")
-	fmt.Fprintf(tf, "import  \"%v\"\n", pkg)
-	fmt.Fprintf(tf, "import  x \"%v\"\n", bi.ImportPath)
-	fmt.Fprintf(tf, "x & %v\n", def)
-	err = tf.Close()
-	check(err, "failed to write %v: %v", tf.Name(), err)
-
-	conf := &load.Config{
-		Dir: bi.Dir,
-	}
-	bps := load.Instances([]string{tf.Name()}, conf)
-	gp := bps[0]
-	if gp.Err != nil {
-		return fmt.Errorf("failed to re-load CUE package: %v", gp.Err)
-	}
-	errStr := func(e error) string {
-		var errbuf bytes.Buffer
-		errors.Print(&errbuf, err, nil)
-		return errbuf.String()
-	}
-	i, err := pdc.runtime.Build(gp)
-	if err != nil {
-		return fmt.Errorf("failed to load CUE package: %s", errStr(err))
-	}
-	err = i.Value().Err()
-	if err != nil {
-		return fmt.Errorf("failed to validate CUE package: %v", errStr(err))
-	}
-	return nil
-}
-
 // loadOutput attempts to load the out CUE package. Each successful run of
 // preguide writes this package for multiple reasons. It is a human readable
 // log of the input to the guide steps, the commands that were run, the output
@@ -953,13 +876,6 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	}
 	check(gp.Err, "failed to load out CUE package from %v: %v", toLoad, gp.Err)
 
-	// Sanity check whilst we wait for cuelang.org/issue/567.
-	err = pdc.sanityCheck(gp, "github.com/play-with-go/preguide/out", "out.#GuideOutput")
-	if !full && err != nil {
-		return
-	}
-	check(err, "sanity check failed: %v", err)
-
 	gi, err := pdc.runtime.Build(gp)
 	if !full && err != nil {
 		return
@@ -969,7 +885,7 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	err = gv.Unify(pdc.schemas.GuideOutput).Validate()
+	err = pdc.schemas.GuideOutput.UnifyAccept(gv, (pdc.schemas.GuideOutput)).Validate()
 	if !full && err != nil {
 		return
 	}
@@ -1994,7 +1910,7 @@ func (gc *genCmd) writeGuideStructures() {
 	i2, _ := gc.runtime.Compile("hello.cue", vn)
 	v2 := i2.Value()
 
-	err = v2.Unify(gc.schemas.GuideStructures).Validate()
+	err = gc.schemas.GuideStructures.UnifyAccept(v2, gc.schemas.GuideStructures).Validate()
 	check(err, "failed to validate guide structures against schema: %v", err)
 	pkgName := *gc.fPackage
 	if pkgName == "" {
