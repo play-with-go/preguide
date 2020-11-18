@@ -4,7 +4,7 @@
 # Intial run
 ! preguide gen -out _output
 ! stdout .+
-stderr 'myguide: sanity check failed: failed to validate CUE package: field `Banana` not allowed'
+stderr 'myguide: mod.com/myguide:steps does not satisfy github.com/play-with-go/preguide.#Guide: #Guide: field `Banana` not allowed by Acceptor'
 
 -- myguide/en.markdown --
 ---
