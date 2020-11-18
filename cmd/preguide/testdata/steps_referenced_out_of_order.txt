@@ -10,10 +10,10 @@ cmpenv stderr myguide/stderr.txt
 title: A test with all directives
 ---
 
-<!--step: step0 -->
-<!--step: step2 -->
-<!--step: step1 -->
-<!--step: step3 -->
+{{ step "step0" }}
+{{ step "step2" }}
+{{ step "step1" }}
+{{ step "step3" }}
 
 -- myguide/steps.cue --
 package steps

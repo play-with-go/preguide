@@ -29,23 +29,23 @@ title: A test with all directives
 
 # Step 0
 
-<!--step: step0 -->
+{{ step "step0" }}
 
 # Step 1
 
-<!--step: step1 -->
+{{ step "step1" }}
 
 # Step 2
 
-<!--step: step2 -->
+{{ step "step2" }}
 
 # Step 3
 
-<!--step: step3 -->
+{{ step "step3" }}
 
 # Step 4
 
-<!--step: step4 -->
+{{ step "step4" }}
 -- myguide/steps.cue --
 package steps
 

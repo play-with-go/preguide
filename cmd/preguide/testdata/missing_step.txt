@@ -23,4 +23,4 @@ categories: beginner
 
 # Step 1
 
-<!--step: step1 -->
+{{ step "step1" }}

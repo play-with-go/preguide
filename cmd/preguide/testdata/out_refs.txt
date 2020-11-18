@@ -9,23 +9,23 @@ cmp _output/myguide_go115_en.md myguide/go115_en.md.golden
 ---
 title: A test with myguide
 ---
-# Hello <!--ref: world-->
+# Hello {{ .world }}
 
-Here is a `<!--ref: world-->` code example.
+Here is a `{{ .world }}` code example.
 
 And a fence block:
 
 ```
-<!--ref: world-->
+{{ .world }}
 ```
 
 Here are some commands:
 
-<!--step: step1 -->
+{{ step "step1" }}
 
-Here we talk about the second of those commands, `<!--outref: cmd_false -->`.
+Here we talk about the second of those commands, `{{ outref "cmd_false" }}`.
 
-We also present the output of `<!--outref: echo_out-->`.
+We also present the output of `{{ outref "echo_out" }}`.
 
 -- myguide/guide.cue --
 package guide

@@ -18,19 +18,19 @@ go 1.12
 title: A test with output that should be sanitised
 ---
 
-<!--step: step1 -->
+{{ step "step1" }}
 
-<!--step: step2 -->
+{{ step "step2" }}
 
-<!--step: step3 -->
+{{ step "step3" }}
 
-<!--step: step4 -->
+{{ step "step4" }}
 
-<!--step: step5 -->
+{{ step "step5" }}
 
-<!--step: step6 -->
+{{ step "step6" }}
 
-<!--step: step7 -->
+{{ step "step7" }}
 -- myguide/steps.cue --
 package steps
 

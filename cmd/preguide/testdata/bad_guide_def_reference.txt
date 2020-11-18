@@ -10,7 +10,7 @@ cmp stderr myguide/stderr.txt
 ---
 title: A title
 ---
-<!--step: step1 -->
+{{ step "step1" }}
 -- myguide/steps.cue --
 package steps
 
