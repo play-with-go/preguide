@@ -1529,26 +1529,13 @@ func getFence() string {
 	return fmt.Sprintf("%x", sha256.Sum256(b.Bytes()))
 }
 
-// structPos returns the position of the struct value v. This helper
-// is required because of cuelang.org/issues/480
+// structPos returns the position of the struct value v.
 func structPos(v cue.Value) token.Pos {
 	if v.Err() != nil {
 		raise("asked to find struct position of error value: %v", v.Err())
 	}
-	pos := v.Pos()
-	if pos == (token.Pos{}) {
-		it, err := v.Fields()
-		if err != nil {
-			return token.Pos{}
-		}
-		for it.Next() {
-			fp := structPos(it.Value())
-			if posLessThan(fp, pos) {
-				pos = fp
-			}
-		}
-	}
-	return pos
+	_, parts := v.Expr()
+	return parts[0].Pos()
 }
 
 func posLessThan(lhs, rhs token.Pos) bool {
