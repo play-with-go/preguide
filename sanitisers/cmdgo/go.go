@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	goTestTestTime  = `\d+(\.\d+)?s`
-	goTestMagicTime = `0.042s`
+	goTestTestTime = `\d+(\.\d+)?s`
 
 	goGetModVCSPathMagic = "0123456789abcdef"
 )
@@ -24,6 +23,7 @@ const (
 var (
 	goTestPassRunHeading = regexp.MustCompile(`^( *--- (PASS|FAIL): .+\()` + goTestTestTime + `\)$`)
 	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `$`)
+	goTestBench          = regexp.MustCompile(`^([^\s]+)\s+\d+\s+\d+(?:\.\d+) ns/op$`)
 
 	goGetModVCSPath = regexp.MustCompile(`(pkg/mod/cache/vcs/)[0-9a-f]+`)
 
@@ -32,7 +32,22 @@ var (
 
 func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
 	if s.StmtHasCallExprPrefix(stmt, "go", "test") {
-		return sanitiseGoTest{}
+		// We know it's a call expression
+		ce := stmt.Cmd.(*syntax.CallExpr)
+		bench := false
+	Args:
+		for _, a := range ce.Args {
+			switch p := a.Parts[0].(type) {
+			case *syntax.Lit:
+				if strings.HasPrefix(p.Value, "-bench") {
+					bench = true
+					break Args
+				}
+			}
+		}
+		return sanitiseGoTest{
+			bench: bench,
+		}
 	}
 	// TODO: need to work out how to generalise the hack for subshell go get
 	if s.StmtHasCallExprPrefix(stmt, "go", "get") || s.StmtHasStringPrefix(stmt, "(cd $(mktemp -d); GO111MODULE=on go get") {
@@ -44,19 +59,24 @@ func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser
 	return nil
 }
 
-type sanitiseGoTest struct{}
-
-func (sanitiseGoTest) Output(varNames []string, s string) string {
-	lines := strings.Split(s, "\n")
-	for i := range lines {
-		lines[i] = goTestPassRunHeading.ReplaceAllString(lines[i], fmt.Sprintf("${1}%v)", goTestMagicTime))
-		lines[i] = goTestFailSummary.ReplaceAllString(lines[i], "${1}"+goTestMagicTime)
-	}
-	return strings.Join(lines, "\n")
+type sanitiseGoTest struct {
+	bench bool
 }
 
-func (sanitiseGoTest) ComparisonOutput(varNames []string, s string) string {
+func (gt sanitiseGoTest) Output(varNames []string, s string) string {
 	return s
+}
+
+func (gt sanitiseGoTest) ComparisonOutput(varNames []string, s string) string {
+	lines := strings.Split(s, "\n")
+	for i := range lines {
+		if gt.bench {
+			lines[i] = goTestBench.ReplaceAllString(lines[i], "${1} NN N ns/op)")
+		}
+		lines[i] = goTestPassRunHeading.ReplaceAllString(lines[i], "${1}N.NNs)")
+		lines[i] = goTestFailSummary.ReplaceAllString(lines[i], "${1}N.NNs")
+	}
+	return strings.Join(lines, "\n")
 }
 
 type sanitiseGoGet struct{}

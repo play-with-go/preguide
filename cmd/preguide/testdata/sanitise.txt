@@ -26,6 +26,10 @@ title: A test with output that should be sanitised
 # Test
 
 {{ step "step3" }}
+
+# Benchmark
+
+{{ step "step4" }}
 -- myguide/steps.cue --
 package steps
 
@@ -48,6 +52,14 @@ import "fmt"
 func main() {
 	fmt.Println("Hello, world!")
 }
+
+func Fib(n int) int {
+        if n < 2 {
+                return n
+        }
+        return Fib(n-1) + Fib(n-2)
+}
+
 """ }
 
 Steps: step2: preguide.#Upload & { Target: "/home/gopher/hello_test.go", Source: """
@@ -61,10 +73,22 @@ import (
 func TestHello(t *testing.T) {
 	fmt.Println("Hello, world... from the test!")
 }
+
+func BenchmarkFib10(b *testing.B) {
+        // run the Fib function b.N times
+        for n := 0; n < b.N; n++ {
+                Fib(10)
+        }
+}
+
 """ }
 
 Steps: step3: preguide.#Command & { Source: """
 go test
+"""}
+
+Steps: step4: preguide.#Command & { Source: """
+go test -bench=.
 """}
 
 -- myguide/go115_en.markdown.golden --
@@ -75,17 +99,25 @@ title: A test with output that should be sanitised
 ---
 # Create go file
 
-<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG8uZ28=:cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQ==" data-upload-term=".term1"><code class="language-go">package main
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG8uZ28=:cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQoKZnVuYyBGaWIobiBpbnQpIGludCB7CiAgICAgICAgaWYgbiA8IDIgewogICAgICAgICAgICAgICAgcmV0dXJuIG4KICAgICAgICB9CiAgICAgICAgcmV0dXJuIEZpYihuLTEpICsgRmliKG4tMikKfQo=" data-upload-term=".term1"><code class="language-go">package main
 
 import &#34;fmt&#34;
 
 func main() {
 	fmt.Println(&#34;Hello, world!&#34;)
-}</code></pre>
+}
+
+func Fib(n int) int {
+        if n &lt; 2 {
+                return n
+        }
+        return Fib(n-1) + Fib(n-2)
+}
+</code></pre>
 
 # Create test file
 
-<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG9fdGVzdC5nbw==:cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKCSJ0ZXN0aW5nIgopCgpmdW5jIFRlc3RIZWxsbyh0ICp0ZXN0aW5nLlQpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQuLi4gZnJvbSB0aGUgdGVzdCEiKQp9" data-upload-term=".term1"><code class="language-go">package main
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG9fdGVzdC5nbw==:cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKCSJ0ZXN0aW5nIgopCgpmdW5jIFRlc3RIZWxsbyh0ICp0ZXN0aW5nLlQpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQuLi4gZnJvbSB0aGUgdGVzdCEiKQp9CgpmdW5jIEJlbmNobWFya0ZpYjEwKGIgKnRlc3RpbmcuQikgewogICAgICAgIC8vIHJ1biB0aGUgRmliIGZ1bmN0aW9uIGIuTiB0aW1lcwogICAgICAgIGZvciBuIDo9IDA7IG4gPCBiLk47IG4rKyB7CiAgICAgICAgICAgICAgICBGaWIoMTApCiAgICAgICAgfQp9Cg==" data-upload-term=".term1"><code class="language-go">package main
 
 import (
 	&#34;fmt&#34;
@@ -94,7 +126,15 @@ import (
 
 func TestHello(t *testing.T) {
 	fmt.Println(&#34;Hello, world... from the test!&#34;)
-}</code></pre>
+}
+
+func BenchmarkFib10(b *testing.B) {
+        // run the Fib function b.N times
+        for n := 0; n &lt; b.N; n++ {
+                Fib(10)
+        }
+}
+</code></pre>
 
 # Test
 
@@ -105,6 +145,19 @@ PASS
 ok  	_/home/gopher	${regex_float}s
 ```
 {:data-command-src="Z28gdGVzdAo="}
+
+# Benchmark
+
+```.term1
+$ go test -bench=.
+Hello, world... from the test!
+goos: linux
+goarch: amd64
+BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
+PASS
+ok  	_/home/gopher	${regex_float}s
+```
+{:data-command-src="Z28gdGVzdCAtYmVuY2g9Lgo="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ cat <<EOD > /home/gopher/hello.go
@@ -115,6 +168,14 @@ import "fmt"
 func main() {
 	fmt.Println("Hello, world!")
 }
+
+func Fib(n int) int {
+        if n < 2 {
+                return n
+        }
+        return Fib(n-1) + Fib(n-2)
+}
+
 EOD
 $ cat <<EOD > /home/gopher/hello_test.go
 package main
@@ -127,8 +188,23 @@ import (
 func TestHello(t *testing.T) {
 	fmt.Println("Hello, world... from the test!")
 }
+
+func BenchmarkFib10(b *testing.B) {
+        // run the Fib function b.N times
+        for n := 0; n < b.N; n++ {
+                Fib(10)
+        }
+}
+
 EOD
 $ go test
 Hello, world... from the test!
 PASS
 ok${regex_space}_/home/gopher${regex_space}${regex_float}s
+$ go test -bench=.
+Hello, world... from the test!
+goos: linux
+goarch: amd64
+BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
+PASS
+ok  	_/home/gopher	${regex_float}s
