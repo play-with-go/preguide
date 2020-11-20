@@ -330,7 +330,7 @@ func (r *RendererDiff) Render(m Mode, v string) (string, error) {
 	case ModeJekyll:
 		pre, v = template.HTMLEscapeString(pre), template.HTMLEscapeString(v)
 	}
-	res := textutil.Diff(pre, v, same, before, after)
+	res := textutil.Diff(pre, v, false, same, before, after)
 	return res, nil
 }
 

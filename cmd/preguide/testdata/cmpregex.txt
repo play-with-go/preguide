@@ -1,0 +1,43 @@
+# Test that cmpregex actually works
+
+env float='\d(\.\d+)?'
+
+# Success
+cmd-cmpregex a a.golden
+
+# Failure
+! cmd-cmpregex b b.golden
+cmp stderr b.stderr
+
+# TODO: add more cases
+
+-- a --
+$ go test
+Hello, world... from the test!
+PASS
+ok         _/home/gopher   0.042s
+-- a.golden --
+$ go test
+Hello, world... from the test!
+PASS
+ok         _/home/gopher   ${float}s
+-- b --
+$ go test
+ello, world... from the test!
+PASS
+ok         _/home/gopher   0.042s
+-- b.golden --
+$ go test
+Hello, world... from the test!
+PASS
+ok         _/home/gopher   ${float}s
+-- b.stderr --
+[diff -b +b.golden]
+ $ go test
+-ello, world... from the test!
++Hello, world... from the test!
+ PASS
+-ok         _/home/gopher   0.042s
++ok         _/home/gopher   
+
+b and b.golden differ

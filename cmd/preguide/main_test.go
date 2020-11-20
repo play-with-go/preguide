@@ -13,15 +13,18 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"cuelang.org/go/cue/load"
+	"github.com/play-with-go/preguide/internal/textutil"
 	"github.com/play-with-go/preguide/internal/util"
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
@@ -33,6 +36,7 @@ var (
 
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
+		"cmd-cmpregex": cmdCmpRegex,
 		"preguide": func() int {
 			self := os.Getenv("PREGUIDE_SELF_BUILD")
 			if self == "" {
@@ -61,6 +65,7 @@ func TestScripts(t *testing.T) {
 			"envsubst":            envsubst,
 			"startserver":         startserver,
 			"createdockernetwork": createdockernetwork,
+			"cmpregex":            cmpregex,
 		},
 		Setup: func(env *testscript.Env) (err error) {
 			defer util.HandleKnown(&err)
@@ -297,5 +302,116 @@ func envsubst(ts *testscript.TestScript, neg bool, args []string) {
 			return ts.Getenv(v)
 		})
 		ts.Check(ioutil.WriteFile(f, []byte(fc), 0666))
+	}
+}
+
+func cmdCmpRegex() int {
+	log.SetPrefix("")
+	log.SetFlags(0)
+
+	args := os.Args[1:]
+	if len(args) != 2 {
+		log.Fatalf("need to supply exactly two file names, GOT and WANT (could be stdout|stderr)")
+	}
+
+	gotName := args[0]
+	wantName := args[1]
+	got, err := ioutil.ReadFile(gotName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	want, err := ioutil.ReadFile(wantName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := cmpregexImpl{
+		gotName:  gotName,
+		wantName: wantName,
+		got:      string(got),
+		want:     string(want),
+		Logf:     log.Printf,
+		Fatalf:   log.Fatalf,
+		Getenv:   os.Getenv,
+	}
+	c.Do()
+
+	return 0
+}
+
+func cmpregex(ts *testscript.TestScript, neg bool, args []string) {
+	if neg {
+		ts.Fatalf("cmpregex does not support negation of the command")
+	}
+	if len(args) != 2 {
+		ts.Fatalf("need to supply exactly two file names, GOT and WANT (could be stdout|stderr)")
+	}
+	gotName := args[0]
+	wantName := args[1]
+	c := cmpregexImpl{
+		gotName:  gotName,
+		wantName: wantName,
+		got:      ts.ReadFile(gotName),
+		want:     ts.ReadFile(wantName),
+		Logf:     ts.Logf,
+		Fatalf:   ts.Fatalf,
+		Getenv:   ts.Getenv,
+	}
+	c.Do()
+}
+
+type cmpregexImpl struct {
+	gotName  string
+	wantName string
+	got      string
+	want     string
+	Logf     func(string, ...interface{})
+	Fatalf   func(string, ...interface{})
+	Getenv   func(string) string
+}
+
+func (c cmpregexImpl) Do() {
+	got := c.got
+	parts := splitAroundVars(c.want)
+	normalised := ""
+	isName := false
+	for _, p := range parts {
+		if !isName {
+			if !strings.HasPrefix(got, p) {
+				got = normalised + got
+				want := normalised + p
+				// Add trailing newlines for diff to work
+				if len(got) > 0 && got[len(got)-1] != '\n' {
+					got += "\n"
+				}
+				if len(want) > 0 && want[len(want)-1] != '\n' {
+					want += "\n"
+				}
+				c.Logf("[diff -%s +%s]\n%s\n", c.gotName, c.wantName, textutil.Diff(got, want, true, nil, nil, nil))
+				c.Fatalf("%s and %s differ", c.gotName, c.wantName)
+			}
+			normalised += p
+			got = got[len(p):]
+		} else {
+			// We have a name - compile a regex from the env var value
+			expr := c.Getenv(p)
+			r, err := regexp.Compile(expr)
+			if err != nil {
+				c.Fatalf("failed to compile regex from env var %q value %q: %v", p, expr, err)
+			}
+
+			loc := r.FindStringIndex(got)
+			if loc == nil {
+				c.Logf("[finding regex %v]\n%s\n", r, got)
+				c.Fatalf("failed to find regex from env var %q", p)
+			}
+			if loc[0] != 0 {
+				c.Logf("[finding regex %v]\n%s\n", r, got)
+				c.Fatalf("failed to find regex from env var %q at start of scope", p)
+			}
+			normalised += fmt.Sprintf("${%v}", p)
+			got = got[loc[1]:]
+		}
+		isName = !isName
 	}
 }
