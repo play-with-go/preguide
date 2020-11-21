@@ -3,7 +3,7 @@ module github.com/play-with-go/preguide
 go 1.15
 
 require (
-	cuelang.org/go v0.3.0-alpha4.0.20201116194914-7463d11dea50
+	cuelang.org/go v0.3.0-alpha5
 	github.com/gohugoio/hugo v0.69.2
 	github.com/google/go-cmp v0.4.0
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
