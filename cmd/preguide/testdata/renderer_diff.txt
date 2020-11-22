@@ -104,6 +104,36 @@ Scenarios: [{
 Networks: []
 Env: []
 Steps: {
+	step0: {
+		Stmts: [{
+			ComparisonOutput: "Hello"
+			Output:           "Hello"
+			ExitCode:         0
+			CmdStr:           "echo -n \"Hello\""
+			Negated:          false
+		}]
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
+	}
+	step1: {
+		Order: 1
+		Source: """
+			This is some markdown `with code`
+
+			"""
+		Renderer: {
+			RendererType: 1
+		}
+		Language: "md"
+		Target:   "/home/gopher/somewhere.md"
+		Terminal: "term1"
+		StepType: 2
+		Name:     "step1"
+	}
 	step2: {
 		Order: 2
 		Source: """
@@ -125,36 +155,6 @@ Steps: {
 		Terminal: "term1"
 		StepType: 2
 		Name:     "step2"
-	}
-	step1: {
-		Order: 1
-		Source: """
-			This is some markdown `with code`
-
-			"""
-		Renderer: {
-			RendererType: 1
-		}
-		Language: "md"
-		Target:   "/home/gopher/somewhere.md"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step1"
-	}
-	step0: {
-		Stmts: [{
-			ComparisonOutput: "Hello"
-			Output:           "Hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
-		StepType:        1
-		Name:            "step0"
 	}
 }
 Hash: "2841b23ef64f8d9cf3fd9f71066788dd07bcb2bec56c6c609070023b33c455fd"

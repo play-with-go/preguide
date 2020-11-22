@@ -68,18 +68,6 @@ Scenarios: [{
 Networks: []
 Env: ["A=B"]
 Steps: {
-	step2: {
-		Order:  1
-		Source: "echo -n \"Hello, world!\""
-		Renderer: {
-			RendererType: 1
-		}
-		Language: "sh"
-		Target:   "/home/gopher/special.sh"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step2"
-	}
 	step1: {
 		Stmts: [{
 			ComparisonOutput: "Hello, world!"
@@ -94,6 +82,18 @@ Steps: {
 		Terminal:        "term1"
 		StepType:        1
 		Name:            "step1"
+	}
+	step2: {
+		Order:  1
+		Source: "echo -n \"Hello, world!\""
+		Renderer: {
+			RendererType: 1
+		}
+		Language: "sh"
+		Target:   "/home/gopher/special.sh"
+		Terminal: "term1"
+		StepType: 2
+		Name:     "step2"
 	}
 }
 Hash: "c3ff9c8755cc05011560b487162a59cc316da54934b4dd0ac5796bdebd64c0b5"
