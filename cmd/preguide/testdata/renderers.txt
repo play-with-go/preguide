@@ -154,6 +154,21 @@ Scenarios: [{
 Networks: []
 Env: []
 Steps: {
+	step0: {
+		Stmts: [{
+			ComparisonOutput: "Hello"
+			Output:           "Hello"
+			ExitCode:         0
+			CmdStr:           "echo -n \"Hello\""
+			Negated:          false
+		}]
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
+	}
 	step1: {
 		Order: 1
 		Source: """
@@ -169,21 +184,6 @@ Steps: {
 		Terminal: "term1"
 		StepType: 2
 		Name:     "step1"
-	}
-	step0: {
-		Stmts: [{
-			ComparisonOutput: "Hello"
-			Output:           "Hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
-		StepType:        1
-		Name:            "step0"
 	}
 }
 Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
@@ -207,6 +207,21 @@ Scenarios: [{
 Networks: []
 Env: []
 Steps: {
+	step0: {
+		Stmts: [{
+			ComparisonOutput: "Hello"
+			Output:           "Hello"
+			ExitCode:         0
+			CmdStr:           "echo -n \"Hello\""
+			Negated:          false
+		}]
+		Order:           0
+		InformationOnly: false
+		DoNotTrim:       false
+		Terminal:        "term1"
+		StepType:        1
+		Name:            "step0"
+	}
 	step1: {
 		Order: 1
 		Source: """
@@ -222,21 +237,6 @@ Steps: {
 		Terminal: "term1"
 		StepType: 2
 		Name:     "step1"
-	}
-	step0: {
-		Stmts: [{
-			ComparisonOutput: "Hello"
-			Output:           "Hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
-		StepType:        1
-		Name:            "step0"
 	}
 }
 Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"

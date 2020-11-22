@@ -1106,7 +1106,9 @@ func (pdc *processDirContext) writeOutPackage(g *guide) {
 	enc := gocodec.New(&pdc.runner.runtime, nil)
 	v, err := enc.Decode(g)
 	check(err, "failed to decode guide to CUE: %v", err)
-	out, err := valueToFile(outPkg, v)
+	syn := v.Syntax()
+	sl := sortSteps(syn)
+	out, err := valueToFile(outPkg, sl)
 	check(err, "failed to format CUE output: %v", err)
 
 	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
@@ -1904,21 +1906,57 @@ func (gc *genCmd) writeGuideStructures() {
 		pkgName = filepath.Base(gc.dir)
 		pkgName = strings.ReplaceAll(pkgName, "-", "_")
 	}
-	syn, err := valueToFile(pkgName, v)
+	syn, err := valueToFile(pkgName, v.Syntax())
 	check(err, "failed to convert guide structures to CUE syntax: %v", err)
 	outPath := filepath.Join(*gc.fDir, "gen_guide_structures.cue")
 	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
 	check(err, "failed to write guide structures output to %v: %v", outPath, err)
 }
 
-func valueToFile(pkg string, v cue.Value) ([]byte, error) {
-	s := v.Syntax().(*ast.StructLit)
+func sortSteps(n ast.Node) ast.Node {
+	s := n.(*ast.StructLit)
+	stepsField := structField(s, "Steps")
+	if stepsField == nil {
+		// This should never happen... because we are in control of the conversion
+		panic(fmt.Errorf("failed to find Steps field in %v", pretty.Sprint(s)))
+	}
+	stepsVal := stepsField.Value.(*ast.StructLit)
+	sort.Slice(stepsVal.Elts, func(i, j int) bool {
+		lhs, rhs := stepsVal.Elts[i].(*ast.Field), stepsVal.Elts[j].(*ast.Field)
+		lhsOrder := structField(lhs.Value, "Order").Value.(*ast.BasicLit)
+		rhsOrder := structField(rhs.Value, "Order").Value.(*ast.BasicLit)
+		lhsv, _ := strconv.Atoi(lhsOrder.Value)
+		rhsv, _ := strconv.Atoi(rhsOrder.Value)
+		return lhsv < rhsv
+	})
+	return s
+}
+
+func valueToFile(pkg string, n ast.Node) ([]byte, error) {
+	s := n.(*ast.StructLit)
 	f := &ast.File{}
 	f.Decls = append(f.Decls, &ast.Package{
 		Name: ast.NewIdent(pkg),
 	})
 	f.Decls = append(f.Decls, s.Elts...)
 	return format.Node(f)
+}
+
+// structField finds field within the struct literal decl
+func structField(decl ast.Decl, field string) *ast.Field {
+	sl := decl.(*ast.StructLit)
+	for _, el := range sl.Elts {
+		switch el := el.(type) {
+		case *ast.Field:
+			switch l := el.Label.(type) {
+			case *ast.Ident:
+				if l.Name == field {
+					return el
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // dockerRunnner is a convenience type used to wrap the three call
