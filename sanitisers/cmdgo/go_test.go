@@ -170,6 +170,25 @@ FAIL
 `,
 		},
 		{
+			san: sanitiseGoTest{bench: true},
+			in: `goos: linux
+goarch: amd64
+pkg: mod.com
+cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
+BenchmarkFib10-8   	 3357487	       333.7 ns/op
+PASS
+ok  	mod.com	1.489s
+`,
+			want: `goos: linux
+goarch: amd64
+pkg: mod.com
+cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
+BenchmarkFib10-8 NN N ns/op
+PASS
+ok  	mod.com	N.NNs
+`,
+		},
+		{
 			san: sanitiseGoGet{},
 			in: `go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
 go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360

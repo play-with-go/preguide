@@ -15,15 +15,15 @@ import (
 )
 
 const (
-	goTestTestTime = `\d+(\.\d+)?s`
+	goTestTestTime = `\d+(\.\d+)?`
 
 	goGetModVCSPathMagic = "0123456789abcdef"
 )
 
 var (
-	goTestPassRunHeading = regexp.MustCompile(`^( *--- (PASS|FAIL): .+\()` + goTestTestTime + `\)$`)
-	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `$`)
-	goTestBench          = regexp.MustCompile(`^([^\s]+)\s+\d+\s+\d+(?:\.\d+) ns/op$`)
+	goTestPassRunHeading = regexp.MustCompile(`^( *--- (PASS|FAIL): .+\()` + goTestTestTime + `s\)$`)
+	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `s$`)
+	goTestBench          = regexp.MustCompile(`^([^\s]+)\s+\d+\s+` + goTestTestTime + ` ns/op$`)
 
 	goGetModVCSPath = regexp.MustCompile(`(pkg/mod/cache/vcs/)[0-9a-f]+`)
 
@@ -71,7 +71,7 @@ func (gt sanitiseGoTest) ComparisonOutput(varNames []string, s string) string {
 	lines := strings.Split(s, "\n")
 	for i := range lines {
 		if gt.bench {
-			lines[i] = goTestBench.ReplaceAllString(lines[i], "${1} NN N ns/op)")
+			lines[i] = goTestBench.ReplaceAllString(lines[i], "${1} NN N ns/op")
 		}
 		lines[i] = goTestPassRunHeading.ReplaceAllString(lines[i], "${1}N.NNs)")
 		lines[i] = goTestFailSummary.ReplaceAllString(lines[i], "${1}N.NNs")
