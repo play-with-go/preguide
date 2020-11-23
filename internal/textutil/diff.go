@@ -15,7 +15,7 @@ import (
 // additions and removals to turn text1 into text2.
 // (That is, lines only in text1 appear with a leading -,
 // and lines only in text2 appear with a leading +.)
-func Diff(text1, text2 string, same, before, after func(io.Writer, string)) string {
+func Diff(text1, text2 string, mark bool, same, before, after func(io.Writer, string)) string {
 	if text1 != "" && !strings.HasSuffix(text1, "\n") {
 		text1 += "(missing final newline)"
 	}
@@ -69,19 +69,28 @@ func Diff(text1, text2 string, same, before, after func(io.Writer, string)) stri
 		after = stringIdentity
 	}
 
+	sameMark := ""
+	beforeMark := ""
+	afterMark := ""
+	if mark {
+		sameMark = " "
+		beforeMark = "-"
+		afterMark = "+"
+	}
+
 	var buf strings.Builder
 	i, j := len(lines1), len(lines2)
 	for i > 0 || j > 0 {
 		cost := dist[i][j]
 		if i > 0 && j > 0 && cost == dist[i-1][j-1] && lines1[len(lines1)-i] == lines2[len(lines2)-j] {
-			same(&buf, lines1[len(lines1)-i])
+			same(&buf, sameMark+lines1[len(lines1)-i])
 			i--
 			j--
 		} else if i > 0 && cost == dist[i-1][j]+1 {
-			before(&buf, lines1[len(lines1)-i])
+			before(&buf, beforeMark+lines1[len(lines1)-i])
 			i--
 		} else {
-			after(&buf, lines2[len(lines2)-j])
+			after(&buf, afterMark+lines2[len(lines2)-j])
 			j--
 		}
 	}

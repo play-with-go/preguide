@@ -46,7 +46,7 @@ func TestDiff(t *testing.T) {
 		after := func(w io.Writer, s string) {
 			fmt.Fprintf(w, "+%s\n", s)
 		}
-		out := textutil.Diff(text1, text2, same, before, after)
+		out := textutil.Diff(text1, text2, false, same, before, after)
 		// Cut final \n, cut spaces, turn remaining \n into spaces.
 		out = strings.Replace(strings.Replace(strings.TrimSuffix(out, "\n"), " ", "", -1), "\n", " ", -1)
 		if out != tt.diff {

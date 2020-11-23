@@ -1,11 +1,15 @@
 # Test that we get the expected output when a step involves
 # output that should sanitised
 
+env regex_float='\d+(?:\.\d+)?'
+env regex_int='\d+'
+env regex_space='\s+'
+
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
-cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
+cmpregex _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
+cmpregex myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
 -- myguide/en.markdown --
 ---
@@ -98,7 +102,7 @@ func TestHello(t *testing.T) {
 $ go test
 Hello, world... from the test!
 PASS
-ok  	_/home/gopher	0.042s
+ok  	_/home/gopher	${regex_float}s
 ```
 {:data-command-src="Z28gdGVzdAo="}
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
@@ -127,4 +131,4 @@ EOD
 $ go test
 Hello, world... from the test!
 PASS
-ok  	_/home/gopher	0.042s
+ok${regex_space}_/home/gopher${regex_space}${regex_float}s
