@@ -59,6 +59,7 @@ test: json.#Workflow & {
 			{
 				name: "Race test"
 				run:  "go test -race ./..."
+				if:   "${{ github.ref == 'main' }}"
 			},
 			{
 				name: "staticcheck"
