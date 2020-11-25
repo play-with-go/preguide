@@ -106,15 +106,12 @@ title: A test with all directives
 
 # Step 0
 
-```.term1
-$ mkdir nooutput
-```
-{:data-command-src="bWtkaXIgbm9vdXRwdXQK"}
+<pre data-command-src="bWtkaXIgbm9vdXRwdXQK"><code class="language-.term1">$ mkdir nooutput
+</code></pre>
 
 # Step 1
 
-```.term1
-$ echo "Hello, world! I am a #Command"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMKKGNkICQobWt0ZW1wIC1kKTsgZWNobyBoZWxsbykK"><code class="language-.term1">$ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah
 $ false
@@ -122,16 +119,13 @@ $ ls
 blah  nooutput
 $ (cd $(mktemp -d); echo hello)
 hello
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMKKGNkICQobWt0ZW1wIC1kKTsgZWNobyBoZWxsbykK"}
+</code></pre>
 
 # Step 2
 
-```.term1
-$ echo "Hello, world! I am a #CommandFile"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmRGaWxlIgo="><code class="language-.term1">$ echo "Hello, world! I am a #CommandFile"
 Hello, world! I am a #CommandFile
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmRGaWxlIgo="}
+</code></pre>
 
 # Step 3
 

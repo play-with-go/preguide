@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"text/template"
 	"text/template/parse"
 
@@ -151,6 +150,10 @@ func (pdc *processDirContext) writeGuideOutput() {
 	err = os.MkdirAll(postsDir, 0777)
 	check(err, "failed to os.MkdirAll %v: %v", postsDir, err)
 
+	renderOpts := renderOptions{
+		mode: pdc.fMode,
+	}
+
 	for _, md := range g.mdFiles {
 
 		outFilePath := filepath.Join(postsDir, fmt.Sprintf("%v_%v%v", g.name, g.fileSuffix(), md.ext))
@@ -184,7 +187,7 @@ func (pdc *processDirContext) writeGuideOutput() {
 				buf.Write(md.content[pos:d.Pos().offset])
 				switch d := d.(type) {
 				case *stepDirective:
-					g.Steps[d.name].render(pdc.fMode, &buf)
+					g.Steps[d.name].render(&buf, renderOpts)
 				case *refDirective:
 					switch d.val.Kind() {
 					case cue.StringKind:
@@ -219,53 +222,39 @@ func (pdc *processDirContext) writeGuideOutput() {
 			}
 		}
 
-		// If we are in normal (non-raw) mode, then we want to substitute
-		// {{.ENV}} templates with {% raw %}{{.ENV}}{% endraw %} normalised
-		// templates. Note this step is necessary here because the command and
-		// file inputs that contain {{.ENV}} templates are, at this stage,
-		// untouched. They get replaced as part of running the script but not as
-		// part of the writing of the output markdown file. The output
-		// sanitisation handles the replacing of env var values with their
-		// variable names, this step does the overall normalisation (and
-		// escaping) of _all_ {{.ENV}} templates.
+		// At this stage, random values have been sanitised to deterministic
+		// values, and env values have been substituted for {{{.ENV}}}
+		// equivalents (using whatever delimeters are configured for the guide).
+		// But critically, in command/code blocks, { and } have been replaced with
+		// their HTML entity equivalents.
 		//
-		// If we are in raw mode then we want to substitute {{.ENV}} templates
-		// for their actual value.
+		// Therefore the only remaining step is to replace { and } instances in
+		// {{{.ENV}}} templates that appear in the prose. We do this using {% raw
+		// %} blocks in Jekyll mode because we can't know whether the user will
+		// use such a template within a `` code element, in which case the
+		// ampersand in &#123; would be interpreted literally and &#123; would be
+		// rendered as  &#123;.
 		//
-		// TODO: it seems less than ideal that we are performing this substitution
-		// post directive replacement. Far better would be that we perform it
-		// pre directive replacement. However, that would require us to parse
-		// markdown files twice: the first time to establish the list of directives
-		// present, the second time post the substitution of {{.ENV}} templates.
-		// It's not entirely clear what is more correct here. However, it doesn't
-		// really matter because this only affects raw mode, which is essentially a
-		// debug-only mode for now.
+		// If the author wants to include a literal { or } in their markdown
+		// input, they can use &#123; or &#125;
 		//
-		// However, if there are no vars, then the substitution will have zero
-		// effect (regardless of whether there are any templates to be expanded)
-		if pdc.genCmd.fMode != types.ModeRaw || len(g.vars) == 0 {
-			// Build a map of the variable names to escape
-			escVarMap := make(map[string]string)
+		// Script output is assumed to only ever include literal { and } values
+		// hence that is unconditionally escaped using &#123; and &#125;
+		repls := g.varMap
+		if pdc.genCmd.fMode == types.ModeJekyll {
+			repls = make(map[string]string)
 			for v := range g.varMap {
-				escVarMap[v] = "{% raw %}" + g.Delims[0] + "." + v + g.Delims[1] + "{% endraw %}"
+				repls[v] = "{% raw %}" + g.Delims[0] + "." + v + g.Delims[1] + "{% endraw %}"
 			}
-			t := template.New("{{.ENV}} normalising and escaping")
-			pt, err := parse.Parse(t.Name(), buf.String(), g.Delims[0], g.Delims[1])
-			check(err, "failed to parse output for {{.ENV}} normalising and escaping")
-			t.AddParseTree(t.Name(), pt[t.Name()])
-			t.Option("missingkey=error")
-			walk(replaceBraces, pt[t.Name()].Root)
-			err = t.Execute(outFile, escVarMap)
-			check(err, "failed to execute {{.ENV}} normalising and escaping template: %v", err)
-		} else {
-			t := template.New("pre-substitution markdown")
-			t.Delims(g.Delims[0], g.Delims[1])
-			t.Option("missingkey=error")
-			_, err = t.Parse(buf.String())
-			check(err, "failed to parse pre-substitution markdown: %v", err)
-			err = t.Execute(outFile, g.varMap)
-			check(err, "failed to execute pre-substitution markdown template: %v", err)
 		}
+		t := template.New("prose {{.ENV}} normalising and escaping")
+		pt, err := parse.Parse(t.Name(), buf.String(), g.Delims[0], g.Delims[1])
+		check(err, "failed to parse output for prose {{.ENV}} normalising and escaping")
+		t.Delims(g.Delims[0], g.Delims[1])
+		t.AddParseTree(t.Name(), pt[t.Name()])
+		t.Option("missingkey=error")
+		err = t.Execute(outFile, repls)
+		check(err, "failed to execute prose {{.ENV}} normalising and escaping template: %v", err)
 
 		err = outFile.Close()
 		check(err, "failed to close %v: %v", outFilePath, err)
@@ -295,68 +284,4 @@ func mustJSONMarshalIndent(i interface{}) []byte {
 	check(err, "failed to marshal prestep: %v", err)
 	return byts
 
-}
-
-var rawRegex = regexp.MustCompile(`\{%`)
-
-func replaceBraces(n parse.Node) visitor {
-	switch n := n.(type) {
-	case *parse.TextNode:
-		if rawRegex.Match(n.Text) {
-			raise("input markdown and output from script blocks cannot contain %v", rawRegex)
-		}
-		n.Text = bytes.ReplaceAll(n.Text, []byte("{{"), []byte("{% raw %}{{{% endraw %}"))
-		n.Text = bytes.ReplaceAll(n.Text, []byte("}}"), []byte("{% raw %}}}{% endraw %}"))
-	}
-	return replaceBraces
-}
-
-type visitor func(parse.Node) visitor
-
-func walk(v visitor, n parse.Node) {
-	if v = v(n); v == nil {
-		return
-	}
-
-	switch n := n.(type) {
-	case *parse.ActionNode:
-		// Nothing to do
-	case *parse.BoolNode:
-		// Nothing to do
-	case *parse.BranchNode:
-		walk(v, n.List)
-		walk(v, n.ElseList)
-	case *parse.ChainNode:
-		// Nothing to do
-	case *parse.CommandNode:
-		// Nothing to do
-	case *parse.DotNode:
-		// Nothing to do
-	case *parse.FieldNode:
-		// Nothing to do
-	case *parse.IdentifierNode:
-		// Nothing to do
-	case *parse.IfNode:
-		walk(v, &n.BranchNode)
-	case *parse.ListNode:
-		for _, sn := range n.Nodes {
-			walk(v, sn)
-		}
-	case *parse.NilNode:
-		// Nothing to do
-	case *parse.NumberNode:
-		// Nothing to do
-	case *parse.PipeNode:
-		// Nothing to do
-	case *parse.RangeNode:
-		walk(v, &n.BranchNode)
-	case *parse.StringNode:
-		// Nothing to do
-	case *parse.TemplateNode:
-		// Nothing to do
-	case *parse.TextNode:
-		// Nothing to do
-	case *parse.VariableNode:
-		// Nothing to do
-	}
 }

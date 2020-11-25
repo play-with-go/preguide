@@ -29,7 +29,13 @@ title: A test with all directives
 ---
 # Step 1 {{ Hello }}
 
+The heading here is actually invalid in Jekyll mode because Jekyll will try
+and interpret the braces.
+
 {{{step "step1"}}}
+
+{{{step "step2"}}}
+
 -- myguide/steps.cue --
 package steps
 
@@ -50,23 +56,47 @@ Terminals: term1: preguide.#Terminal & {
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
 
-Steps: step1: preguide.#Command & {Source: """
-echo "The answer is: {{{.GREETING}}}!"
-"""}
+Steps: step1: preguide.#Command & {
+	Source: """
+          echo "The answer is: {{{.GREETING}}}!"
+          echo "This is a test {}"
+          """
+}
+
+Steps: step2: preguide.#Upload & {
+	Target: "/home/gopher/blah.txt"
+	Source: """
+          echo "The answer is: {{{.GREETING}}}!"
+          echo "This is a test {}"
+          """
+}
 -- myguide/go115_en.markdown.golden --
 ---
 guide: myguide
 lang: en
 title: A test with all directives
 ---
-# Step 1 {% raw %}{{{% endraw %} Hello {% raw %}}}{% endraw %}
+# Step 1 {{ Hello }}
 
-```.term1
-$ echo "The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!"
-The answer is: {% raw %}{{{.GREETING}}}{% endraw %}!
-```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIK"}
+The heading here is actually invalid in Jekyll mode because Jekyll will try
+and interpret the braces.
+
+<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIKZWNobyAiVGhpcyBpcyBhIHRlc3Qge30iCg=="><code class="language-.term1">$ echo "The answer is: &#123;&#123;&#123;.GREETING&#125;&#125;&#125;!"
+The answer is: &#123;&#123;&#123;.GREETING&#125;&#125;&#125;!
+$ echo "This is a test &#123;&#125;"
+This is a test &#123;&#125;
+</code></pre>
+
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="YmxhaC50eHQ=:ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIKZWNobyAiVGhpcyBpcyBhIHRlc3Qge30i" data-upload-term=".term1"><code class="language-txt">echo &#34;The answer is: &#123;&#123;&#123;.GREETING&#125;&#125;&#125;!&#34;
+echo &#34;This is a test &#123;&#125;&#34;</code></pre>
+
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ echo "The answer is: {{{.GREETING}}}!"
 The answer is: {{{.GREETING}}}!
+$ echo "This is a test {}"
+This is a test {}
+$ cat <<EOD > /home/gopher/blah.txt
+echo "The answer is: {{{.GREETING}}}!"
+echo "This is a test {}"
+EOD
