@@ -1608,7 +1608,15 @@ func (pdc *processDirContext) doRequest(method string, endpoint string, conf *pr
 // e.g. like mounts
 func (gc *genCmd) addSelfArgs(dr *dockerRunnner) {
 	bi := gc.buildInfo
-	if os.Getenv("PREGUIDE_DEVEL_IMAGE") != "true" && bi.Main.Replace == nil && bi.Main.Version != "(devel)" {
+	// We can only use a published Docker image when we have full version information.
+	// And even then, we are not guaranteed to be using a commit/version that is
+	// part of the main branch (which is significant because Docker images are only
+	// built automatically for main commits/versions).
+	//
+	// Hence we retrain PREGUIDE_DEVEL_IMAGE in order to manually specify when
+	// preguide should _not_ try to use a remote Docker image. The canonical example
+	// of this is when we are trying out a branch of preguide in PWG.
+	if os.Getenv("PREGUIDE_DEVEL_IMAGE") != "true" && bi.Main.Replace == nil && bi.Main.Version != "(devel)" && bi.Main.Version != "" {
 		dr.Args = append(dr.Args, fmt.Sprintf("playwithgo/preguide:%v", bi.Main.Version))
 		return
 	}
