@@ -74,15 +74,13 @@ world
 
 Here are some commands:
 
-```.term1
-$ echo "Hello, world!"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISIKdG91Y2ggYmxhaApmYWxzZQpscwo="><code class="language-.term1">$ echo "Hello, world!"
 Hello, world!
 $ touch blah
 $ false
 $ ls
 blah
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISIKdG91Y2ggYmxhaApmYWxzZQpscwo="}
+</code></pre>
 
 Here we talk about the second of those commands, `false`.
 

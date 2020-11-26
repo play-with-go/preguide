@@ -66,10 +66,14 @@ type step interface {
 	order() int
 	terminal() string
 	setorder(int)
-	render(types.Mode, io.Writer)
+	render(io.Writer, renderOptions)
 	renderLog(types.Mode, io.Writer)
 	setOutputFrom(step)
 	mustBeReferenced() bool
+}
+
+type renderOptions struct {
+	mode types.Mode
 }
 
 type commandStep struct {
@@ -198,34 +202,35 @@ func (pdc *processDirContext) commadStepFromSyntaxFile(res *commandStep, f *synt
 	return res, nil
 }
 
-func (c *commandStep) render(mode types.Mode, w io.Writer) {
-	switch mode {
-	case types.ModeJekyll:
-		fmt.Fprintf(w, "```.%v\n", c.Terminal)
-	case types.ModeGitHub:
-		fmt.Fprintf(w, "```\n")
-	}
-	var cmds bytes.Buffer
-	enc := base64.NewEncoder(base64.StdEncoding, &cmds)
+func (c *commandStep) render(w io.Writer, opts renderOptions) {
+	var cmds, encCmds bytes.Buffer
+	enc := base64.NewEncoder(base64.StdEncoding, &encCmds)
 	if len(c.Stmts) > 0 {
 		var stmt *commandStmt
 		for _, stmt = range c.Stmts {
 			fmt.Fprintf(enc, "%s\n", stmt.CmdStr)
-			fmt.Fprintf(w, "$ %s\n", stmt.CmdStr)
-			fmt.Fprintf(w, "%s", stmt.Output)
+			// replaceBraces is safe to do here because in all modes we are
+			// outputting <pre><code> blocks
+			fmt.Fprintf(&cmds, "$ %s\n", replaceBraces(stmt.CmdStr))
+			fmt.Fprintf(&cmds, "%s", replaceBraces(stmt.Output))
 		}
 		// Output a trailing newline if the last block of output did not include one
 		// otherwise the closing code block fence will not render properly
 		if stmt.Output != "" && stmt.Output[len(stmt.Output)-1] != '\n' {
-			fmt.Fprintf(w, "\n")
+			fmt.Fprintf(&cmds, "\n")
 		}
 	}
-	fmt.Fprintf(w, "```")
 	enc.Close()
-	switch mode {
+	switch opts.mode {
 	case types.ModeJekyll:
-		fmt.Fprintf(w, "\n{:data-command-src=%q}", cmds.Bytes())
+		fmt.Fprintf(w, "<pre data-command-src=\"%s\"><code class=\"language-%v\">", encCmds.Bytes(), "."+c.Terminal)
+	case types.ModeGitHub:
+		// Note we are not using language syntax highlighting here because we
+		// prefer to be able to use <b> and <i> for diff and filenames respectively
+		fmt.Fprintf(w, "<pre><code>")
 	}
+	fmt.Fprintf(w, "%s", cmds.Bytes())
+	fmt.Fprintf(w, "</code></pre>")
 }
 
 func (c *commandStep) renderLog(mode types.Mode, w io.Writer) {
@@ -347,9 +352,12 @@ func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*up
 	return res, nil
 }
 
-func (u *uploadStep) render(mode types.Mode, w io.Writer) {
-	renderedSource, err := u.Renderer.Render(mode, u.Source)
+func (u *uploadStep) render(w io.Writer, opts renderOptions) {
+	renderedSource, err := u.Renderer.Render(opts.mode, u.Source)
 	check(err, "failed to render upload step: %v", err)
+	// replaceBraces is safe to do here because in all modes we are
+	// outputting <pre><code> blocks
+	renderedSource = replaceBraces(renderedSource)
 	source := base64Encode(u.Source)
 	// Workaround github.com/play-with-go/play-with-go/issues/44 by encoding the
 	// target as base64 in case it contains any {{.BLAH}} templates.  The
@@ -357,16 +365,16 @@ func (u *uploadStep) render(mode types.Mode, w io.Writer) {
 	// attempted replacement of the substitution happens.
 	targetDir := base64Encode(path.Dir(u.Target))
 	targetFile := base64Encode(path.Base(u.Target))
-	switch mode {
+	switch opts.mode {
 	case types.ModeJekyll:
 		fmt.Fprintf(w, "<pre data-upload-path=\"%v\" data-upload-src=\"%v:%v\" data-upload-term=\"%v\"><code class=\"language-%v\">", targetDir, targetFile, source, "."+u.Terminal, u.Language)
-		fmt.Fprintf(w, "%s", renderedSource)
-		fmt.Fprintf(w, "</code></pre>")
 	case types.ModeGitHub:
-		fmt.Fprintf(w, "```%v\n", u.Language)
-		fmt.Fprintf(w, "%s", renderedSource)
-		fmt.Fprintf(w, "```n")
+		// Note we are not using language syntax highlighting here because we
+		// prefer to be able to use <b> and <i> for diff and filenames respectively
+		fmt.Fprintf(w, "<pre><code>")
 	}
+	fmt.Fprintf(w, "%s", renderedSource)
+	fmt.Fprintf(w, "</code></pre>")
 }
 
 func (u *uploadStep) mustBeReferenced() bool {
@@ -386,4 +394,10 @@ func (u *uploadStep) renderLog(mode types.Mode, w io.Writer) {
 }
 
 func (u *uploadStep) setOutputFrom(s step) {
+}
+
+func replaceBraces(s string) string {
+	s = strings.ReplaceAll(s, "{", "&#123;")
+	s = strings.ReplaceAll(s, "}", "&#125;")
+	return s
 }

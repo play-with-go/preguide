@@ -103,15 +103,13 @@ title: A test with all directives
 ---
 # Step 1
 
-```.term1
-$ echo "Hello, world! I am a #Command"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"><code class="language-.term1">$ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
 blah
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
+</code></pre>
 
 # Step 2
 
@@ -139,15 +137,13 @@ title: A test with all directives
 ---
 # Step 1
 
-```.term1
-$ echo "Hello, world! I am a #Command"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"><code class="language-.term1">$ echo "Hello, world! I am a #Command"
 Hello, world! I am a #Command
 $ touch blah
 $ false
 $ ls
 blah
-```
-{:data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"}
+</code></pre>
 
 # Step 2
 

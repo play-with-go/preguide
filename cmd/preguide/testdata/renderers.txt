@@ -105,11 +105,9 @@ title: A test with all directives
 ---
 # Step 1
 
-```.term1
-$ echo -n "Hello"
+<pre data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="><code class="language-.term1">$ echo -n "Hello"
 Hello
-```
-{:data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="}
+</code></pre>
 
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"><code class="language-md">This is some markdown `with code`
 Another line
@@ -124,11 +122,9 @@ title: A test with all directives
 ---
 # Step 1
 
-```.term1
-$ echo -n "Hello"
+<pre data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="><code class="language-.term1">$ echo -n "Hello"
 Hello
-```
-{:data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="}
+</code></pre>
 
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="c29tZXdoZXJlLm1k:VGhpcyBpcyBzb21lIG1hcmtkb3duIGB3aXRoIGNvZGVgCkFub3RoZXIgbGluZQpBIHRoaXJkIGxpbmU=" data-upload-term=".term1"><code class="language-md">...
 Another line

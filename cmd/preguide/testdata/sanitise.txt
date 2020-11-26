@@ -103,16 +103,16 @@ title: A test with output that should be sanitised
 
 import &#34;fmt&#34;
 
-func main() {
+func main() &#123;
 	fmt.Println(&#34;Hello, world!&#34;)
-}
+&#125;
 
-func Fib(n int) int {
-        if n &lt; 2 {
+func Fib(n int) int &#123;
+        if n &lt; 2 &#123;
                 return n
-        }
+        &#125;
         return Fib(n-1) + Fib(n-2)
-}
+&#125;
 </code></pre>
 
 # Create test file
@@ -124,40 +124,36 @@ import (
 	&#34;testing&#34;
 )
 
-func TestHello(t *testing.T) {
+func TestHello(t *testing.T) &#123;
 	fmt.Println(&#34;Hello, world... from the test!&#34;)
-}
+&#125;
 
-func BenchmarkFib10(b *testing.B) {
+func BenchmarkFib10(b *testing.B) &#123;
         // run the Fib function b.N times
-        for n := 0; n &lt; b.N; n++ {
+        for n := 0; n &lt; b.N; n++ &#123;
                 Fib(10)
-        }
-}
+        &#125;
+&#125;
 </code></pre>
 
 # Test
 
-```.term1
-$ go test
+<pre data-command-src="Z28gdGVzdAo="><code class="language-.term1">$ go test
 Hello, world... from the test!
 PASS
 ok  	_/home/gopher	${regex_float}s
-```
-{:data-command-src="Z28gdGVzdAo="}
+</code></pre>
 
 # Benchmark
 
-```.term1
-$ go test -bench=.
+<pre data-command-src="Z28gdGVzdCAtYmVuY2g9Lgo="><code class="language-.term1">$ go test -bench=.
 Hello, world... from the test!
 goos: linux
 goarch: amd64
 BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
 PASS
 ok  	_/home/gopher	${regex_float}s
-```
-{:data-command-src="Z28gdGVzdCAtYmVuY2g9Lgo="}
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ cat <<EOD > /home/gopher/hello.go

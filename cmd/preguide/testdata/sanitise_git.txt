@@ -120,46 +120,36 @@ lang: en
 title: A test with output that should be sanitised
 ---
 
-```.term1
-$ mkdir example
+<pre data-command-src="bWtkaXIgZXhhbXBsZQpjZCBleGFtcGxlCmdpdCBpbml0Cg=="><code class="language-.term1">$ mkdir example
 $ cd example
 $ git init
 Initialized empty Git repository in /home/gopher/example/.git/
-```
-{:data-command-src="bWtkaXIgZXhhbXBsZQpjZCBleGFtcGxlCmdpdCBpbml0Cg=="}
+</code></pre>
 
 <pre data-upload-path="L2hvbWUvZ29waGVyL2V4YW1wbGU=" data-upload-src="UkVBRE1FLm1k:VGhpcyBpcyBhIHRlc3Qu" data-upload-term=".term1"><code class="language-md">This is a test.</code></pre>
 
-```.term1
-$ git add -A
+<pre data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="><code class="language-.term1">$ git add -A
 $ git commit -am 'Initial commit'
 [main (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
-```
-{:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="}
+</code></pre>
 
-```.term1
-$ git rev-parse HEAD
+<pre data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="><code class="language-.term1">$ git rev-parse HEAD
 abcdefg123456789
-```
-{:data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="}
+</code></pre>
 
 <pre data-upload-path="L2hvbWUvZ29waGVyL2V4YW1wbGU=" data-upload-src="UkVBRE1FLm1k:VGhpcyBpcyBhIHRlc3QuLi4gYWdhaW4h" data-upload-term=".term1"><code class="language-md">This is a test... again!</code></pre>
 
-```.term1
-$ git add -A
+<pre data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnU2Vjb25kIGNvbW1pdCcK"><code class="language-.term1">$ git add -A
 $ git commit -am 'Second commit'
 [main abcd123] Second commit
  1 file changed, 1 insertion(+), 1 deletion(-)
-```
-{:data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnU2Vjb25kIGNvbW1pdCcK"}
+</code></pre>
 
-```.term1
-$ git rev-parse HEAD
+<pre data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="><code class="language-.term1">$ git rev-parse HEAD
 abcdefg123456789
-```
-{:data-command-src="Z2l0IHJldi1wYXJzZSBIRUFECg=="}
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ mkdir example

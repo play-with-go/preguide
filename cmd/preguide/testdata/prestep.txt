@@ -118,11 +118,9 @@ title: A test with all directives
 ---
 # Step 1
 
-```.term1
-$ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
-The answer is: {% raw %}{{.GREETING}}{% endraw %}!
-```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
+<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo "The answer is: &#123;&#123;.GREETING&#125;&#125;!"
+The answer is: &#123;&#123;.GREETING&#125;&#125;!
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ echo "The answer is: {{.GREETING}}!"
@@ -135,11 +133,9 @@ title: A test with all directives
 ---
 # Step 1
 
-```.term1
-$ echo "The answer is: {% raw %}{{.GREETING}}{% endraw %}!"
-The answer is: {% raw %}{{.GREETING}}{% endraw %}!
-```
-{:data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
+<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo "The answer is: &#123;&#123;.GREETING&#125;&#125;!"
+The answer is: &#123;&#123;.GREETING&#125;&#125;!
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.other.golden --
 $ echo "The answer is: {{.GREETING}}!"

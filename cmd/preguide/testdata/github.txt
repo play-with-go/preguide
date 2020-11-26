@@ -12,15 +12,18 @@ title: A test with all directives
 ---
 # Step 1
 
-{{ step "step1" }}
+{{{ step "step1" }}}
 
 # Step 2
 
-{{ step "step2" }}
+{{{ step "step2" }}}
 -- myguide/steps.cue --
 package steps
 
 import "github.com/play-with-go/preguide"
+
+// In order that we can test the handling of braces below
+Delims: ["{{{", "}}}"]
 
 Scenarios: go115: preguide.#Scenario & {
 	Description: "Go 1.15"
@@ -33,7 +36,7 @@ Terminals: term1: preguide.#Terminal & {
 
 Steps: step1: preguide.#Command & {
 	Source: """
-echo "Hello, world! I am a #Command"
+echo "Hello, world! I am a #Command { ok } {{ .ok }}"
 touch blah
 ! false
 ls
@@ -47,25 +50,33 @@ Steps: step2: preguide.#Upload & {
 
 echo "Hello, world! I am an #Upload"
 
+I contain some single brace blocks {
+}
+
+And some doubles {{ .hello }}
+
 """
 }
 
 -- myguide/go115_en.markdown.golden --
 # Step 1
 
-```
-$ echo "Hello, world! I am a #Command"
-Hello, world! I am a #Command
+<pre><code>$ echo "Hello, world! I am a #Command &#123; ok &#125; &#123;&#123; .ok &#125;&#125;"
+Hello, world! I am a #Command &#123; ok &#125; &#123;&#123; .ok &#125;&#125;
 $ touch blah
 $ false
 $ ls
 blah
-```
+</code></pre>
 
 # Step 2
 
-```bash
-#!/usr/bin/env bash
+<pre><code>#!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
-```n
+
+I contain some single brace blocks &#123;
+&#125;
+
+And some doubles &#123;&#123; .hello &#125;&#125;
+</code></pre>
