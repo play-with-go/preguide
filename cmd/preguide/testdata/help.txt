@@ -65,7 +65,7 @@ usage: preguide gen
 	  -image string
 	        the image to use instead of the guide-specified image
 	  -mode value
-	        the output mode. Valid values are: jekyll, github (default jekyll)
+	        the output mode. Valid values are: jekyll, github, raw (default jekyll)
 	  -out string
 	        the target directory for generation. If no value is specified it defaults to the input directory
 	  -package string
@@ -74,8 +74,6 @@ usage: preguide gen
 	        allow parallel execution of preguide scripts. The value of this flag is the maximum number of scripts to run simultaneously. By default it is set to the value of GOMAXPROCS
 	  -pull string
 	        try and docker pull image if missing
-	  -raw
-	        generate raw output for steps
 	  -run string
 	        regexp that describes which guides within dir to validate and run (default ".")
 	  -runargs value

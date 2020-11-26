@@ -4,7 +4,6 @@
 preguide gen -out _output
 ! stdout .+
 ! stderr .+
-exec find -type f
 cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
 cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
