@@ -108,6 +108,7 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
+FilenameComment: false
 Steps: {
 	step1: {
 		Stmts: [{

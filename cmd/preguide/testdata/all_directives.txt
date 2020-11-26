@@ -54,6 +54,8 @@ Scenarios: go115: preguide.#Scenario & {
 	Description: "Go 1.15"
 }
 
+FilenameComment: true
+
 Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
@@ -129,13 +131,17 @@ Hello, world! I am a #CommandFile
 
 # Step 3
 
-<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh">#!/usr/bin/env bash
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c29tZXdoZXJlLnNo:IyEvdXNyL2Jpbi9lbnYgYmFzaAoKZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWQi" data-upload-term=".term1"><code class="language-sh"><i class="filename"># /scripts/somewhere.sh</i>
+
+#!/usr/bin/env bash
 
 echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 
 # Step 4
 
-<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash">echo &#34;Hello, world! I am an #UploadFile&#34;
+<pre data-upload-path="L3NjcmlwdHM=" data-upload-src="c3RlcDIuc2g=:ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGFuICNVcGxvYWRGaWxlIgo=" data-upload-term=".term1"><code class="language-bash"><i class="filename"># /scripts/step2.sh</i>
+
+echo &#34;Hello, world! I am an #UploadFile&#34;
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --

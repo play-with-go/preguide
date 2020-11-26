@@ -51,15 +51,16 @@ func (m *Mode) Set(v string) error {
 }
 
 type Guide struct {
-	Languages []string
-	Delims    [2]string
-	Presteps  []*preguide.Prestep
-	Steps     Steps
-	Terminals map[string]*preguide.Terminal
-	Scenarios map[string]*preguide.Scenario
-	Defs      map[string]interface{}
-	Networks  []string
-	Env       []string
+	Languages       []string
+	Delims          [2]string
+	Presteps        []*preguide.Prestep
+	FilenameComment bool
+	Steps           Steps
+	Terminals       map[string]*preguide.Terminal
+	Scenarios       map[string]*preguide.Scenario
+	Defs            map[string]interface{}
+	Networks        []string
+	Env             []string
 }
 
 type LangCode string

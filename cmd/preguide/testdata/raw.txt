@@ -67,6 +67,7 @@ Scenarios: [{
 }]
 Networks: []
 Env: ["A=B"]
+FilenameComment: false
 Steps: {
 	step1: {
 		Stmts: [{
