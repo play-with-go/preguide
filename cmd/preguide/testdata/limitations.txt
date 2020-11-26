@@ -11,7 +11,8 @@ stderr 'demarkdown/guide/de.markdown: "de" is not a valid language for this guid
 # hence non-English steps should fail
 ! preguide gen -out desteps/_output -dir desteps
 ! stdout .+
-stderr 'desteps/guide: failed to decode guide: \*cue.marshalError cue: marshal error: #Guide.Steps.step1: cannot convert incomplete value'
+stderr 'desteps/guide: mod.com/desteps/guide does not satisfy github.com/play-with-go/preguide.#Guide: #Guide.Steps.step1: empty disjunction'
+stderr '#Guide.Steps.step1: field `de` not allowed'
 
 # Only support a single terminal
 ! preguide gen -out multipleterminals/_output -dir multipleterminals

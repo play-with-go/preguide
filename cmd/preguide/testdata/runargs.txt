@@ -37,36 +37,36 @@ echo -n "The answer is: $GREETING"
 package out
 
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: []
 FilenameComment: false
 Steps: {
 	step1: {
-		Stmts: [{
-			ComparisonOutput: "The answer is: hello"
-			Output:           "The answer is: hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"The answer is: $GREETING\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step1"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:          false
+			CmdStr:           "echo -n \"The answer is: $GREETING\""
+			ExitCode:         0
+			Output:           "The answer is: hello"
+			ComparisonOutput: "The answer is: hello"
+		}]
 	}
 }
 Hash: "95aec4e582ce6f9172c4e74915228af4bb57485147114ccfee8d24163d516952"

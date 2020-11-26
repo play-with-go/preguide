@@ -445,7 +445,7 @@ func (gc *genCmd) loadConfig() {
 		res = res.Unify(inst.Value())
 	}
 
-	res = gc.schemas.PrestepServiceConfig.UnifyAccept(res, gc.schemas.PrestepServiceConfig)
+	res = gc.schemas.PrestepServiceConfig.Unify(res)
 	err := res.Validate()
 	check(err, "failed to validate input config: %v", err)
 
@@ -675,7 +675,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	// We derive dv here because default values will be available via that
 	// where required, but will not have source information (which is required
 	// below)
-	gv = pdc.schemas.Guide.UnifyAccept(gv, pdc.schemas.Guide)
+	gv = pdc.schemas.Guide.Unify(gv)
 	err = gv.Validate()
 	if err != nil {
 		var errstr strings.Builder
@@ -884,7 +884,7 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	// gv is the value that represents the guide's CUE package
 	gv := gi.Value()
 
-	err = pdc.schemas.GuideOutput.UnifyAccept(gv, (pdc.schemas.GuideOutput)).Validate()
+	err = pdc.schemas.GuideOutput.Unify(gv).Validate()
 	if !full && err != nil {
 		return
 	}
@@ -1906,7 +1906,7 @@ func (gc *genCmd) writeGuideStructures() {
 	i2, _ := gc.runtime.Compile("hello.cue", vn)
 	v2 := i2.Value()
 
-	err = gc.schemas.GuideStructures.UnifyAccept(v2, gc.schemas.GuideStructures).Validate()
+	err = gc.schemas.GuideStructures.Unify(v2).Validate()
 	check(err, "failed to validate guide structures against schema: %v", err)
 	pkgName := *gc.fPackage
 	if pkgName == "" {
