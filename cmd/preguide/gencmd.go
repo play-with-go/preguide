@@ -106,7 +106,6 @@ type genCmd struct {
 	fImageOverride *string
 	fPullImage     *string
 	fDocker        *bool
-	fRaw           *bool
 	fPackage       *string
 	fDebugCache    *bool
 	fRun           *string
@@ -217,12 +216,11 @@ func newGenCmd(r *runner) *genCmd {
 		res.fImageOverride = fs.String("image", os.Getenv("PREGUIDE_IMAGE_OVERRIDE"), "the image to use instead of the guide-specified image")
 		res.fPullImage = fs.String("pull", os.Getenv("PREGUIDE_PULL_IMAGE"), "try and docker pull image if missing")
 		res.fDocker = fs.Bool("docker", false, "internal flag: run prestep requests in a docker container")
-		res.fRaw = fs.Bool("raw", false, "generate raw output for steps")
 		res.fPackage = fs.String("package", "", "the CUE package name to use for the generated guide structure file")
 		res.fDebugCache = fs.Bool("debugcache", false, "write a human-readable time-stamp-named file of the guide cache check to the current directory")
 		res.fRun = fs.String("run", envOrVal("PREGUIDE_RUN", "."), "regexp that describes which guides within dir to validate and run")
 		fs.Var(stringFlagList{&res.fRunArgs}, "runargs", "additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times")
-		fs.Var(&res.fMode, "mode", fmt.Sprintf("the output mode. Valid values are: %v, %v", types.ModeJekyll, types.ModeGitHub))
+		fs.Var(&res.fMode, "mode", fmt.Sprintf("the output mode. Valid values are: %v, %v, %v", types.ModeJekyll, types.ModeGitHub, types.ModeRaw))
 		res.fParallel = fs.Int("parallel", 0, "allow parallel execution of preguide scripts. The value of this flag is the maximum number of scripts to run simultaneously. By default it is set to the value of GOMAXPROCS")
 	})
 	return res
@@ -506,7 +504,7 @@ func (pdc *processDirContext) processDirPre(mustContainGuide bool) (err error) {
 	// the out CUE package in g.dir. If we are not running in -raw
 	// mode, we do want to try and load the out CUE package; this is
 	// in effect like the Go build cache check.
-	if !*pdc.fRaw {
+	if pdc.fMode != types.ModeRaw {
 		pdc.loadOutput(false)
 	}
 
@@ -556,7 +554,7 @@ func (pdc *processDirContext) runSteps() {
 	} else {
 		pdc.writeOutPackage(g)
 	}
-	if !*pdc.fRaw {
+	if pdc.fMode != types.ModeRaw {
 		// This step can be made more efficient if we know there is not
 		// anything else in the out package other than the generated data
 		// written in the previous step
@@ -1112,7 +1110,7 @@ func (pdc *processDirContext) writeOutPackage(g *guide) {
 	check(err, "failed to format CUE output: %v", err)
 
 	// If we are in raw mode we dump output to stdout. It's more of a debugging mode
-	if *pdc.fRaw {
+	if pdc.fMode == types.ModeRaw {
 		fmt.Printf("%s", out)
 		return
 	}
@@ -1315,7 +1313,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	//
 	// First add the variables that are the result of the prestep.
 	var sanVals [][2]string
-	if !*pdc.fRaw {
+	if pdc.fMode != types.ModeRaw {
 		for name, val := range g.varMap {
 			repl := g.Delims[0] + "." + name + g.Delims[1]
 			sanVals = append(sanVals, [2]string{
@@ -1327,7 +1325,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 		switch step := step.(type) {
 		case *commandStep:
 			var stepOutput *bytes.Buffer
-			doRandomReplace := !*pdc.fRaw && step.RandomReplace != nil
+			doRandomReplace := pdc.fMode != types.ModeRaw && step.RandomReplace != nil
 			if doRandomReplace {
 				stepOutput = new(bytes.Buffer)
 			}

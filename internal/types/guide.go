@@ -28,6 +28,7 @@ const (
 type Mode string
 
 const (
+	ModeRaw    Mode = "raw"
 	ModeJekyll Mode = "jekyll"
 	ModeGitHub Mode = "github"
 )
@@ -41,7 +42,7 @@ func (m *Mode) String() string {
 
 func (m *Mode) Set(v string) error {
 	switch Mode(v) {
-	case ModeJekyll, ModeGitHub:
+	case ModeJekyll, ModeGitHub, ModeRaw:
 	default:
 		return fmt.Errorf("unknown mode %q", v)
 	}

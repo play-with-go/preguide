@@ -24,8 +24,8 @@ preguide gen -config conf.cue -out _output
 cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
 cmp myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 
-# Run with -raw
-preguide gen -raw -config conf.cue -out _output
+# Run with -mode raw
+preguide gen -mode raw -config conf.cue -out _output
 cmp stdout myguide/raw.cue.golden
 ! stderr .+
 cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.raw.golden
@@ -130,19 +130,11 @@ Steps: {
 Hash: "e419ad5f6c5f02aa9c78658abb5b4ef480ebc0783a23072224c9c38d8c4ff830"
 Delims: ["{{", "}}"]
 -- myguide/go115_en.markdown.raw.golden --
----
-guide: myguide
-lang: en
-title: A test with all directives
----
 # Step 1
 
-```.term1
 $ echo -n "The answer is: Hello, world!!"
 The answer is: Hello, world!!
 ```
-{:data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="}
-<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.raw.golden --
 $ echo -n "The answer is: {{.GREETING}}!"
 The answer is: Hello, world!!

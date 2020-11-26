@@ -243,7 +243,7 @@ func (pdc *processDirContext) writeGuideOutput() {
 		//
 		// However, if there are no vars, then the substitution will have zero
 		// effect (regardless of whether there are any templates to be expanded)
-		if !*pdc.genCmd.fRaw || len(g.vars) == 0 {
+		if pdc.genCmd.fMode != types.ModeRaw || len(g.vars) == 0 {
 			// Build a map of the variable names to escape
 			escVarMap := make(map[string]string)
 			for v := range g.varMap {

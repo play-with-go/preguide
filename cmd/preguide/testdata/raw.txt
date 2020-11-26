@@ -1,7 +1,7 @@
 # Test that we get the expected output when using -raw
 
 # A run should generate stdout but no out/gen_out.cue file
-preguide gen -raw -out _output
+preguide gen -mode raw -out _output
 cmp stdout myguide/stdout
 ! stderr .+
 ! exists myguide/out/gen_out.cue
