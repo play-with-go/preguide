@@ -103,7 +103,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"><code class="language-.term1">$ echo "Hello, world! I am a #Command"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"><code class="language-.term1">$ echo &#34;Hello, world! I am a #Command&#34;
 Hello, world! I am a #Command
 $ touch blah
 $ false
@@ -137,7 +137,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"><code class="language-.term1">$ echo "Hello, world! I am a #Command"
+<pre data-command-src="ZWNobyAiSGVsbG8sIHdvcmxkISBJIGFtIGEgI0NvbW1hbmQiCnRvdWNoIGJsYWgKZmFsc2UKbHMK"><code class="language-.term1">$ echo &#34;Hello, world! I am a #Command&#34;
 Hello, world! I am a #Command
 $ touch blah
 $ false

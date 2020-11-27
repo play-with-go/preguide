@@ -129,7 +129,7 @@ Initialized empty Git repository in /home/gopher/example/.git/
 <pre data-upload-path="L2hvbWUvZ29waGVyL2V4YW1wbGU=" data-upload-src="UkVBRE1FLm1k:VGhpcyBpcyBhIHRlc3Qu" data-upload-term=".term1"><code class="language-md">This is a test.</code></pre>
 
 <pre data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnSW5pdGlhbCBjb21taXQnCg=="><code class="language-.term1">$ git add -A
-$ git commit -am 'Initial commit'
+$ git commit -am &#39;Initial commit&#39;
 [main (root-commit) abcd123] Initial commit
  1 file changed, 1 insertion(+)
  create mode 100644 README.md
@@ -142,7 +142,7 @@ abcdefg123456789
 <pre data-upload-path="L2hvbWUvZ29waGVyL2V4YW1wbGU=" data-upload-src="UkVBRE1FLm1k:VGhpcyBpcyBhIHRlc3QuLi4gYWdhaW4h" data-upload-term=".term1"><code class="language-md">This is a test... again!</code></pre>
 
 <pre data-command-src="Z2l0IGFkZCAtQQpnaXQgY29tbWl0IC1hbSAnU2Vjb25kIGNvbW1pdCcK"><code class="language-.term1">$ git add -A
-$ git commit -am 'Second commit'
+$ git commit -am &#39;Second commit&#39;
 [main abcd123] Second commit
  1 file changed, 1 insertion(+), 1 deletion(-)
 </code></pre>
