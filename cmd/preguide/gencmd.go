@@ -687,6 +687,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	err = gv.Decode(&intGuide)
 	check(err, "failed to decode guide: %T %v", err, err)
 
+	g.FilenameComment = intGuide.FilenameComment
 	g.langs = intGuide.Languages
 	g.Delims = intGuide.Delims
 	g.Networks = intGuide.Networks

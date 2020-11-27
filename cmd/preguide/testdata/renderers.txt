@@ -149,6 +149,7 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
+FilenameComment: false
 Steps: {
 	step0: {
 		Stmts: [{
@@ -202,6 +203,7 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
+FilenameComment: false
 Steps: {
 	step0: {
 		Stmts: [{

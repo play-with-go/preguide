@@ -74,7 +74,8 @@ type step interface {
 }
 
 type renderOptions struct {
-	mode types.Mode
+	mode            types.Mode
+	FilenameComment bool
 }
 
 type commandStep struct {
@@ -377,6 +378,9 @@ func (u *uploadStep) render(w io.Writer, opts renderOptions) {
 		// prefer to be able to use <b> and <i> for diff and filenames respectively
 		fmt.Fprintf(w, "<pre><code>")
 	}
+	if opts.FilenameComment {
+		fmt.Fprintf(w, "<i class=\"filename\">%s</i>\n\n", comment(opts.mode, u.Target, u.Language))
+	}
 	fmt.Fprintf(w, "%s", renderedSource)
 	fmt.Fprintf(w, "</code></pre>")
 }
@@ -404,4 +408,33 @@ func replaceBraces(s string) string {
 	s = strings.ReplaceAll(s, "{", "&#123;")
 	s = strings.ReplaceAll(s, "}", "&#125;")
 	return s
+}
+
+func comment(mode types.Mode, s string, lang string) (res string) {
+	switch lang {
+	case "go", "go.mod":
+		res = linewiseComment(s, "// ")
+	case "sh", "bash", "txt", "toml":
+		res = linewiseComment(s, "# ")
+	case "markdown", "md", "mkd", "mkdn", "mdown": // sync with markdownFile regex
+		res = fmt.Sprintf("<!-- %v -->", s)
+	default:
+		raise("don't know how to comment language %v", lang)
+	}
+	if mode == types.ModeJekyll {
+		res = template.HTMLEscapeString(res)
+	}
+	return res
+}
+
+func linewiseComment(s string, prefix string) string {
+	lines := strings.Split(s, "\n")
+	end := len(lines)
+	if lines[end-1] == "" {
+		end--
+	}
+	for i, l := range lines[:end] {
+		lines[i] = prefix + l
+	}
+	return strings.Join(lines, "\n")
 }

@@ -43,6 +43,8 @@ type guide struct {
 	Networks  []string
 	Env       []string
 
+	FilenameComment bool
+
 	Steps      steps
 	bashScript string
 	Hash       string
@@ -151,7 +153,8 @@ func (pdc *processDirContext) writeGuideOutput() {
 	check(err, "failed to os.MkdirAll %v: %v", postsDir, err)
 
 	renderOpts := renderOptions{
-		mode: pdc.fMode,
+		mode:            pdc.fMode,
+		FilenameComment: g.FilenameComment,
 	}
 
 	for _, md := range g.mdFiles {
