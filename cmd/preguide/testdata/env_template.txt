@@ -77,7 +77,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo -n "The answer is: &#123;&#123;.GREETING&#125;&#125;!"
+<pre data-command-src="ZWNobyAtbiAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo -n &#34;The answer is: &#123;&#123;.GREETING&#125;&#125;!&#34;
 The answer is: &#123;&#123;.GREETING&#125;&#125;!
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
@@ -130,7 +130,7 @@ Delims: ["{{", "}}"]
 -- myguide/go115_en.markdown.raw.golden --
 # Step 1
 
-$ echo -n "The answer is: &#123;&#123;.GREETING&#125;&#125;!"
+$ echo -n &#34;The answer is: &#123;&#123;.GREETING&#125;&#125;!&#34;
 The answer is: Hello, world!!
 </code></pre>
 -- myguide/go115_en_log.txt.raw.golden --

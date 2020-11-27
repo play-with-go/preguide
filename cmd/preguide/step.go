@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"path"
 	"strings"
+	"text/template"
 
 	"github.com/play-with-go/preguide/internal/types"
 	"github.com/play-with-go/preguide/sanitisers"
@@ -211,8 +212,8 @@ func (c *commandStep) render(w io.Writer, opts renderOptions) {
 			fmt.Fprintf(enc, "%s\n", stmt.CmdStr)
 			// replaceBraces is safe to do here because in all modes we are
 			// outputting <pre><code> blocks
-			fmt.Fprintf(&cmds, "$ %s\n", replaceBraces(stmt.CmdStr))
-			fmt.Fprintf(&cmds, "%s", replaceBraces(stmt.Output))
+			fmt.Fprintf(&cmds, "$ %s\n", stmt.CmdStr)
+			fmt.Fprintf(&cmds, "%s", stmt.Output)
 		}
 		// Output a trailing newline if the last block of output did not include one
 		// otherwise the closing code block fence will not render properly
@@ -229,7 +230,10 @@ func (c *commandStep) render(w io.Writer, opts renderOptions) {
 		// prefer to be able to use <b> and <i> for diff and filenames respectively
 		fmt.Fprintf(w, "<pre><code>")
 	}
-	fmt.Fprintf(w, "%s", cmds.Bytes())
+	cmdsStr := cmds.String()
+	cmdsStr = template.HTMLEscapeString(cmdsStr)
+	cmdsStr = replaceBraces(cmdsStr)
+	fmt.Fprintf(w, "%s", cmdsStr)
 	fmt.Fprintf(w, "</code></pre>")
 }
 

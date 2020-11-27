@@ -61,7 +61,7 @@ And some doubles {{ .hello }}
 -- myguide/go115_en.markdown.golden --
 # Step 1
 
-<pre><code>$ echo "Hello, world! I am a #Command &#123; ok &#125; &#123;&#123; .ok &#125;&#125;"
+<pre><code>$ echo &#34;Hello, world! I am a #Command &#123; ok &#125; &#123;&#123; .ok &#125;&#125;&#34;
 Hello, world! I am a #Command &#123; ok &#125; &#123;&#123; .ok &#125;&#125;
 $ touch blah
 $ false

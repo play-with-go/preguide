@@ -118,7 +118,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo "The answer is: &#123;&#123;.GREETING&#125;&#125;!"
+<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo &#34;The answer is: &#123;&#123;.GREETING&#125;&#125;!&#34;
 The answer is: &#123;&#123;.GREETING&#125;&#125;!
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
@@ -133,7 +133,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo "The answer is: &#123;&#123;.GREETING&#125;&#125;!"
+<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3suR1JFRVRJTkd9fSEiCg=="><code class="language-.term1">$ echo &#34;The answer is: &#123;&#123;.GREETING&#125;&#125;!&#34;
 The answer is: &#123;&#123;.GREETING&#125;&#125;!
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>

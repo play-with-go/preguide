@@ -105,7 +105,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="><code class="language-.term1">$ echo -n "Hello"
+<pre data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="><code class="language-.term1">$ echo -n &#34;Hello&#34;
 Hello
 </code></pre>
 
@@ -122,7 +122,7 @@ title: A test with all directives
 ---
 # Step 1
 
-<pre data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="><code class="language-.term1">$ echo -n "Hello"
+<pre data-command-src="ZWNobyAtbiAiSGVsbG8iCg=="><code class="language-.term1">$ echo -n &#34;Hello&#34;
 Hello
 </code></pre>
 

@@ -81,9 +81,9 @@ title: A test with all directives
 The heading here is actually invalid in Jekyll mode because Jekyll will try
 and interpret the braces.
 
-<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIKZWNobyAiVGhpcyBpcyBhIHRlc3Qge30iCg=="><code class="language-.term1">$ echo "The answer is: &#123;&#123;&#123;.GREETING&#125;&#125;&#125;!"
+<pre data-command-src="ZWNobyAiVGhlIGFuc3dlciBpczoge3t7LkdSRUVUSU5HfX19ISIKZWNobyAiVGhpcyBpcyBhIHRlc3Qge30iCg=="><code class="language-.term1">$ echo &#34;The answer is: &#123;&#123;&#123;.GREETING&#125;&#125;&#125;!&#34;
 The answer is: &#123;&#123;&#123;.GREETING&#125;&#125;&#125;!
-$ echo "This is a test &#123;&#125;"
+$ echo &#34;This is a test &#123;&#125;&#34;
 This is a test &#123;&#125;
 </code></pre>
 
