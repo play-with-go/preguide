@@ -87,54 +87,65 @@ Hello
 package out
 
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: []
 FilenameComment: false
 Steps: {
 	step0: {
-		Stmts: [{
-			ComparisonOutput: "Hello"
-			Output:           "Hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step0"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:          false
+			CmdStr:           "echo -n \"Hello\""
+			ExitCode:         0
+			Output:           "Hello"
+			ComparisonOutput: "Hello"
+		}]
 	}
 	step1: {
-		Order: 1
+		StepType: 2
+		Name:     "step1"
+		Order:    1
+		Terminal: "term1"
+		Language: "md"
+		Renderer: {
+			RendererType: 1
+		}
 		Source: """
 			This is some markdown `with code`
 
 			"""
-		Renderer: {
-			RendererType: 1
-		}
-		Language: "md"
-		Target:   "/home/gopher/somewhere.md"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step1"
+		Target: "/home/gopher/somewhere.md"
 	}
 	step2: {
-		Order: 2
+		StepType: 2
+		Name:     "step2"
+		Order:    2
+		Terminal: "term1"
+		Language: "md"
+		Renderer: {
+			RendererType: 3
+			Pre: """
+				This is some markdown `with code`
+
+				"""
+		}
 		Source: """
 			This is some markdown `with code`
 			Another line
@@ -142,18 +153,7 @@ Steps: {
 			<nil>
 
 			"""
-		Renderer: {
-			Pre: """
-				This is some markdown `with code`
-
-				"""
-			RendererType: 3
-		}
-		Language: "md"
-		Target:   "/home/gopher/somewhere.md"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step2"
+		Target: "/home/gopher/somewhere.md"
 	}
 }
 Hash: "2841b23ef64f8d9cf3fd9f71066788dd07bcb2bec56c6c609070023b33c455fd"

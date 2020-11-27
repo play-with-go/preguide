@@ -53,48 +53,48 @@ echo -n "Hello, world!"
 package out
 
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: ["A=B"]
 FilenameComment: false
 Steps: {
 	step1: {
-		Stmts: [{
-			ComparisonOutput: "Hello, world!"
-			Output:           "Hello, world!"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello, world!\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step1"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:          false
+			CmdStr:           "echo -n \"Hello, world!\""
+			ExitCode:         0
+			Output:           "Hello, world!"
+			ComparisonOutput: "Hello, world!"
+		}]
 	}
 	step2: {
-		Order:  1
-		Source: "echo -n \"Hello, world!\""
+		StepType: 2
+		Name:     "step2"
+		Order:    1
+		Terminal: "term1"
+		Language: "sh"
 		Renderer: {
 			RendererType: 1
 		}
-		Language: "sh"
-		Target:   "/home/gopher/special.sh"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step2"
+		Source: "echo -n \"Hello, world!\""
+		Target: "/home/gopher/special.sh"
 	}
 }
 Hash: "c3ff9c8755cc05011560b487162a59cc316da54934b4dd0ac5796bdebd64c0b5"

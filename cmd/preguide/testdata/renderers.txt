@@ -135,52 +135,52 @@ Another line
 package out
 
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: []
 FilenameComment: false
 Steps: {
 	step0: {
-		Stmts: [{
-			ComparisonOutput: "Hello"
-			Output:           "Hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step0"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:          false
+			CmdStr:           "echo -n \"Hello\""
+			ExitCode:         0
+			Output:           "Hello"
+			ComparisonOutput: "Hello"
+		}]
 	}
 	step1: {
-		Order: 1
+		StepType: 2
+		Name:     "step1"
+		Order:    1
+		Terminal: "term1"
+		Language: "md"
+		Renderer: {
+			RendererType: 1
+		}
 		Source: """
 			This is some markdown `with code`
 			Another line
 			A third line
 			"""
-		Renderer: {
-			RendererType: 1
-		}
-		Language: "md"
-		Target:   "/home/gopher/somewhere.md"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step1"
+		Target: "/home/gopher/somewhere.md"
 	}
 }
 Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
@@ -189,52 +189,52 @@ Delims: ["{{", "}}"]
 package out
 
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: []
 FilenameComment: false
 Steps: {
 	step0: {
-		Stmts: [{
-			ComparisonOutput: "Hello"
-			Output:           "Hello"
-			ExitCode:         0
-			CmdStr:           "echo -n \"Hello\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step0"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:          false
+			CmdStr:           "echo -n \"Hello\""
+			ExitCode:         0
+			Output:           "Hello"
+			ComparisonOutput: "Hello"
+		}]
 	}
 	step1: {
-		Order: 1
+		StepType: 2
+		Name:     "step1"
+		Order:    1
+		Terminal: "term1"
+		Language: "md"
+		Renderer: {
+			RendererType: 1
+		}
 		Source: """
 			This is some markdown `with code`
 			Another line
 			A third line
 			"""
-		Renderer: {
-			RendererType: 1
-		}
-		Language: "md"
-		Target:   "/home/gopher/somewhere.md"
-		Terminal: "term1"
-		StepType: 2
-		Name:     "step1"
+		Target: "/home/gopher/somewhere.md"
 	}
 }
 Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"

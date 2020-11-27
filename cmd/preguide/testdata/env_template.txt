@@ -88,42 +88,42 @@ The answer is: {{.GREETING}}!
 package out
 
 Presteps: [{
-	Variables: ["GREETING"]
-	Version: "file"
 	Package: "github.com/blah"
 	Path:    "/"
+	Version: "file"
+	Variables: ["GREETING"]
 }]
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: []
 FilenameComment: false
 Steps: {
 	step1: {
-		Stmts: [{
-			ComparisonOutput: "The answer is: Hello, world!!"
-			Output:           "The answer is: Hello, world!!"
-			ExitCode:         0
-			CmdStr:           "echo -n \"The answer is: {{.GREETING}}!\""
-			Negated:          false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step1"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:          false
+			CmdStr:           "echo -n \"The answer is: {{.GREETING}}!\""
+			ExitCode:         0
+			Output:           "The answer is: Hello, world!!"
+			ComparisonOutput: "The answer is: Hello, world!!"
+		}]
 	}
 }
 Hash: "e419ad5f6c5f02aa9c78658abb5b4ef480ebc0783a23072224c9c38d8c4ff830"
