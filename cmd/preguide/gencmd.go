@@ -676,7 +676,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	// where required, but will not have source information (which is required
 	// below)
 	gv = pdc.schemas.Guide.Unify(gv)
-	err = gv.Validate()
+	err = gv.Validate(cue.Concrete(true))
 	if err != nil {
 		var errstr strings.Builder
 		errors.Print(&errstr, err, nil)
