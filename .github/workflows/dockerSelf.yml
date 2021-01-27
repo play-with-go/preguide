@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-        - ubuntu-latest
+        - ubuntu-18.04
         go_version:
-        - 1.15.2
+        - 1.15.7
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code

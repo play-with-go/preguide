@@ -22,6 +22,9 @@ workflows: [
 	run:  "./_scripts/dockerBuildSelf.sh"
 }
 
+_#ubuntuLatest: "ubuntu-18.04"
+_#latestGo:     "1.15.7"
+
 test: json.#Workflow & {
 	name: "Test"
 	env: {
@@ -36,8 +39,8 @@ test: json.#Workflow & {
 		strategy: {
 			"fail-fast": false
 			matrix: {
-				os: ["ubuntu-latest"]
-				go_version: ["1.15.4"]
+				os: [_#ubuntuLatest]
+				go_version: [_#latestGo]
 			}
 		}
 		"runs-on": "${{ matrix.os }}"
@@ -92,8 +95,8 @@ dockerSelf: json.#Workflow & {
 		strategy: {
 			"fail-fast": false
 			matrix: {
-				os: ["ubuntu-latest"]
-				go_version: ["1.15.2"]
+				os: [_#ubuntuLatest]
+				go_version: [_#latestGo]
 			}
 		}
 		"runs-on": "${{ matrix.os }}"
