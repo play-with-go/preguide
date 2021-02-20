@@ -23,7 +23,7 @@ workflows: [
 }
 
 _#ubuntuLatest: "ubuntu-18.04"
-_#latestGo:     "1.15.7"
+_#latestGo:     "1.16"
 
 test: json.#Workflow & {
 	name: "Test"
