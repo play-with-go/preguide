@@ -1,12 +1,11 @@
 module github.com/play-with-go/preguide
 
-go 1.15
+go 1.16
 
 require (
 	cuelang.org/go v0.3.0-beta.5.0.20210217114852-2c86835c2019
 	github.com/gohugoio/hugo v0.69.2
 	github.com/google/go-cmp v0.4.0
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	github.com/kr/pretty v0.2.1
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

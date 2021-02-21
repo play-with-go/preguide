@@ -5,15 +5,19 @@
 package preguide
 
 import (
+	goembed "embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"path/filepath"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/load"
-	"github.com/play-with-go/preguide/internal/embed"
 )
+
+//go:embed preguide.cue out/out.cue cue.mod/module.cue
+var assets goembed.FS
 
 type PrestepOut struct {
 	Vars []string
@@ -74,13 +78,20 @@ func LoadSchemas(r *cue.Runtime) (res Schemas, err error) {
 	}()
 
 	overlay := make(map[string]load.Source)
-	for _, asset := range embed.AssetNames() {
-		contents, err := embed.Asset(asset)
+	fs.WalkDir(assets, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			panic(err)
+			panic(err) // this is seriously bad
 		}
-		overlay[filepath.Join("/", asset)] = load.FromBytes(contents)
-	}
+		if !d.Type().IsRegular() {
+			return nil
+		}
+		contents, err := assets.ReadFile(path)
+		if err != nil {
+			panic(err) // this is seriously bad
+		}
+		overlay[filepath.Join("/", path)] = load.FromBytes(contents)
+		return nil
+	})
 	conf := &load.Config{
 		Dir:     "/",
 		Overlay: overlay,
