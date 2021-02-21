@@ -520,8 +520,6 @@ func (pdc *processDirContext) processDirPost() (err error) {
 
 	pdc.runSteps()
 
-	pdc.validateOutRefsDirs()
-
 	pdc.writeGuideOutput()
 
 	pdc.writeLog()
@@ -926,7 +924,7 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 	var errs errList
 
 	for _, mdf := range g.mdFiles {
-		mdf.frontMatter[guideFrontMatterKey] = g.name
+		mdf.frontMatter[frontMatterKeyGuide] = g.name
 
 		var stepDirectivesToCheck []*stepDirective
 
@@ -960,8 +958,6 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 					continue
 				}
 				d.val = v
-			case *outrefDirective:
-				// we don't validate this at this point
 			default:
 				panic(fmt.Errorf("don't yet know how to handle %T type", d))
 			}
@@ -1055,43 +1051,6 @@ func (l errList) Error() string {
 		prefix = "\n"
 	}
 	return buf.String()
-}
-
-// validateOutRefsDirs ensures that outref directives (e.g. <!-- outref:
-// cmdoutput -->) are valid (step and ref directives were checked earlier).
-// This second pass of checking the outrefs specifically is required because
-// only at this stage in the processing of a guide can we be guaranteed that
-// the out package exists (and hence any outref directives) resolve.
-func (pdc *processDirContext) validateOutRefsDirs() {
-	g := pdc.guide
-	for _, mdf := range g.mdFiles {
-		for _, d := range mdf.directives {
-			switch d := d.(type) {
-			case *stepDirective:
-			case *refDirective:
-			case *outrefDirective:
-				if g.outinstance == nil {
-					raise("found an outref directive %v but no out CUE instance?", d.String())
-				}
-				sels := []cue.Selector{cue.Str("Defs")}
-				sels = append(sels, d.path.Selectors()...)
-				path := cue.MakePath(sels...)
-				v := g.outinstance.Value().LookupPath(path)
-				if err := v.Err(); err != nil {
-					raise("failed to evaluate %v: %v", d.String(), err)
-				}
-				switch v.Kind() {
-				case cue.StringKind:
-				default:
-					raise("value at %v is of unsupported kind %v", d.String(), v.Kind())
-				}
-				d.val = v
-				// we don't validate this at this point
-			default:
-				panic(fmt.Errorf("don't yet know how to handle %T type", d))
-			}
-		}
-	}
 }
 
 const (
@@ -1679,24 +1638,15 @@ func (r refDirective) String() string {
 	return r.path.String()
 }
 
-type outrefDirective struct {
-	*baseDirective
-	path cue.Path
-	val  cue.Value
-}
-
-func (o outrefDirective) String() string {
-	return o.path.String()
-}
-
 const (
-	stepDirectiveName         = "step"
-	refDirectiveName          = "ref"
-	outrefDirectiveName       = "outref"
-	dockerImageFrontMatterKey = "image"
-	guideFrontMatterKey       = "guide"
-	langFrontMatterKey        = "lang"
-	scnearioFrontMatterKey    = "scenario"
+	stepDirectiveName   = "step"
+	refDirectiveName    = "ref"
+	outrefDirectiveName = "outref"
+
+	frontMatterKeyDockerImage      = "image"
+	frontMatterKeyGuide            = "guide"
+	frontMatterKeyLang             = "lang"
+	frontMatterKeyFriendlyScenario = "scenario"
 )
 
 func (pdc *processDirContext) buildMarkdownFile(g *guide, path string, lang types.LangCode, ext string) mdFile {
@@ -1715,14 +1665,17 @@ func (pdc *processDirContext) buildMarkdownFile(g *guide, path string, lang type
 
 	// TODO: support all front-matter formats... and no front matter
 
-	if _, ok := front.FrontMatter[langFrontMatterKey]; ok {
-		raise("do not declare language via %q key in front matter", langFrontMatterKey)
+	if _, ok := front.FrontMatter[frontMatterKeyLang]; ok {
+		raise("do not declare language via %q key in front matter", frontMatterKeyLang)
 	}
-	if _, ok := front.FrontMatter[dockerImageFrontMatterKey]; ok {
-		raise("do not declare docker image via %q key in front matter", dockerImageFrontMatterKey)
+	if _, ok := front.FrontMatter[frontMatterKeyDockerImage]; ok {
+		raise("do not declare docker image via %q key in front matter", frontMatterKeyDockerImage)
+	}
+	if _, ok := front.FrontMatter[frontMatterKeyFriendlyScenario]; ok {
+		raise("do not declare scenario via %q key in front matter", frontMatterKeyFriendlyScenario)
 	}
 	// Now set the lang of the markdown frontmatter based on the filename
-	front.FrontMatter[langFrontMatterKey] = lang
+	front.FrontMatter[frontMatterKeyLang] = lang
 
 	res := mdFile{
 		path:        path,
@@ -1832,11 +1785,6 @@ func (pdc *processDirContext) buildMarkdownFile(g *guide, path string, lang type
 				switch first.Ident {
 				case refDirectiveName:
 					res.directives = append(res.directives, &refDirective{
-						baseDirective: &bd,
-						path:          path,
-					})
-				case outrefDirectiveName:
-					res.directives = append(res.directives, &outrefDirective{
 						baseDirective: &bd,
 						path:          path,
 					})
