@@ -197,12 +197,6 @@ func (pdc *processDirContext) writeGuideOutput() {
 						v, _ := d.val.String()
 						buf.WriteString(v)
 					}
-				case *outrefDirective:
-					switch d.val.Kind() {
-					case cue.StringKind:
-						v, _ := d.val.String()
-						buf.WriteString(v)
-					}
 				default:
 					panic(fmt.Errorf("don't yet know how to handle %T directives", d))
 				}
