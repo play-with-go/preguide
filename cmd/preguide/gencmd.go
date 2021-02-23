@@ -438,7 +438,8 @@ func (gc *genCmd) loadConfig() {
 	// res will hold the config result
 	var res cue.Value
 
-	bis := load.Instances(gc.fConfigs, nil)
+	// TODO: gross hack of using AllCUEFiles below
+	bis := load.Instances(gc.fConfigs, &load.Config{AllCUEFiles: true})
 	for i, bi := range bis {
 		inst, err := gc.runtime.Build(bi)
 		check(err, "failed to load config from %v: %v", gc.fConfigs[i], err)
