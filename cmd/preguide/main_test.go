@@ -70,21 +70,12 @@ func TestScripts(t *testing.T) {
 		Setup: func(env *testscript.Env) (err error) {
 			defer util.HandleKnown(&err)
 
-			// Remove pre-existing temp dir
-			currTmp := filepath.Join(env.WorkDir, "tmp")
-			err = os.RemoveAll(currTmp)
-			check(err, "failed to remove pre-existing tmp dir %v: %v", currTmp, err)
-
-			newTmp := filepath.Join(env.WorkDir, ".tmp")
 			env.Vars = append(env.Vars,
-				"TMPDIR="+newTmp,
 				"PREGUIDE_IMAGE_OVERRIDE="+os.Getenv("PREGUIDE_IMAGE_OVERRIDE"),
 				"PREGUIDE_PULL_IMAGE=missing",
 				"PREGUIDE_SELF_BUILD="+selfBuild,
 				"PREGUIDE_NO_DEVEL_HASH=true",
 			)
-			err = os.Mkdir(newTmp, 0777)
-			check(err, "failed to create %v: %v", newTmp, err)
 
 			// Despite the fact that preguide embeds the definitions it needs,
 			// it's more convenient to write guides' CUE packages and have them

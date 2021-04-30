@@ -2,7 +2,7 @@
 
 ! preguide gen -out _output
 ! stdout .+
-stderr 'myguide/en.markdown:4:14: failed to evaluate {Hello}: Defs: value "Hello" not found'
+stderr 'myguide/en.markdown:4:14: failed to evaluate {Hello}: Defs: field "Hello" not found'
 
 -- myguide/en.markdown --
 ---
