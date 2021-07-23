@@ -4,7 +4,7 @@
 # Intial run
 ! preguide gen -out _output
 ! stdout .+
-stderr 'myguide: mod.com/myguide:steps does not satisfy github.com/play-with-go/preguide.#Guide: #Guide: field Banana not allowed'
+stderr 'myguide: mod.com/myguide:steps does not satisfy github.com/play-with-go/preguide.#Guide: #Guide: field not allowed: Banana:'
 
 -- myguide/en.markdown --
 ---

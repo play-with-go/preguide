@@ -35,7 +35,6 @@ import (
 	"cuelang.org/go/cue/format"
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/token"
-	"cuelang.org/go/encoding/gocode/gocodec"
 	"github.com/gohugoio/hugo/parser/pageparser"
 	"github.com/kr/pretty"
 	"github.com/play-with-go/preguide"
@@ -304,7 +303,7 @@ func (gc *genCmd) run(args []string) error {
 		}
 	}
 
-	gc.runner.schemas, err = preguide.LoadSchemas(&gc.runtime)
+	gc.schemas, err = preguide.LoadSchemas(gc.context)
 	check(err, "failed to load schemas: %v", err)
 
 	gc.loadConfig()
@@ -441,7 +440,8 @@ func (gc *genCmd) loadConfig() {
 	// TODO: gross hack of using AllCUEFiles below
 	bis := load.Instances(gc.fConfigs, &load.Config{AllCUEFiles: true})
 	for i, bi := range bis {
-		inst, err := gc.runtime.Build(bi)
+		inst := gc.context.BuildInstance(bi)
+		err := inst.Err()
 		check(err, "failed to load config from %v: %v", gc.fConfigs[i], err)
 		res = res.Unify(inst.Value())
 	}
@@ -451,7 +451,7 @@ func (gc *genCmd) loadConfig() {
 	check(err, "failed to validate input config: %v", err)
 
 	// Now we can extract the config from the CUE
-	err = gc.codec.Encode(res, &gc.config)
+	err = res.Decode(&gc.config)
 	check(err, "failed to decode config from CUE value: %v", err)
 
 	// Now validate that we don't have any networks for file protocol endpoints
@@ -660,13 +660,11 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}
 
-	gi, err := pdc.runtime.Build(gp)
+	gv := pdc.context.BuildInstance(gp)
+	err := gv.Err()
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
 
-	g.instance = gi
-
-	// gv is the value that represents the guide's CUE package
-	gv := gi.Value()
+	g.val = gv
 
 	// Double-check (because we are not guaranteed that the guide author) has
 	// enforced this themselves that the package satisfies the #Steps schema
@@ -729,7 +727,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	for stepName := range intGuide.Steps {
 		stepPositions = append(stepPositions, stepPosition{
 			name: stepName,
-			pos:  structPos(gi.Lookup("Steps", stepName)),
+			pos:  structPos(g.val.LookupPath(cue.MakePath(cue.Str("Steps"), cue.Str(stepName)))),
 		})
 	}
 	unlock()
@@ -874,14 +872,12 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	}
 	check(gp.Err, "failed to load out CUE package from %v: %v", toLoad, gp.Err)
 
-	gi, err := pdc.runtime.Build(gp)
+	gv := pdc.context.BuildInstance(gp)
+	err = gv.Err()
 	if !full && err != nil {
 		return
 	}
 	check(err, "failed to build %v: %v", gp.ImportPath, err)
-
-	// gv is the value that represents the guide's CUE package
-	gv := gi.Value()
 
 	err = pdc.schemas.GuideOutput.Unify(gv).Validate()
 	if !full && err != nil {
@@ -907,7 +903,7 @@ func (pdc *processDirContext) loadOutput(full bool) {
 	})
 
 	g.outputGuide = &out
-	g.outinstance = gi
+	g.outVal = gv
 }
 
 // validateStepAndRefDirs ensures that step (e.g. <!-- step: step1 -->) and
@@ -940,14 +936,10 @@ func (pdc *processDirContext) validateStepAndRefDirs() error {
 				}
 				stepDirectivesToCheck = append(stepDirectivesToCheck, d)
 			case *refDirective:
-				if g.instance == nil {
-					// This should never really happen so raise as an error
-					raise("found a ref directive %v but no CUE instance?", d.String())
-				}
 				sels := []cue.Selector{cue.Str("Defs")}
 				sels = append(sels, d.path.Selectors()...)
 				path := cue.MakePath(sels...)
-				v := g.instance.Value().LookupPath(path)
+				v := g.val.LookupPath(path)
 				if err := v.Err(); err != nil {
 					errs.Addf("%v:%v: failed to evaluate {%v}: %v", pdc.relpath(mdf.path), d.Pos(), d.String(), err)
 					continue
@@ -1062,8 +1054,8 @@ const (
 func (pdc *processDirContext) writeOutPackage(g *guide) {
 	pdc.cueLock.Lock()
 	defer pdc.cueLock.Unlock()
-	enc := gocodec.New(&pdc.runner.runtime, nil)
-	v, err := enc.Decode(g)
+	v := pdc.context.Encode(g)
+	err := v.Err()
 	check(err, "failed to decode guide to CUE: %v", err)
 	syn := v.Syntax()
 	sl := sortSteps(syn)
@@ -1828,34 +1820,37 @@ func (pdc *processDirContext) buildMarkdownFile(g *guide, path string, lang type
 // directory. This config can then be used directly by a controller for the
 // guides found in that directory.
 func (gc *genCmd) writeGuideStructures() {
-	structures := make(map[string]preguide.GuideStructure)
-	for _, guide := range gc.guides {
-		s := preguide.GuideStructure{
-			Delims:    guide.Delims,
-			Terminals: guide.Terminals,
-			Networks:  guide.Networks,
-			Scenarios: guide.Scenarios,
-			Env:       guide.Env,
+	// TODO: workaround for cuelang.org/issue/1131. Default to an empty
+	// struct unless we know we have guides to encode, at which point the
+	// encoding of a map then works as expected when we "export" to syntax
+	v := gc.context.CompileString("{}")
+	if len(gc.guides) > 0 {
+
+		structures := make(map[string]preguide.GuideStructure)
+		for _, guide := range gc.guides {
+			s := preguide.GuideStructure{
+				Delims:    guide.Delims,
+				Terminals: guide.Terminals,
+				Networks:  guide.Networks,
+				Scenarios: guide.Scenarios,
+				Env:       guide.Env,
+			}
+			for _, ps := range guide.Presteps {
+				s.Presteps = append(s.Presteps, &preguide.Prestep{
+					Package: ps.Package,
+					Path:    ps.Path,
+					Args:    ps.Args,
+				})
+			}
+			structures[guide.name] = s
 		}
-		for _, ps := range guide.Presteps {
-			s.Presteps = append(s.Presteps, &preguide.Prestep{
-				Package: ps.Package,
-				Path:    ps.Path,
-				Args:    ps.Args,
-			})
-		}
-		structures[guide.name] = s
+		v = gc.context.Encode(structures)
+		err := v.Err()
+		check(err, "failed to decode guide structures to CUE value: %v", err)
 	}
-	v, err := gc.codec.Decode(structures)
-	check(err, "failed to decode guide structures to CUE value: %v", err)
 	// Now do a sanity check against the schema
 
-	// TODO: remove roundtrip to syntax post fix for cuelang.org/issue/530
-	vn, _ := format.Node(v.Syntax())
-	i2, _ := gc.runtime.Compile("hello.cue", vn)
-	v2 := i2.Value()
-
-	err = gc.schemas.GuideStructures.Unify(v2).Validate()
+	err := gc.schemas.GuideStructures.Unify(v).Validate()
 	check(err, "failed to validate guide structures against schema: %v", err)
 	pkgName := *gc.fPackage
 	if pkgName == "" {

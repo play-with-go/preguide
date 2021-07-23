@@ -68,7 +68,7 @@ type Schemas struct {
 	GuideStructures      cue.Value
 }
 
-func LoadSchemas(r *cue.Runtime) (res Schemas, err error) {
+func LoadSchemas(r *cue.Context) (res Schemas, err error) {
 	defer func() {
 		switch r := recover(); r {
 		case nil, err:
@@ -97,12 +97,12 @@ func LoadSchemas(r *cue.Runtime) (res Schemas, err error) {
 		Overlay: overlay,
 	}
 	bps := load.Instances([]string{".", "./out"}, conf)
-	preguide, err := r.Build(bps[0])
-	if err != nil {
+	preguide := r.BuildInstance(bps[0])
+	if err := preguide.Err(); err != nil {
 		return res, fmt.Errorf("failed to load github.com/play-with-go/preguide package: %v", err)
 	}
-	preguideOut, err := r.Build(bps[1])
-	if err != nil {
+	preguideOut := r.BuildInstance(bps[1])
+	if err := preguideOut.Err(); err != nil {
 		return res, fmt.Errorf("failed to load github.com/play-with-go/preguide/out package: %v", err)
 	}
 
@@ -113,16 +113,16 @@ func LoadSchemas(r *cue.Runtime) (res Schemas, err error) {
 		return v
 	}
 
-	res.PrestepServiceConfig = mustFind(preguide.LookupDef("#PrestepServiceConfig"))
-	res.Guide = mustFind(preguide.LookupDef("#Guide"))
-	res.Command = mustFind(preguide.LookupDef("#Command"))
-	res.CommandFile = mustFind(preguide.LookupDef("#CommandFile"))
-	res.Upload = mustFind(preguide.LookupDef("#Upload"))
-	res.UploadFile = mustFind(preguide.LookupDef("#UploadFile"))
-	res.GuideOutput = mustFind(preguideOut.LookupDef("#GuideOutput"))
-	res.CommandStep = mustFind(preguideOut.LookupDef("#CommandStep"))
-	res.UploadStep = mustFind(preguideOut.LookupDef("#UploadStep"))
-	res.GuideStructures = mustFind(preguideOut.LookupDef("#GuideStructures"))
+	res.PrestepServiceConfig = mustFind(preguide.LookupPath(cue.ParsePath("#PrestepServiceConfig")))
+	res.Guide = mustFind(preguide.LookupPath(cue.ParsePath("#Guide")))
+	res.Command = mustFind(preguide.LookupPath(cue.ParsePath("#Command")))
+	res.CommandFile = mustFind(preguide.LookupPath(cue.ParsePath("#CommandFile")))
+	res.Upload = mustFind(preguide.LookupPath(cue.ParsePath("#Upload")))
+	res.UploadFile = mustFind(preguide.LookupPath(cue.ParsePath("#UploadFile")))
+	res.GuideOutput = mustFind(preguideOut.LookupPath(cue.ParsePath("#GuideOutput")))
+	res.CommandStep = mustFind(preguideOut.LookupPath(cue.ParsePath("#CommandStep")))
+	res.UploadStep = mustFind(preguideOut.LookupPath(cue.ParsePath("#UploadStep")))
+	res.GuideStructures = mustFind(preguideOut.LookupPath(cue.ParsePath("#GuideStructures")))
 
 	return res, nil
 }
