@@ -50,8 +50,8 @@ type guide struct {
 	Hash       string
 	steps      []step
 
-	instance    *cue.Instance
-	outinstance *cue.Instance
+	val    cue.Value
+	outVal cue.Value
 
 	outputGuide *guide
 
@@ -238,7 +238,7 @@ func (pdc *processDirContext) writeGuideOutput() {
 		// Script output is assumed to only ever include literal { and } values
 		// hence that is unconditionally escaped using &#123; and &#125;
 		repls := g.varMap
-		if pdc.genCmd.fMode == types.ModeJekyll {
+		if pdc.fMode == types.ModeJekyll {
 			repls = make(map[string]string)
 			for v := range g.varMap {
 				repls[v] = "{% raw %}" + g.Delims[0] + "." + v + g.Delims[1] + "{% endraw %}"

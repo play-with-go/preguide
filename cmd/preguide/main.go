@@ -32,7 +32,7 @@ import (
 	"runtime/debug"
 
 	"cuelang.org/go/cue"
-	"cuelang.org/go/encoding/gocode/gocodec"
+	"cuelang.org/go/cue/cuecontext"
 	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/util"
 )
@@ -74,10 +74,7 @@ type runner struct {
 	cueCmd    *cueCmd
 
 	// runtime is the cue.Runtime used for all CUE operations
-	runtime cue.Runtime
-
-	// codec is the *gocodec.Codec based on runtime
-	codec *gocodec.Codec
+	context *cue.Context
 
 	// buildInfo is the Go runrimte/debug.BuildInfo associated with the running
 	// binary. This information is hashed as part of the calculation to
@@ -116,7 +113,7 @@ func newRunner() *runner {
 		panic(err) // we have bigger problems than proper error handling
 	}
 	res.cwd = cwd
-	res.codec = gocodec.New(&res.runtime, nil)
+	res.context = cuecontext.New()
 	return res
 }
 
@@ -130,13 +127,13 @@ func (r *runner) mainerr() (err error) {
 
 	r.readBuildInfo()
 
-	if err := r.rootCmd.fs.Parse(os.Args[1:]); err != nil {
+	if err := r.fs.Parse(os.Args[1:]); err != nil {
 		return usageErr{err, r.rootCmd}
 	}
 
-	args := r.rootCmd.fs.Args()
+	args := r.fs.Args()
 	if len(args) == 0 {
-		return r.rootCmd.usageErr("missing command")
+		return r.usageErr("missing command")
 	}
 	cmd := args[0]
 	switch cmd {
@@ -151,7 +148,7 @@ func (r *runner) mainerr() (err error) {
 	case "cue":
 		return r.cueCmd.run(args[1:])
 	default:
-		return r.rootCmd.usageErr("unknown command: " + cmd)
+		return r.usageErr("unknown command: " + cmd)
 	}
 }
 

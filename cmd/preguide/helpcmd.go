@@ -40,7 +40,7 @@ func (hc *helpCmd) run(args []string) error {
 	case "init":
 		u = hc.initCmd.usage
 	case "help":
-		u = hc.rootCmd.usage
+		u = hc.usage
 	default:
 		return hc.helpCmd.usageErr("no help available for command %v", args[0])
 	}
