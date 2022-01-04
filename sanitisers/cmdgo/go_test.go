@@ -38,15 +38,34 @@ func TestSanitiseOutputGoTest(t *testing.T) {
 `,
 		},
 		{
+			san: sanitiseGoTest{bench: true},
+			in: `goos: linux
+goarch: arm64
+pkg: mod.com
+cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
+BenchmarkFib10-8   	 3357487	       333.7 ns/op
+PASS
+ok  	mod.com	1.489s
+`,
+			want: `goos: linux
+goarch: amd64
+pkg: mod.com
+cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
+BenchmarkFib10-8   	 3357487	       333.7 ns/op
+PASS
+ok  	mod.com	1.489s
+`,
+		},
+		{
 			san: sanitiseGoEnv{},
 			in: `GO111MODULE=""
-GOARCH="amd64"
+GOARCH="arm64"
 GOBIN=""
 GOCACHE="/home/myitcv/.cache/go-build"
 GOENV="/home/myitcv/.config/go/env"
 GOEXE=""
 GOFLAGS=""
-GOHOSTARCH="amd64"
+GOHOSTARCH="arm64"
 GOHOSTOS="linux"
 GOINSECURE=""
 GOMODCACHE="/home/myitcv/gostuff/pkg/mod"
@@ -59,7 +78,7 @@ GOPROXY="https://proxy.golang.org,direct"
 GOROOT="/home/myitcv/gos"
 GOSUMDB="sum.golang.org"
 GOTMPDIR=""
-GOTOOLDIR="/home/myitcv/gos/pkg/tool/linux_amd64"
+GOTOOLDIR="/home/myitcv/gos/pkg/tool/linux_arm64"
 GCCGO="gccgo"
 AR="ar"
 CC="gcc"
@@ -107,7 +126,7 @@ CGO_CXXFLAGS="-g -O2"
 CGO_FFLAGS="-g -O2"
 CGO_LDFLAGS="-g -O2"
 PKG_CONFIG="pkg-config"
-GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-build -gno-record-gcc-switches"
+GOGCCFLAGS="fake_gcc_flags"
 `,
 		},
 	}
@@ -122,7 +141,7 @@ GOGCCFLAGS="-fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=/tmp/go-bu
 	}
 }
 
-func TestSanitiseComparisonOutputGoGet(t *testing.T) {
+func TestSanitiseComparisonOutputTest(t *testing.T) {
 	testCases := []struct {
 		san  sanitisers.Sanitiser
 		in   string
@@ -172,7 +191,7 @@ FAIL
 		{
 			san: sanitiseGoTest{bench: true},
 			in: `goos: linux
-goarch: amd64
+goarch: arm64
 pkg: mod.com
 cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
 BenchmarkFib10-8   	 3357487	       333.7 ns/op
@@ -180,7 +199,7 @@ PASS
 ok  	mod.com	1.489s
 `,
 			want: `goos: linux
-goarch: amd64
+goarch: arm64
 pkg: mod.com
 cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
 BenchmarkFib10-8 NN N ns/op

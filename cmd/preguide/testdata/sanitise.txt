@@ -6,8 +6,6 @@ env regex_int='\d+'
 env regex_space='\s+'
 
 preguide gen -out _output
-! stdout .+
-! stderr .+
 cmpregex _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
 cmpregex myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 

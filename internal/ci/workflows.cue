@@ -22,13 +22,22 @@ workflows: [
 	run:  "./_scripts/dockerBuildSelf.sh"
 }
 
+#installQemu: {
+	name: "Install qemu"
+	uses: "docker/setup-qemu-action@v1"
+}
+#installBuildx: {
+	name: "Setup buildx"
+	uses: "docker/setup-buildx-action@v1"
+}
+
 _#ubuntuLatest: "ubuntu-18.04"
 _#latestGo:     "1.17.6"
 
 test: json.#Workflow & {
 	name: "Test"
 	env: {
-		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.15.5@sha256:775d58902ad62778a02f1a6772ef8bd405e819430498985635076d48e4a78b72"
+		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.15.8@sha256:a42b5a86a04893612a18a3cbe58f37099011167af5795d2930a53b90c7bf0af5"
 		PREGUIDE_PULL_IMAGE:     "missing"
 	}
 	on: {
@@ -45,6 +54,8 @@ test: json.#Workflow & {
 		}
 		"runs-on": "${{ matrix.os }}"
 		steps: [
+			#installQemu,
+			#installBuildx,
 			#checkoutCode,
 			#installGo,
 			{
@@ -101,6 +112,8 @@ dockerSelf: json.#Workflow & {
 		}
 		"runs-on": "${{ matrix.os }}"
 		steps: [
+			#installQemu,
+			#installBuildx,
 			#checkoutCode,
 			#installGo,
 			#dockerBuildSelf,

@@ -1471,7 +1471,10 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 			panic(fmt.Errorf("can't yet handle steps of type %T", step))
 		}
 	}
-	pdc.debugf("bash script:\n%v", sb.String())
+	// Because of https://github.com/moby/moby/issues/43121 we add an
+	// additional \n (which will be read as \r\n) to ensure we have a
+	// trailing newline.
+	pf("echo")
 	g.bashScript = sb.String()
 	g.Hash = fmt.Sprintf("%x", h.Sum(nil))
 }
