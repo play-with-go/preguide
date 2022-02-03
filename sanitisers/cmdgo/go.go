@@ -24,10 +24,14 @@ var (
 	goTestPassRunHeading = regexp.MustCompile(`^( *--- (PASS|FAIL): .+\()` + goTestTestTime + `s\)$`)
 	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `s$`)
 	goTestBench          = regexp.MustCompile(`^([^\s]+)\s+\d+\s+` + goTestTestTime + ` ns/op$`)
+	goTestBenchOSArch    = regexp.MustCompile(`(?m)^goos: .*\ngoarch: .*\n`)
 
 	goGetModVCSPath = regexp.MustCompile(`(pkg/mod/cache/vcs/)[0-9a-f]+`)
 
-	goEnvGoGCCFlags = regexp.MustCompile(`(^GOGCCFLAGS=.*-fdebug-prefix-map=)[^ ]*(.*$)`)
+	goEnvToolDir    = regexp.MustCompile(`^(GOTOOLDIR=.*/)[^/]*`)
+	goEnvGOOS       = regexp.MustCompile(`^(GOOS=).*`)
+	goEnvGOARCH     = regexp.MustCompile(`^(GO(HOST)?ARCH=).*`)
+	goEnvGoGCCFlags = regexp.MustCompile(`(^GOGCCFLAGS=).*`)
 )
 
 func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
@@ -64,6 +68,9 @@ type sanitiseGoTest struct {
 }
 
 func (gt sanitiseGoTest) Output(varNames []string, s string) string {
+	if gt.bench {
+		s = goTestBenchOSArch.ReplaceAllString(s, "goos: linux\ngoarch: amd64\n")
+	}
 	return s
 }
 
@@ -76,7 +83,8 @@ func (gt sanitiseGoTest) ComparisonOutput(varNames []string, s string) string {
 		lines[i] = goTestPassRunHeading.ReplaceAllString(lines[i], "${1}N.NNs)")
 		lines[i] = goTestFailSummary.ReplaceAllString(lines[i], "${1}N.NNs")
 	}
-	return strings.Join(lines, "\n")
+	s = strings.Join(lines, "\n")
+	return s
 }
 
 type sanitiseGoGet struct{}
@@ -100,9 +108,14 @@ type sanitiseGoEnv struct{}
 
 func (sanitiseGoEnv) Output(varNames []string, s string) string {
 	// Deal with the fact that go env is not stable when it comes to GOGCCFLAGS=
+	// by removing that line. It's more hassle than it's worth right now to
+	// do anything sensible with it
 	lines := strings.Split(s, "\n")
-	for i, l := range lines {
-		lines[i] = goEnvGoGCCFlags.ReplaceAllString(l, "${1}/tmp/go-build${2}")
+	for i := range lines {
+		lines[i] = goEnvToolDir.ReplaceAllString(lines[i], `${1}linux_amd64"`)
+		lines[i] = goEnvGOOS.ReplaceAllString(lines[i], `${1}"linux"`)
+		lines[i] = goEnvGOARCH.ReplaceAllString(lines[i], `${1}"amd64"`)
+		lines[i] = goEnvGoGCCFlags.ReplaceAllString(lines[i], `${1}"fake_gcc_flags"`)
 	}
 	return strings.Join(lines, "\n")
 }

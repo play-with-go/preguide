@@ -5,8 +5,11 @@ shopt -s inherit_errexit
 
 export DOCKER_BUILDKIT=1
 
+push=""
+
 if [ "${GITHUB_WORKFLOW:-}" == "Docker self" ]
 then
+	push="--push"
 	version="$(basename $GITHUB_REF)"
 	if [ "$version" == "main" ]
 	then
@@ -33,9 +36,6 @@ fi
 
 dir="$(go list -m -f {{.Dir}} github.com/play-with-go/preguide)"
 
-docker build -f $dir/cmd/preguide/Dockerfile -t playwithgo/preguide:$version $dir
+echo "Version is '$version'"
+docker buildx build $push --platform linux/arm64,linux/amd64 -f $dir/cmd/preguide/Dockerfile -t playwithgo/preguide:$version $dir
 
-if [ "${GITHUB_WORKFLOW:-}" == "Docker self" ]
-then
-	docker push playwithgo/preguide:$version
-fi

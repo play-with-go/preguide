@@ -5,7 +5,7 @@ import (
 )
 
 // busybox:1.32.0-glibc
-imageBase: "busybox@sha256:30d1412c0f45be67d38b99179866868b1f09fd9013cbacf22813926aee428cf7"
+imageBase: "busybox@sha256:19fbe8f3d2d11b53107c95171a8f23929b48f2b3e2d1ddaf00bc92fb4cde0da6"
 
 command: genimagebases: {
 	writeGoFile: file.Create & {
@@ -33,11 +33,15 @@ command: genimagebases: {
 		# because the syntax line must be the first in the file.
 
 		# golang:1.16
-		FROM golang@sha256:f3f90f4d30866c1bdae90012b506bd5e557ce27ccd2510ed30a011c44c1affc8 AS stage1
+		FROM --platform=$BUILDPLATFORM golang@sha256:f3f90f4d30866c1bdae90012b506bd5e557ce27ccd2510ed30a011c44c1affc8 AS stage1
 
 		ENV GOCACHE=/root/.cache/go/gocache
 		ENV GOMODCACHE=/root/.cache/go/gomodcache
 		ENV GOPATH=
+
+		ARG BUILDPLATFORM TARGETPLATFORM TARGETOS TARGETARCH
+		ENV GOOS=$TARGETOS
+		ENV GOARCH=$TARGETARCH
 
 		COPY . .
 
