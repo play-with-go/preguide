@@ -71,12 +71,15 @@ blah
 
 # Step 2
 
-<pre><code>#!/usr/bin/env bash
+```bash
+# /scripts/somewhere.bash
+
+#!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
 
-I contain some single brace blocks &#123;
-&#125;
+I contain some single brace blocks {
+}
 
-And some doubles &#123;&#123; .hello &#125;&#125;
-</code></pre>
+And some doubles {{ .hello }}
+```

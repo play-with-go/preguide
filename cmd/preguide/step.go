@@ -358,11 +358,11 @@ func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*up
 }
 
 func (u *uploadStep) render(w io.Writer, opts renderOptions) {
-	renderedSource, err := u.Renderer.Render(opts.mode, u.Source)
+	origSource, err := u.Renderer.Render(opts.mode, u.Source)
 	check(err, "failed to render upload step: %v", err)
 	// replaceBraces is safe to do here because in all modes we are
 	// outputting <pre><code> blocks
-	renderedSource = replaceBraces(renderedSource)
+	renderedSource := replaceBraces(origSource)
 	source := base64Encode(u.Source)
 	// Workaround github.com/play-with-go/play-with-go/issues/44 by encoding the
 	// target as base64 in case it contains any {{.BLAH}} templates.  The
@@ -376,7 +376,13 @@ func (u *uploadStep) render(w io.Writer, opts renderOptions) {
 	case types.ModeGitHub:
 		// Note we are not using language syntax highlighting here because we
 		// prefer to be able to use <b> and <i> for diff and filenames respectively
-		fmt.Fprintf(w, "<pre><code>")
+		fmt.Fprintf(w, "```%s\n%s\n\n", u.Language, comment(opts.mode, u.Target, u.Language))
+		fmt.Fprintf(w, "%s", origSource)
+		if len(renderedSource) > 0 && !strings.HasSuffix(renderedSource, "\n") {
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintf(w, "```")
+		return
 	}
 	if opts.FilenameComment {
 		fmt.Fprintf(w, "<i class=\"filename\">%s</i>\n\n", comment(opts.mode, u.Target, u.Language))
@@ -412,9 +418,9 @@ func replaceBraces(s string) string {
 
 func comment(mode types.Mode, s string, lang string) (res string) {
 	switch lang {
-	case "go", "go.mod":
+	case "go", "go.mod", "cue":
 		res = linewiseComment(s, "// ")
-	case "sh", "bash", "txt", "toml":
+	case "sh", "bash", "txt", "toml", "yaml":
 		res = linewiseComment(s, "# ")
 	case "markdown", "md", "mkd", "mkdn", "mdown": // sync with markdownFile regex
 		res = fmt.Sprintf("<!-- %v -->", s)

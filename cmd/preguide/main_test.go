@@ -30,10 +30,6 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-var (
-	fUpdateScripts = flag.Bool("update", false, "whether to update testscript scripts that use cmp with (stdout|stderr)")
-)
-
 func TestMain(m *testing.M) {
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"cmd-cmpregex": cmdCmpRegex,
@@ -59,7 +55,7 @@ func TestScripts(t *testing.T) {
 	var m sync.Mutex
 
 	p := testscript.Params{
-		UpdateScripts: *fUpdateScripts,
+		UpdateScripts: os.Getenv("PREGUIDE_UPDATE") == "1",
 		Dir:           filepath.Join("testdata"),
 		Cmds: map[string]func(ts *testscript.TestScript, neg bool, args []string){
 			"envsubst":            envsubst,
