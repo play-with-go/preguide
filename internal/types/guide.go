@@ -320,6 +320,13 @@ func (r *RendererDiff) rendererType() RendererType {
 }
 
 func (r *RendererDiff) Render(m Mode, v string) (string, error) {
+	// Hack: for now if we are asked to output in GitHub
+	// mode, fail. Because we haven't yet worked out how,
+	// if at all, to support showing diffs well in syntax
+	// highlighted code blocks.
+	if m == ModeGitHub {
+		return "", fmt.Errorf("cannot render diff in %v", m)
+	}
 	same := func(w io.Writer, s string) {
 		fmt.Fprintf(w, "%s\n", s)
 	}
