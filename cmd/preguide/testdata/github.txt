@@ -72,8 +72,6 @@ blah
 # Step 2
 
 ```bash
-# /scripts/somewhere.bash
-
 #!/usr/bin/env bash
 
 echo "Hello, world! I am an #Upload"
