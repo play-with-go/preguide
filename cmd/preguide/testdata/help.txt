@@ -80,3 +80,5 @@ usage: preguide gen
 	        additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times
 	  -skipcache
 	        whether to skip any output cache checking
+	  -t value
+	        tags for the CUE load

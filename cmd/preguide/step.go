@@ -360,8 +360,21 @@ func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*up
 func (u *uploadStep) render(w io.Writer, opts renderOptions) {
 	origSource, err := u.Renderer.Render(opts.mode, u.Source)
 	check(err, "failed to render upload step: %v", err)
-	// replaceBraces is safe to do here because in all modes we are
-	// outputting <pre><code> blocks
+
+	// Special case GitHub for now
+	if opts.mode == types.ModeGitHub {
+		fmt.Fprintf(w, "```%s", u.Language)
+		if opts.FilenameComment {
+			fmt.Fprintf(w, "\n%s\n", comment(opts.mode, u.Target, u.Language))
+		}
+		fmt.Fprintf(w, "\n%s", origSource)
+		if len(origSource) > 0 && !strings.HasSuffix(origSource, "\n") {
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintf(w, "```")
+		return
+	}
+
 	renderedSource := replaceBraces(origSource)
 	source := base64Encode(u.Source)
 	// Workaround github.com/play-with-go/play-with-go/issues/44 by encoding the
@@ -373,16 +386,6 @@ func (u *uploadStep) render(w io.Writer, opts renderOptions) {
 	switch opts.mode {
 	case types.ModeJekyll:
 		fmt.Fprintf(w, "<pre data-upload-path=\"%v\" data-upload-src=\"%v:%v\" data-upload-term=\"%v\"><code class=\"language-%v\">", targetDir, targetFile, source, "."+u.Terminal, u.Language)
-	case types.ModeGitHub:
-		// Note we are not using language syntax highlighting here because we
-		// prefer to be able to use <b> and <i> for diff and filenames respectively
-		fmt.Fprintf(w, "```%s\n%s\n\n", u.Language, comment(opts.mode, u.Target, u.Language))
-		fmt.Fprintf(w, "%s", origSource)
-		if len(renderedSource) > 0 && !strings.HasSuffix(renderedSource, "\n") {
-			fmt.Fprintln(w)
-		}
-		fmt.Fprintf(w, "```")
-		return
 	}
 	if opts.FilenameComment {
 		fmt.Fprintf(w, "<i class=\"filename\">%s</i>\n\n", comment(opts.mode, u.Target, u.Language))

@@ -109,6 +109,7 @@ type genCmd struct {
 	fDebugCache    *bool
 	fRun           *string
 	fRunArgs       []string
+	fTags          []string
 	fMode          types.Mode
 
 	fParallel *int
@@ -221,6 +222,7 @@ func newGenCmd(r *runner) *genCmd {
 		fs.Var(stringFlagList{&res.fRunArgs}, "runargs", "additional arguments to pass to the script that runs for a terminal. Format -run=$terminalName=args...; can appear multiple times")
 		fs.Var(&res.fMode, "mode", fmt.Sprintf("the output mode. Valid values are: %v, %v, %v", types.ModeJekyll, types.ModeGitHub, types.ModeRaw))
 		res.fParallel = fs.Int("parallel", 0, "allow parallel execution of preguide scripts. The value of this flag is the maximum number of scripts to run simultaneously. By default it is set to the value of GOMAXPROCS")
+		fs.Var(stringFlagList{&res.fTags}, "t", "tags for the CUE load")
 	})
 	return res
 }
@@ -648,14 +650,17 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 	lock()
 	defer unlock()
 	conf := &load.Config{
-		Dir: g.dir,
+		Dir:  g.dir,
+		Tags: pdc.fTags,
 	}
 	bps := load.Instances([]string{"."}, conf)
 	gp := bps[0]
 	if gp.Err != nil {
-		if _, ok := gp.Err.(*load.NoFilesError); !mustContainGuide && ok {
-			// absorb this error - we have nothing to do
-			return false
+		for _, e := range errors.Errors(gp.Err) {
+			if _, ok := e.(*load.NoFilesError); !mustContainGuide && ok {
+				// absorb this error - we have nothing to do
+				return false
+			}
 		}
 		check(gp.Err, "failed to load CUE package in %v: %v", g.dir, gp.Err)
 	}

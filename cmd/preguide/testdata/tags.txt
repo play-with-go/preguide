@@ -1,0 +1,75 @@
+# Test passing tags to preguide works
+
+# No tags
+preguide gen -out _output
+! stdout .+
+! stderr .+
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.notags.golden
+
+# Tags
+preguide gen -t blah=tags -out _output
+! stdout .+
+! stderr .+
+cmp _output/myguide_go115_en.markdown myguide/go115_en.markdown.tags.golden
+
+-- myguide/en.markdown --
+---
+title: A test with all directives
+---
+
+# Step 0
+
+{{ step "step0" }}
+
+-- myguide/steps.cue --
+package steps
+
+import "github.com/play-with-go/preguide"
+
+_example: *"no tags" | string @tag(blah)
+
+Scenarios: go115: preguide.#Scenario & {
+	Description: "Go 1.15"
+}
+
+FilenameComment: true
+
+Terminals: term1: preguide.#Terminal & {
+	Description: "The main terminal"
+	Scenarios: go115: Image: "this_will_never_be_used"
+}
+
+Steps: step0: preguide.#Command & {
+	Source: """
+echo \(_example)
+"""
+}
+
+-- myguide/go115_en.markdown.notags.golden --
+---
+guide: myguide
+lang: en
+title: A test with all directives
+---
+
+# Step 0
+
+<pre data-command-src="ZWNobyBubyB0YWdzCg=="><code class="language-.term1">$ echo no tags
+no tags
+</code></pre>
+
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
+-- myguide/go115_en.markdown.tags.golden --
+---
+guide: myguide
+lang: en
+title: A test with all directives
+---
+
+# Step 0
+
+<pre data-command-src="ZWNobyB0YWdzCg=="><code class="language-.term1">$ echo tags
+tags
+</code></pre>
+
+<script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
