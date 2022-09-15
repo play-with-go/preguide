@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"text/template"
@@ -146,7 +146,7 @@ func (pdc *processDirContext) commandStepFromCommand(s *types.Command) (*command
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case path cannot be read or parsed
 func (pdc *processDirContext) commandStepFromCommandFile(s *types.CommandFile) (*commandStep, error) {
-	byts, err := ioutil.ReadFile(s.Path)
+	byts, err := os.ReadFile(s.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", s.Path, err)
 	}
@@ -342,7 +342,7 @@ func (pdc *processDirContext) uploadStepFromUpload(u *types.Upload) (*uploadStep
 }
 
 func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
-	byts, err := ioutil.ReadFile(u.Path)
+	byts, err := os.ReadFile(u.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
 	}

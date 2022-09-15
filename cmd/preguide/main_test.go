@@ -12,7 +12,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -116,7 +115,7 @@ func startserver(ts *testscript.TestScript, neg bool, args []string) {
 	for i, f := range files {
 		files[i] = ts.MkAbs(f)
 	}
-	td, err := ioutil.TempDir("", "")
+	td, err := os.MkdirTemp("", "")
 	ts.Check(err)
 	if err != nil {
 		ts.Fatalf("failed to create temp dir for server: %v", err)
@@ -200,7 +199,7 @@ func createdockernetwork(ts *testscript.TestScript, neg bool, args []string) {
 // buildSelf builds the current package into a temporary directory. The path to
 // the resulting binary is then returned.
 func buildSelf(t *testing.T) string {
-	td, err := ioutil.TempDir("", "")
+	td, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temp dir for self build: %v", err)
 	}
@@ -236,7 +235,7 @@ func modInit(dir string) (err error) {
 	check(err, "failed to mkdir %v: %v", modDir, err)
 
 	modFile := filepath.Join(modDir, "module.cue")
-	err = ioutil.WriteFile(modFile, []byte("module: \"mod.com\"\n"), 0666)
+	err = os.WriteFile(modFile, []byte("module: \"mod.com\"\n"), 0666)
 	check(err, "failed to write module file %v: %v", modFile, err)
 
 	// TODO this approach is not particularly robust. But doesn't really matter
@@ -288,7 +287,7 @@ func envsubst(ts *testscript.TestScript, neg bool, args []string) {
 		fc = os.Expand(fc, func(v string) string {
 			return ts.Getenv(v)
 		})
-		ts.Check(ioutil.WriteFile(f, []byte(fc), 0666))
+		ts.Check(os.WriteFile(f, []byte(fc), 0666))
 	}
 }
 
@@ -303,11 +302,11 @@ func cmdCmpRegex() int {
 
 	gotName := args[0]
 	wantName := args[1]
-	got, err := ioutil.ReadFile(gotName)
+	got, err := os.ReadFile(gotName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	want, err := ioutil.ReadFile(wantName)
+	want, err := os.ReadFile(wantName)
 	if err != nil {
 		log.Fatal(err)
 	}

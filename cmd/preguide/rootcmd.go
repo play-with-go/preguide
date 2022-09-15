@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 )
@@ -42,7 +42,7 @@ func newFlagSet(name string, setupFlags func(*flag.FlagSet)) string {
 	res.SetOutput(&b)
 	setupFlags(res)
 	res.PrintDefaults()
-	res.SetOutput(ioutil.Discard)
+	res.SetOutput(io.Discard)
 	s := b.String()
 	const indent = "\t"
 	if s == "" {

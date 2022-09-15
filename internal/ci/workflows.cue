@@ -31,8 +31,8 @@ workflows: [
 	uses: "docker/setup-buildx-action@v1"
 }
 
-_#ubuntuLatest: "ubuntu-18.04"
-_#latestGo:     "1.17.6"
+_#ubuntuLatest: "ubuntu-22.04"
+_#latestGo:     "1.19.1"
 
 test: json.#Workflow & {
 	name: "Test"
@@ -69,11 +69,13 @@ test: json.#Workflow & {
 			{
 				name: "Test"
 				run:  "go test ./..."
+				env: CGO_ENABLED: "0"
 			},
 			{
 				name: "Race test"
 				run:  "go test -race ./..."
 				if:   "${{ github.ref == 'main' }}"
+				env: CGO_ENABLED: "0"
 			},
 			{
 				name: "staticcheck"

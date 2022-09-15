@@ -2,4 +2,4 @@
 
 package main
 
-const imageBase = "busybox@sha256:19fbe8f3d2d11b53107c95171a8f23929b48f2b3e2d1ddaf00bc92fb4cde0da6"
+const imageBase = "busybox@sha256:ad9bd57a3a57cc95515c537b89aaa69d83a6df54c4050fcf2b41ad367bec0cd5"

@@ -147,7 +147,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -239,7 +238,7 @@ func panicExit() {
 }
 
 func getVersion() string {
-	f, err := ioutil.ReadFile("version")
+	f, err := os.ReadFile("version")
 	if err != nil {
 		panic(err)
 	}

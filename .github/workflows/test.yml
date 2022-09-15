@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-18.04
+          - ubuntu-22.04
         go_version:
-          - 1.17.6
+          - 1.19.1
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install qemu
@@ -38,9 +38,13 @@ jobs:
         run: go generate ./...
       - name: Test
         run: go test ./...
+        env:
+          CGO_ENABLED: "0"
       - name: Race test
         run: go test -race ./...
         if: ${{ github.ref == 'main' }}
+        env:
+          CGO_ENABLED: "0"
       - name: staticcheck
         run: go run honnef.co/go/tools/cmd/staticcheck ./...
       - name: Tidy
