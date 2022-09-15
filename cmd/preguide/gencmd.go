@@ -128,7 +128,7 @@ type genCmd struct {
 
 	// versions is a map from pkg to the resolved version
 	// returned by the endpoint for that package
-	versions     map[string]string
+	versions     map[string]interface{}
 	versionsLock sync.Mutex
 
 	// cueLock ensures we only ever have a single thread running CUE
@@ -144,7 +144,13 @@ func (pdc *processDirContext) getVersion(pkg string) string {
 	v, ok := pdc.versions[pkg]
 	pdc.versionsLock.Unlock()
 	if ok {
-		return v
+		switch v := v.(type) {
+		case string:
+			return v
+		default:
+			// We encountered an error in what we were waiting for
+			raise("found error instead of version for %v: %v", pkg, v)
+		}
 	}
 
 	// We do not have a version, check if we have a request
@@ -162,21 +168,37 @@ func (pdc *processDirContext) getVersion(pkg string) string {
 		return pdc.getVersion(pkg)
 	}
 
+	// We might have other go routines waiting on us here.
+	// In case of any panics, we need to recover to a
+	// situation where those go routines waiting on c will
+	// know that we have failed.
+	var version string
+	defer func() {
+		r := recover()
+		pdc.versionsLock.Lock()
+		if r == nil {
+			// normal operation
+			pdc.versions[pkg] = version
+		} else {
+			pdc.versions[pkg] = r
+		}
+		pdc.versionsLock.Unlock()
+		close(c)
+		if r != nil {
+			// Pass on the panic
+			panic(r)
+		}
+	}()
 	// Get the version
 	conf, ok := pdc.config[pkg]
 	if !ok {
 		raise("no config found for prestep %v", pkg)
 	}
-	var version string
 	if conf.Endpoint.Scheme == "file" {
 		version = "file"
 	} else {
 		version = string(pdc.doRequest("GET", conf.Endpoint.String()+"?get-version=1", conf))
 	}
-	pdc.versionsLock.Lock()
-	pdc.versions[pkg] = version
-	pdc.versionsLock.Unlock()
-	close(c)
 
 	return version
 }
@@ -203,7 +225,7 @@ func newGenCmd(r *runner) *genCmd {
 	res := &genCmd{
 		runner:        r,
 		fMode:         types.ModeJekyll,
-		versions:      make(map[string]string),
+		versions:      make(map[string]interface{}),
 		versionChecks: make(map[string]chan struct{}),
 	}
 	res.flagDefaults = newFlagSet("preguide gen", func(fs *flag.FlagSet) {
