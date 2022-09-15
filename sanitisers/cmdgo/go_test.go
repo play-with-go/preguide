@@ -14,7 +14,7 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func TestSanitiseOutputGoTest(t *testing.T) {
+func TestSanitiseOutput(t *testing.T) {
 	testCases := []struct {
 		san  sanitisers.Sanitiser
 		in   string
@@ -55,6 +55,11 @@ BenchmarkFib10-8   	 3357487	       333.7 ns/op
 PASS
 ok  	mod.com	1.489s
 `,
+		},
+		{
+			san:  sanitiseGoVersion{},
+			in:   `go version go1.17.5 linux/arm64`,
+			want: `go version go1.17.5 linux/amd64`,
 		},
 		{
 			san: sanitiseGoEnv{},
@@ -141,7 +146,7 @@ GOGCCFLAGS="fake_gcc_flags"
 	}
 }
 
-func TestSanitiseComparisonOutputTest(t *testing.T) {
+func TestSanitiseComparisonOutput(t *testing.T) {
 	testCases := []struct {
 		san  sanitisers.Sanitiser
 		in   string

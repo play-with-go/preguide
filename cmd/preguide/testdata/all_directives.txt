@@ -45,6 +45,10 @@ title: A test with all directives
 # Step 4
 
 {{ step "step4" }}
+
+# Step 5
+
+{{ step "step5" }}
 -- myguide/steps.cue --
 package steps
 
@@ -95,6 +99,10 @@ Steps: step4: preguide.#UploadFile & {
 	Target:   "/scripts/step2.sh"
 	Path:     "step2_uploadFile.sh"
 }
+
+Steps: step5: preguide.#Command & {
+	Source: "go version"
+}
 -- myguide/step2_commandFile.sh --
 echo "Hello, world! I am a #CommandFile"
 -- myguide/step2_uploadFile.sh --
@@ -143,6 +151,12 @@ echo &#34;Hello, world! I am an #Upload&#34;</code></pre>
 
 echo &#34;Hello, world! I am an #UploadFile&#34;
 </code></pre>
+
+# Step 5
+
+<pre data-command-src="Z28gdmVyc2lvbgo="><code class="language-.term1">$ go version
+go version go1.15.8 linux/amd64
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ mkdir nooutput
@@ -165,3 +179,5 @@ $ cat <<EOD > /scripts/step2.sh
 echo "Hello, world! I am an #UploadFile"
 
 EOD
+$ go version
+go version go1.15.8 linux/amd64

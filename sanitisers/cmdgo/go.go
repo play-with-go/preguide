@@ -60,6 +60,9 @@ func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser
 	if s.StmtHasCallExprPrefix(stmt, "go", "env") {
 		return sanitiseGoEnv{}
 	}
+	if s.StmtIsCallExpr(stmt, "go", "version") {
+		return sanitiseGoVersion{}
+	}
 	return nil
 }
 
@@ -121,5 +124,17 @@ func (sanitiseGoEnv) Output(varNames []string, s string) string {
 }
 
 func (sanitiseGoEnv) ComparisonOutput(varNames []string, s string) string {
+	return s
+}
+
+type sanitiseGoVersion struct{}
+
+func (sanitiseGoVersion) Output(varNames []string, s string) string {
+	parts := strings.Fields(s)
+	parts[len(parts)-1] = "linux/amd64"
+	return strings.Join(parts, " ")
+}
+
+func (sanitiseGoVersion) ComparisonOutput(varNames []string, s string) string {
 	return s
 }

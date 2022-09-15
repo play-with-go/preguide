@@ -27,11 +27,23 @@ func NewS() *S {
 }
 
 func (sm *S) StmtHasCallExprPrefix(stmt *syntax.Stmt, words ...string) bool {
+	return sm.compare(func(words []string, stmts []*syntax.Word) bool {
+		return len(words) <= len(stmts)
+	}, stmt, words...)
+}
+
+func (sm *S) StmtIsCallExpr(stmt *syntax.Stmt, words ...string) bool {
+	return sm.compare(func(words []string, stmts []*syntax.Word) bool {
+		return len(words) == len(stmts)
+	}, stmt, words...)
+}
+
+func (sm *S) compare(cmp func([]string, []*syntax.Word) bool, stmt *syntax.Stmt, words ...string) bool {
 	ce, ok := stmt.Cmd.(*syntax.CallExpr)
 	if !ok {
 		return false
 	}
-	if len(words) > len(ce.Args) {
+	if !cmp(words, ce.Args) {
 		return false
 	}
 	for i, word := range words {
