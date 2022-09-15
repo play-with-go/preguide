@@ -7,3 +7,4 @@ source "${BASH_SOURCE%/*}/env_common.bash"
 source "${BASH_SOURCE%/*}/image.bash"
 
 $export PREGUIDE_IMAGE_OVERRIDE "$preguide_image_override"
+$export CGO_ENABLED 0

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -274,7 +273,7 @@ func (pdc *processDirContext) writeLog() {
 		step.renderLog(pdc.fMode, &buf)
 	}
 	logFilePath := filepath.Join(g.dir, fmt.Sprintf("%v_log.txt", g.fileSuffix()))
-	err := ioutil.WriteFile(logFilePath, buf.Bytes(), 0666)
+	err := os.WriteFile(logFilePath, buf.Bytes(), 0666)
 	check(err, "failed to write log output to %v: %v", logFilePath, err)
 }
 

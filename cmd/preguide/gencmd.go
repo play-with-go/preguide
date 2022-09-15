@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -62,7 +61,7 @@ import (
 // github.com/play-with-go/preguide Go package; they correspond to the
 // definitions found in the github.com/play-with-go/preguide/out CUE package.
 //
-// TODO a note on Go types vs CUE definitions
+// # TODO a note on Go types vs CUE definitions
 //
 // Ideally the Go types would be the source of truth for all the CUE
 // definitions used by preguide (this comment is attached to genCmd on the
@@ -328,7 +327,7 @@ func (gc *genCmd) run(args []string) error {
 		// Read the source directory and process each guide (directory)
 		dir, err := filepath.Abs(*gc.fDir)
 		check(err, "failed to make path %q absolute: %v", *gc.fDir, err)
-		es, err := ioutil.ReadDir(dir)
+		es, err := os.ReadDir(dir)
 		check(err, "failed to read directory %v: %v", dir, err)
 		for _, e := range es {
 			if !e.IsDir() {
@@ -586,13 +585,13 @@ func (pdc *processDirContext) comparisonEqual(regen, out *guide) bool {
 // loadMarkdownFiles loads the markdown files for a guide. Markdown
 // files are named according to isMarkdown, e.g en.markdown.
 func (pdc *processDirContext) loadMarkdownFiles(g *guide) bool {
-	es, err := ioutil.ReadDir(g.dir)
+	es, err := os.ReadDir(g.dir)
 	check(err, "failed to read directory %v: %v", g.dir, err)
 
 	var errs errList
 
 	for _, e := range es {
-		if !e.Mode().IsRegular() {
+		if !e.Type().IsRegular() {
 			continue
 		}
 		path := filepath.Join(g.dir, e.Name())
@@ -1077,7 +1076,7 @@ func (pdc *processDirContext) writeOutPackage(g *guide) {
 	err = os.MkdirAll(outDir, 0777)
 	check(err, "failed to mkdir %v: %v", outDir, err)
 	outFilePath := filepath.Join(outDir, genOutCueFile)
-	err = ioutil.WriteFile(outFilePath, []byte(out), 0666)
+	err = os.WriteFile(outFilePath, []byte(out), 0666)
 	check(err, "failed to write output to %v: %v", outFilePath, err)
 }
 
@@ -1100,7 +1099,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 			// Notice this path takes no account of the -docker flag
 			var err error
 			path := conf.Endpoint.Path
-			jsonBody, err = ioutil.ReadFile(path)
+			jsonBody, err = os.ReadFile(path)
 			check(err, "failed to read file endpoint %v (file %v): %v", conf.Endpoint, path, err)
 		} else {
 			u := *conf.Endpoint
@@ -1151,7 +1150,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	// wil mount inside the docker container that will run the script, we
 	// need to be a bit more liberal with permissions. Doing so within the
 	// the temp directory is safe.
-	td, err := ioutil.TempDir("", fmt.Sprintf("preguide-%v-runner-", g.name))
+	td, err := os.MkdirTemp("", fmt.Sprintf("preguide-%v-runner-", g.name))
 	check(err, "failed to create workings directory for guide %v: %v", g.dir, err)
 	defer os.RemoveAll(td)
 
@@ -1159,7 +1158,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	err = os.Mkdir(scriptsDir, 0777)
 	check(err, "failed to create scripts directory %v: %v", scriptsDir, err)
 	scriptsFile := filepath.Join(scriptsDir, "script.sh")
-	err = ioutil.WriteFile(scriptsFile, []byte(toWrite), 0777)
+	err = os.WriteFile(scriptsFile, []byte(toWrite), 0777)
 	check(err, "failed to write temporary script to %v: %v", scriptsFile, err)
 
 	// Explicitly change the permissions for the scripts directory and the
@@ -1537,7 +1536,7 @@ func (pdc *processDirContext) doRequest(method string, endpoint string, conf *pr
 		// Now add the arguments to "ourselves"
 		cmd.Args = append(cmd.Args, "/runbin/preguide", "docker", method, endpoint)
 		if body != nil {
-			byts, err := ioutil.ReadAll(body)
+			byts, err := io.ReadAll(body)
 			check(err, "failed to read from body: %v", err)
 			cmd.Args = append(cmd.Args, string(byts))
 		}
@@ -1559,7 +1558,7 @@ func (pdc *processDirContext) doRequest(method string, endpoint string, conf *pr
 	if resp.StatusCode/100 != 2 {
 		raise("got non-success status code (%v) with args [%v]", resp.StatusCode, args)
 	}
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	check(err, "failed to read response body for request %v: %v", req, err)
 	return respBody
 }
@@ -1651,7 +1650,7 @@ const (
 )
 
 func (pdc *processDirContext) buildMarkdownFile(g *guide, path string, lang types.LangCode, ext string) mdFile {
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	check(err, "failed to read %v: %v", path, err)
 
 	// Check we have a frontmatter
@@ -1868,7 +1867,7 @@ func (gc *genCmd) writeGuideStructures() {
 	syn, err := valueToFile(pkgName, v.Syntax())
 	check(err, "failed to convert guide structures to CUE syntax: %v", err)
 	outPath := filepath.Join(*gc.fDir, "gen_guide_structures.cue")
-	err = ioutil.WriteFile(outPath, append(syn, '\n'), 0666)
+	err = os.WriteFile(outPath, append(syn, '\n'), 0666)
 	check(err, "failed to write guide structures output to %v: %v", outPath, err)
 }
 
