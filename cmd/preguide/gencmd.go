@@ -1163,6 +1163,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 		check(err, "failed to execute pre-substitution bashScript template: %v", err)
 		bashScript = b.String()
 	}
+	pdc.debugf("script:\n%s", bashScript)
 
 	// Concatenate the bash script
 	toWrite += bashScript
@@ -1421,6 +1422,11 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 	// should output the code fence (so we should wait until we see it)
 	//
 
+	// exitCodeVar is the name of the "temporary" variable used to capture
+	// the exit code from a command. Named something suitably esoteric to
+	// avoid user-declared variables
+	const exitCodeVar = "____x"
+
 	var sb strings.Builder
 	pf := func(format string, args ...interface{}) {
 		fmt.Fprintf(&sb, format, args...)
@@ -1464,17 +1470,17 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 				stmt.outputFence = getFence()
 				pf("echo %v\n", stmt.outputFence)
 				pf("%v\n", stmt.CmdStr)
-				pf("x=$?\n")
+				pf("%s=$?\n", exitCodeVar)
 				pf("echo %v\n", stmt.outputFence)
 				if stmt.Negated {
-					pf("if [ $x -eq 0 ]\n")
+					pf("if [ $%s -eq 0 ]\n", exitCodeVar)
 				} else {
-					pf("if [ $x -ne 0 ]\n")
+					pf("if [ $%s -ne 0 ]\n", exitCodeVar)
 				}
 				pf("then\n")
 				pf("exit 1\n")
 				pf("fi\n")
-				pf("echo $x\n")
+				pf("echo $%s\n", exitCodeVar)
 			}
 		case *uploadStep:
 			hf("step: %q, upload: target: %v, source: %v\n\n", step.Name, step.Target, step.Source)
@@ -1488,8 +1494,8 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 			pf("cat <<'%v' > %v\n", fence, step.Target)
 			pf("%v\n", step.Source)
 			pf("%v\n", fence)
-			pf("x=$?\n")
-			pf("if [ $x -ne 0 ]\n")
+			pf("%s=$?\n", exitCodeVar)
+			pf("if [ $%s -ne 0 ]\n", exitCodeVar)
 			pf("then\n")
 			pf("exit 1\n")
 			pf("fi\n")
