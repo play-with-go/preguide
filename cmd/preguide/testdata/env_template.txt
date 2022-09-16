@@ -111,12 +111,13 @@ Env: []
 FilenameComment: false
 Steps: {
 	step1: {
-		StepType:        1
-		DoNotTrim:       false
-		InformationOnly: false
-		Name:            "step1"
-		Order:           0
-		Terminal:        "term1"
+		StepType:          1
+		DoNotTrim:         false
+		InformationOnly:   false
+		Name:              "step1"
+		Order:             0
+		Terminal:          "term1"
+		UnstableLineOrder: false
 		Stmts: [{
 			Negated:          false
 			CmdStr:           "echo -n \"The answer is: {{.GREETING}}!\""

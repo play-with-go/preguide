@@ -40,6 +40,13 @@ import (
 		Terminal: _#TerminalName
 	}
 
+	// Default go test commands to note end-of-line seconds-based durations as
+	// being random
+	Steps: [string]: *(#Command & {
+		Source:         =~"^go test"
+		RandomPatterns: *([#"\d+\.\d+$"#]) | _
+	}) | _
+
 	// Scenarios define the various images under which this guide will be
 	// run
 	_#ScenarioName: =~"^[a-zA-Z0-9]+$"
@@ -125,6 +132,24 @@ _#commandCommon: {
 	// command blocks which are outputting random data for post-execution
 	// sanitisation, e.g. git commits.
 	InformationOnly: *false | bool
+
+	// RandomPatterns is a list of regexp patterns that should be normalised
+	// to unique strings (one per pattern) in both the reference and
+	// actual output before comparison. This allows for two outputs to be
+	// identical, modulo these patterns. go test is a good example where
+	// the timings per test can vary between script runs, but are not actually
+	// significant (in almost all situations) to the result of the test.
+	RandomPatterns?: [...string | #RandomPattern]
+
+	// UnstableLineOrder can be set to true to indicate the output is unstable
+	// with respect to ordering of lines. In this case, the output is sorted
+	// line-wise prior to comparison, but after RandomPatterns have been
+	// applied.
+	UnstableLineOrder?: *false | bool
+}
+
+#RandomPattern: {
+	Pattern: string
 }
 
 _#uploadCommon: {

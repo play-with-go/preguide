@@ -45,6 +45,8 @@ _stepCommon: {
 	DoNotTrim:       bool
 	RandomReplace:   string
 	InformationOnly: bool
+	RandomPatterns: [...string | preguide.#RandomPattern]
+	UnstableLineOrder: bool
 	Stmts: [...#Stmt]
 }
 

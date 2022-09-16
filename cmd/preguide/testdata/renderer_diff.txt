@@ -104,12 +104,13 @@ Env: []
 FilenameComment: false
 Steps: {
 	step0: {
-		StepType:        1
-		DoNotTrim:       false
-		InformationOnly: false
-		Name:            "step0"
-		Order:           0
-		Terminal:        "term1"
+		StepType:          1
+		DoNotTrim:         false
+		InformationOnly:   false
+		Name:              "step0"
+		Order:             0
+		Terminal:          "term1"
+		UnstableLineOrder: false
 		Stmts: [{
 			Negated:          false
 			CmdStr:           "echo -n \"Hello\""

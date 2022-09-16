@@ -80,13 +80,15 @@ type renderOptions struct {
 
 type commandStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
-	StepType        StepType
-	RandomReplace   *string
-	DoNotTrim       bool
-	InformationOnly bool
-	Name            string
-	Order           int
-	Terminal        string
+	StepType          StepType
+	RandomReplace     *string
+	DoNotTrim         bool
+	InformationOnly   bool
+	Name              string
+	Order             int
+	Terminal          string
+	RandomPatterns    []string
+	UnstableLineOrder bool
 
 	Stmts []*commandStmt
 }
@@ -133,11 +135,13 @@ func (pdc *processDirContext) commandStepFromCommand(s *types.Command) (*command
 		return nil, fmt.Errorf("failed to parse command string %q: %v", s.Source, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:            s.Name,
-		RandomReplace:   s.RandomReplace,
-		InformationOnly: s.InformationOnly,
-		DoNotTrim:       s.DoNotTrim,
-		Terminal:        s.Terminal,
+		Name:              s.Name,
+		RandomReplace:     s.RandomReplace,
+		InformationOnly:   s.InformationOnly,
+		DoNotTrim:         s.DoNotTrim,
+		Terminal:          s.Terminal,
+		RandomPatterns:    s.RandomPatterns,
+		UnstableLineOrder: s.UnstableLineOrder,
 	})
 	return pdc.commadStepFromSyntaxFile(res, f)
 }
@@ -156,11 +160,13 @@ func (pdc *processDirContext) commandStepFromCommandFile(s *types.CommandFile) (
 		return nil, fmt.Errorf("failed to parse commands from %v: %v", s.Path, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:            s.Name,
-		RandomReplace:   s.RandomReplace,
-		InformationOnly: s.InformationOnly,
-		DoNotTrim:       s.DoNotTrim,
-		Terminal:        s.Terminal,
+		Name:              s.Name,
+		RandomReplace:     s.RandomReplace,
+		InformationOnly:   s.InformationOnly,
+		DoNotTrim:         s.DoNotTrim,
+		Terminal:          s.Terminal,
+		RandomPatterns:    s.RandomPatterns,
+		UnstableLineOrder: s.UnstableLineOrder,
 	})
 	return pdc.commadStepFromSyntaxFile(res, f)
 }
