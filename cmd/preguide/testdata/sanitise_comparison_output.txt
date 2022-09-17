@@ -44,59 +44,68 @@ go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360
 package out
 
 Terminals: [{
+	Name:        "term1"
 	Description: "The main terminal"
 	Scenarios: {
 		go115: {
 			Image: "this_will_never_be_used"
 		}
 	}
-	Name: "term1"
 }]
 Scenarios: [{
-	Description: "Go 1.15"
 	Name:        "go115"
+	Description: "Go 1.15"
 }]
 Networks: []
 Env: []
+FilenameComment: false
 Steps: {
 	step0: {
-		Stmts: [{
-			ComparisonOutput: """
-				go: creating new go.mod: module mod.com
-
-				"""
-			Output: """
-				go: creating new go.mod: module mod.com
-
-				"""
-			ExitCode: 0
-			CmdStr:   "go mod init mod.com"
-			Negated:  false
-		}, {
-			ComparisonOutput: """
-
-				go: downloading golang.org/x/mod v0.3.0
-				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
-				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
-				go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360
-				"""
-			Output: """
-				go: found golang.org/x/tools/cmd/stringer in golang.org/x/tools v0.0.0-20201105220310-78b158585360
-				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
-				go: downloading golang.org/x/mod v0.3.0
-				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
-
-				"""
-			ExitCode: 0
-			CmdStr:   "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
-			Negated:  false
-		}]
-		Order:           0
-		InformationOnly: false
-		DoNotTrim:       false
-		Terminal:        "term1"
 		StepType:        1
+		DoNotTrim:       false
+		InformationOnly: false
 		Name:            "step0"
+		Order:           0
+		Terminal:        "term1"
+		Stmts: [{
+			Negated:  false
+			CmdStr:   "go mod init mod.com"
+			ExitCode: 0
+			Output: """
+				go: creating new go.mod: module mod.com
+				go: to add module requirements and sums:
+				\tgo mod tidy
+
+				"""
+			ComparisonOutput: """
+				go: creating new go.mod: module mod.com
+				go: to add module requirements and sums:
+				\tgo mod tidy
+
+				"""
+		}, {
+			Negated:  false
+			CmdStr:   "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
+			ExitCode: 0
+			Output: """
+				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+				go: downloading golang.org/x/mod v0.3.0
+				go: added golang.org/x/mod v0.3.0
+				go: added golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: added golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+
+				"""
+			ComparisonOutput: """
+
+				go: added golang.org/x/mod v0.3.0
+				go: added golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: added golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+				go: downloading golang.org/x/mod v0.3.0
+				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
+				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+				"""
+		}]
 	}
 }
 Hash: "8f5ce36fc6fd4718bc7410da4fa958290db1a37040ade5160857ba93b38f157c"

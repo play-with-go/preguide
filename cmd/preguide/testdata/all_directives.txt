@@ -155,7 +155,7 @@ echo &#34;Hello, world! I am an #UploadFile&#34;
 # Step 5
 
 <pre data-command-src="Z28gdmVyc2lvbgo="><code class="language-.term1">$ go version
-go version go1.15.15 linux/amd64
+go version go1.19.1 linux/amd64
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
@@ -180,4 +180,4 @@ echo "Hello, world! I am an #UploadFile"
 
 EOD
 $ go version
-go version go1.15.15 linux/amd64
+go version go1.19.1 linux/amd64
