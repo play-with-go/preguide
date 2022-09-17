@@ -34,8 +34,9 @@ var (
 	goEnvGOARCH     = regexp.MustCompile(`^(GO(HOST)?ARCH=).*`)
 	goEnvGoGCCFlags = regexp.MustCompile(`(^GOGCCFLAGS=).*`)
 
-	goVersionGoosGoarch  = regexp.MustCompile(`linux\/.*$`)
-	goVersionBuildGoarch = regexp.MustCompile(`GOARCH=.*$`)
+	goVersionGoosGoarch    = regexp.MustCompile(`(?m)linux\/.+$`)
+	goVersionBuildGoarch   = regexp.MustCompile(`(?ms)^\s+build\s.*\n`)
+	goVersionTrailingSpace = regexp.MustCompile(`(?m)\s+$`)
 )
 
 func CmdGoStmtSanitiser(s *sanitisers.S, stmt *syntax.Stmt) sanitisers.Sanitiser {
@@ -135,12 +136,12 @@ func (sanitiseGoEnv) ComparisonOutput(varNames []string, s string) string {
 type sanitiseGoVersion struct{}
 
 func (sanitiseGoVersion) Output(varNames []string, s string) string {
-	lines := strings.Split(s, "\n")
-	for i := range lines {
-		lines[i] = goVersionGoosGoarch.ReplaceAllString(lines[i], "linux/amd64")
-		lines[i] = goVersionBuildGoarch.ReplaceAllString(lines[i], "GOARCH=amd64")
-	}
-	return strings.Join(lines, "\n")
+	// This is gross, but works for now
+	s = goVersionGoosGoarch.ReplaceAllString(s, "linux/amd64")
+	// Drop all the build related configuration
+	s = goVersionBuildGoarch.ReplaceAllString(s, "")
+	s = goVersionTrailingSpace.ReplaceAllString(s, "")
+	return s
 }
 
 func (sanitiseGoVersion) ComparisonOutput(varNames []string, s string) string {
