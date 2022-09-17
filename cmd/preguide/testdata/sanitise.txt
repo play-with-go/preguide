@@ -4,6 +4,7 @@
 env regex_float='\d+(?:\.\d+)?'
 env regex_int='\d+'
 env regex_space='\s+'
+env regex_maybe_space='\s*'
 
 preguide gen -out _output
 cmpregex _output/myguide_go115_en.markdown myguide/go115_en.markdown.golden
@@ -32,6 +33,12 @@ title: A test with output that should be sanitised
 # Benchmark
 
 {{ step "step4" }}
+
+# go version
+
+{{ step "step5" }}
+{{ step "step6" }}
+{{ step "step7" }}
 -- myguide/steps.cue --
 package steps
 
@@ -95,6 +102,27 @@ go test
 
 Steps: step4: preguide.#Command & { Source: """
 go test -bench=.
+"""}
+
+Steps: step5: preguide.#Upload & { Target: "/home/gopher/hello.go", Source: """
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	fmt.Println("Hello, world!")
+}
+
+""" }
+
+Steps: step6: preguide.#Command & { Source: """
+go build -o hello
+"""}
+
+Steps: step7: preguide.#Command & { Source: """
+go version -m ./hello
 """}
 
 -- myguide/go115_en.markdown.golden --
@@ -169,6 +197,26 @@ BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
 PASS
 ok  	example.com	${regex_float}s
 </code></pre>
+
+# go version
+
+<pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG8uZ28=:cGFja2FnZSBtYWluCgppbXBvcnQgKAoJImZtdCIKKQoKZnVuYyBtYWluKCkgewoJZm10LlByaW50bG4oIkhlbGxvLCB3b3JsZCEiKQp9Cg==" data-upload-term=".term1"><code class="language-go">package main
+
+import (
+	&#34;fmt&#34;
+)
+
+func main() &#123;
+	fmt.Println(&#34;Hello, world!&#34;)
+&#125;
+</code></pre>
+<pre data-command-src="Z28gYnVpbGQgLW8gaGVsbG8K"><code class="language-.term1">$ go build -o hello
+</code></pre>
+<pre data-command-src="Z28gdmVyc2lvbiAtbSAuL2hlbGxvCg=="><code class="language-.term1">$ go version -m ./hello
+./hello: go1.19.1
+	path	example.com
+	mod	example.com	(devel)
+</code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
 $ go mod init example.com
@@ -224,3 +272,20 @@ pkg: example.com
 BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
 PASS
 ok  	example.com	${regex_float}s
+$ cat <<EOD > /home/gopher/hello.go
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	fmt.Println("Hello, world!")
+}
+
+EOD
+$ go build -o hello
+$ go version -m ./hello
+./hello: go1.19.1
+	path	example.com
+	mod	example.com	(devel)
