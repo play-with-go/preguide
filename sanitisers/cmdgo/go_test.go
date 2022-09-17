@@ -50,7 +50,6 @@ ok  	mod.com	1.489s
 			want: `goos: linux
 goarch: amd64
 pkg: mod.com
-cpu: Intel(R) Core(TM) i7-4960HQ CPU @ 2.60GHz
 BenchmarkFib10-8   	 3357487	       333.7 ns/op
 PASS
 ok  	mod.com	1.489s

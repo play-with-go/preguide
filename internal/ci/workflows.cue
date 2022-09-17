@@ -37,7 +37,7 @@ _#latestGo:     "1.19.1"
 test: json.#Workflow & {
 	name: "Test"
 	env: {
-		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.15.15:6967d577188719cbf7a77cc80c5960695a20b103"
+		PREGUIDE_IMAGE_OVERRIDE: "playwithgo/go1.19.1:5966cd5f1b8ef645576f95bcb19fff827d6ca560"
 		PREGUIDE_PULL_IMAGE:     "missing"
 	}
 	on: {

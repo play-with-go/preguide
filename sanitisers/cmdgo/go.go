@@ -25,6 +25,7 @@ var (
 	goTestFailSummary    = regexp.MustCompile(`^((FAIL|ok  )\t.+\t)` + goTestTestTime + `s$`)
 	goTestBench          = regexp.MustCompile(`^([^\s]+)\s+\d+\s+` + goTestTestTime + ` ns/op$`)
 	goTestBenchOSArch    = regexp.MustCompile(`(?m)^goos: .*\ngoarch: .*\n`)
+	goTestBenchCPU       = regexp.MustCompile(`(?m)^cpu: .*\n`)
 
 	goGetModVCSPath = regexp.MustCompile(`(pkg/mod/cache/vcs/)[0-9a-f]+`)
 
@@ -76,6 +77,7 @@ type sanitiseGoTest struct {
 func (gt sanitiseGoTest) Output(varNames []string, s string) string {
 	if gt.bench {
 		s = goTestBenchOSArch.ReplaceAllString(s, "goos: linux\ngoarch: amd64\n")
+		s = goTestBenchCPU.ReplaceAllString(s, "")
 	}
 	return s
 }

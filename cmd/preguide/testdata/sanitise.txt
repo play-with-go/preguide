@@ -13,6 +13,10 @@ cmpregex myguide/go115_en_log.txt myguide/go115_en_log.txt.golden
 ---
 title: A test with output that should be sanitised
 ---
+# Create a module
+
+{{ step "step0" }}
+
 # Create go file
 
 {{ step "step1" }}
@@ -41,6 +45,10 @@ Terminals: term1: preguide.#Terminal & {
 	Description: "The main terminal"
 	Scenarios: go115: Image: "this_will_never_be_used"
 }
+
+Steps: step0: preguide.#Command & { Source: """
+go mod init example.com
+"""}
 
 Steps: step1: preguide.#Upload & { Target: "/home/gopher/hello.go", Source: """
 package main
@@ -95,6 +103,14 @@ guide: myguide
 lang: en
 title: A test with output that should be sanitised
 ---
+# Create a module
+
+<pre data-command-src="Z28gbW9kIGluaXQgZXhhbXBsZS5jb20K"><code class="language-.term1">$ go mod init example.com
+go: creating new go.mod: module example.com
+go: to add module requirements and sums:
+	go mod tidy
+</code></pre>
+
 # Create go file
 
 <pre data-upload-path="L2hvbWUvZ29waGVy" data-upload-src="aGVsbG8uZ28=:cGFja2FnZSBtYWluCgppbXBvcnQgImZtdCIKCmZ1bmMgbWFpbigpIHsKCWZtdC5QcmludGxuKCJIZWxsbywgd29ybGQhIikKfQoKZnVuYyBGaWIobiBpbnQpIGludCB7CiAgICAgICAgaWYgbiA8IDIgewogICAgICAgICAgICAgICAgcmV0dXJuIG4KICAgICAgICB9CiAgICAgICAgcmV0dXJuIEZpYihuLTEpICsgRmliKG4tMikKfQo=" data-upload-term=".term1"><code class="language-go">package main
@@ -139,7 +155,7 @@ func BenchmarkFib10(b *testing.B) &#123;
 <pre data-command-src="Z28gdGVzdAo="><code class="language-.term1">$ go test
 Hello, world... from the test!
 PASS
-ok  	_/home/gopher	${regex_float}s
+ok  	example.com	${regex_float}s
 </code></pre>
 
 # Benchmark
@@ -148,12 +164,17 @@ ok  	_/home/gopher	${regex_float}s
 Hello, world... from the test!
 goos: linux
 goarch: amd64
+pkg: example.com
 BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
 PASS
-ok  	_/home/gopher	${regex_float}s
+ok  	example.com	${regex_float}s
 </code></pre>
 <script>let pageGuide="myguide"; let pageLanguage="en"; let pageScenario="go115";</script>
 -- myguide/go115_en_log.txt.golden --
+$ go mod init example.com
+go: creating new go.mod: module example.com
+go: to add module requirements and sums:
+	go mod tidy
 $ cat <<EOD > /home/gopher/hello.go
 package main
 
@@ -194,11 +215,12 @@ EOD
 $ go test
 Hello, world... from the test!
 PASS
-ok${regex_space}_/home/gopher${regex_space}${regex_float}s
+ok  	example.com	${regex_float}s
 $ go test -bench=.
 Hello, world... from the test!
 goos: linux
 goarch: amd64
+pkg: example.com
 BenchmarkFib10${regex_space}${regex_int}${regex_space}${regex_float} ns/op
 PASS
-ok  	_/home/gopher	${regex_float}s
+ok  	example.com	${regex_float}s
