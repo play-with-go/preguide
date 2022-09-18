@@ -33,7 +33,7 @@ var (
 	goEnvGOOS       = regexp.MustCompile(`^(GOOS=).*`)
 	goEnvGOARCH     = regexp.MustCompile(`^(GO(HOST)?ARCH=).*`)
 	goEnvGoGCCFlags = regexp.MustCompile(`(?m)^GOGCCFLAGS=.*\n`)
-	goEnvAMD64      = regexp.MustCompile(`^GOAMD64=.*\n`)
+	goEnvAMD64      = regexp.MustCompile(`(?m)^GOAMD64=.*\n`)
 
 	goVersionGoosGoarch    = regexp.MustCompile(`(?m)linux\/.+$`)
 	goVersionBuildGoarch   = regexp.MustCompile(`(?ms)^\s+build\s.*\n`)
