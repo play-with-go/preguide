@@ -130,7 +130,6 @@ CGO_CXXFLAGS="-g -O2"
 CGO_FFLAGS="-g -O2"
 CGO_LDFLAGS="-g -O2"
 PKG_CONFIG="pkg-config"
-GOGCCFLAGS="fake_gcc_flags"
 `,
 		},
 	}

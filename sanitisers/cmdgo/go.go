@@ -32,7 +32,8 @@ var (
 	goEnvToolDir    = regexp.MustCompile(`^(GOTOOLDIR=.*/)[^/]*`)
 	goEnvGOOS       = regexp.MustCompile(`^(GOOS=).*`)
 	goEnvGOARCH     = regexp.MustCompile(`^(GO(HOST)?ARCH=).*`)
-	goEnvGoGCCFlags = regexp.MustCompile(`(^GOGCCFLAGS=).*`)
+	goEnvGoGCCFlags = regexp.MustCompile(`(?m)^GOGCCFLAGS=.*\n`)
+	goEnvAMD64      = regexp.MustCompile(`^GOAMD64=.*\n`)
 
 	goVersionGoosGoarch    = regexp.MustCompile(`(?m)linux\/.+$`)
 	goVersionBuildGoarch   = regexp.MustCompile(`(?ms)^\s+build\s.*\n`)
@@ -116,15 +117,13 @@ func (sanitiseGoGet) ComparisonOutput(varNames []string, s string) string {
 type sanitiseGoEnv struct{}
 
 func (sanitiseGoEnv) Output(varNames []string, s string) string {
-	// Deal with the fact that go env is not stable when it comes to GOGCCFLAGS=
-	// by removing that line. It's more hassle than it's worth right now to
-	// do anything sensible with it
+	s = goEnvGoGCCFlags.ReplaceAllString(s, "")
+	s = goEnvAMD64.ReplaceAllString(s, "")
 	lines := strings.Split(s, "\n")
 	for i := range lines {
 		lines[i] = goEnvToolDir.ReplaceAllString(lines[i], `${1}linux_amd64"`)
 		lines[i] = goEnvGOOS.ReplaceAllString(lines[i], `${1}"linux"`)
 		lines[i] = goEnvGOARCH.ReplaceAllString(lines[i], `${1}"amd64"`)
-		lines[i] = goEnvGoGCCFlags.ReplaceAllString(lines[i], `${1}"fake_gcc_flags"`)
 	}
 	return strings.Join(lines, "\n")
 }
