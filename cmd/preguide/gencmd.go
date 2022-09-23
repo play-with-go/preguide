@@ -1289,7 +1289,9 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	}
 
 	// As we go through getting the output, continue to build up a list of
-	// replacements that will sanitise the output in a second pass.
+	// replacements that will sanitise the output in a second pass. This needs
+	// to happen in a second pass, because some of the commands define
+	// what will be random output.
 	//
 	// First add the variables that are the result of the prestep.
 	var sanVals [][2]string

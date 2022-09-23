@@ -57,8 +57,63 @@ ok  	mod.com	1.489s
 		},
 		{
 			san:  sanitiseGoVersion{},
-			in:   `go version go1.17.5 linux/arm64`,
-			want: `go version go1.17.5 linux/amd64`,
+			in:   "go version go1.17.5 linux/arm64\n",
+			want: "go version go1.17.5 linux/amd64\n",
+		},
+		{
+			san: sanitiseGoVersion{},
+			in: `/home/myitcv/cues/cue: go1.18.5
+        path    cuelang.org/go/cmd/cue
+        mod     cuelang.org/go  (devel)
+        dep     github.com/cockroachdb/apd/v2   v2.0.2  h1:weh8u7Cneje73dDh+2tEVLUvyBc89iwepWCD8b8034E=
+        dep     github.com/emicklei/proto       v1.10.0 h1:pDGyFRVV5RvV+nkBK9iy3q67FBy9Xa7vwrOTE+g5aGw=
+        dep     github.com/golang/glog  v0.0.0-20160126235308-23def4e6c14b      h1:VKtxabqXZkF25pY9ekfRL6a582T4P37/31XEstQ5p58=
+        dep     github.com/google/uuid  v1.2.0  h1:qJYtXnJRWmpe7m/3XlyhrsLrEURqHRM2kxzoxXqyUDs=
+        dep     github.com/mitchellh/go-wordwrap        v1.0.1  h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQflz0v0=
+        dep     github.com/mpvl/unique  v0.0.0-20150818121801-cbe035fff7de      h1:D5x39vF5KCwKQaw+OC9ZPiLVHXz3UFw2+psEX+gYcto=
+        dep     github.com/pkg/errors   v0.8.1  h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+        dep     github.com/protocolbuffers/txtpbfmt     v0.0.0-20220428173112-74888fd59c2b      h1:zd/2RNzIRkoGGMjE+YIsZ85CnDIz672JK2F3Zl4vux4=
+        dep     github.com/spf13/cobra  v1.4.0  h1:y+wJpx64xcgO1V+RcnwW0LEHxTKRi2ZDPSBjWnrg88Q=
+        dep     github.com/spf13/pflag  v1.0.5  h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
+        dep     golang.org/x/mod        v0.6.0-dev.0.20220818022119-ed83ed61efb9        h1:VtCrPQXM5Wo9l7XN64SjBMczl48j8mkP+2e3OhYlz+0=
+        dep     golang.org/x/net        v0.0.0-20220722155237-a158d28d115b      h1:PxfKdU9lEEDYjdIzOtC4qFWgkU2rGHdKlKowJSMN9h0=
+        dep     golang.org/x/sys        v0.0.0-20220722155257-8c9f86f7a55f      h1:v4INt8xihDGvnrfjMDVXGxw9wrfxYyCjk0KbXjhR55s=
+        dep     golang.org/x/text       v0.3.7  h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
+        dep     golang.org/x/tools      v0.1.12 h1:VveCTK38A2rkS8ZqFY25HIDFscX5X9OoEhJd3quQmXU=
+        dep     gopkg.in/yaml.v3        v3.0.1  h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+        build   -compiler=gc
+        build   CGO_ENABLED=1
+        build   CGO_CFLAGS=
+        build   CGO_CPPFLAGS=
+        build   CGO_CXXFLAGS=
+        build   CGO_LDFLAGS=
+        build   GOARCH=arm64
+        build   GOOS=linux
+        build   vcs=git
+        build   vcs.revision=75189525aabd2bcf2d8738855b187adb4713a393
+        build   vcs.time=2022-09-23T09:26:06Z
+        build   vcs.modified=false
+`,
+			want: `/home/myitcv/cues/cue: go1.18.5
+        path    cuelang.org/go/cmd/cue
+        mod     cuelang.org/go  (devel)
+        dep     github.com/cockroachdb/apd/v2   v2.0.2  h1:weh8u7Cneje73dDh+2tEVLUvyBc89iwepWCD8b8034E=
+        dep     github.com/emicklei/proto       v1.10.0 h1:pDGyFRVV5RvV+nkBK9iy3q67FBy9Xa7vwrOTE+g5aGw=
+        dep     github.com/golang/glog  v0.0.0-20160126235308-23def4e6c14b      h1:VKtxabqXZkF25pY9ekfRL6a582T4P37/31XEstQ5p58=
+        dep     github.com/google/uuid  v1.2.0  h1:qJYtXnJRWmpe7m/3XlyhrsLrEURqHRM2kxzoxXqyUDs=
+        dep     github.com/mitchellh/go-wordwrap        v1.0.1  h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQflz0v0=
+        dep     github.com/mpvl/unique  v0.0.0-20150818121801-cbe035fff7de      h1:D5x39vF5KCwKQaw+OC9ZPiLVHXz3UFw2+psEX+gYcto=
+        dep     github.com/pkg/errors   v0.8.1  h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+        dep     github.com/protocolbuffers/txtpbfmt     v0.0.0-20220428173112-74888fd59c2b      h1:zd/2RNzIRkoGGMjE+YIsZ85CnDIz672JK2F3Zl4vux4=
+        dep     github.com/spf13/cobra  v1.4.0  h1:y+wJpx64xcgO1V+RcnwW0LEHxTKRi2ZDPSBjWnrg88Q=
+        dep     github.com/spf13/pflag  v1.0.5  h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
+        dep     golang.org/x/mod        v0.6.0-dev.0.20220818022119-ed83ed61efb9        h1:VtCrPQXM5Wo9l7XN64SjBMczl48j8mkP+2e3OhYlz+0=
+        dep     golang.org/x/net        v0.0.0-20220722155237-a158d28d115b      h1:PxfKdU9lEEDYjdIzOtC4qFWgkU2rGHdKlKowJSMN9h0=
+        dep     golang.org/x/sys        v0.0.0-20220722155257-8c9f86f7a55f      h1:v4INt8xihDGvnrfjMDVXGxw9wrfxYyCjk0KbXjhR55s=
+        dep     golang.org/x/text       v0.3.7  h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=
+        dep     golang.org/x/tools      v0.1.12 h1:VveCTK38A2rkS8ZqFY25HIDFscX5X9OoEhJd3quQmXU=
+        dep     gopkg.in/yaml.v3        v3.0.1  h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+`,
 		},
 		{
 			san: sanitiseGoEnv{},
