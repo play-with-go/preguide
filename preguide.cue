@@ -8,10 +8,8 @@ import (
 // TODO: keep this in sync with the Go definitions
 #StepType: int
 
-#StepTypeCommand:     #StepType & 1
-#StepTypeCommandFile: #StepType & 2
-#StepTypeUpload:      #StepType & 3
-#StepTypeUploadFile:  #StepType & 4
+#StepTypeCommand: #StepType & 1
+#StepTypeUpload:  #StepType & 3
 
 #Guide: {
 
@@ -96,18 +94,20 @@ import (
 	"sv" | "ta" | "te" | "tg" | "th" | "ti" | "bo" | "tk" | "tl" | "tn" | "to" | "tr" | "ts" | "tt" | "tw" | "ty" | "ug" | "uk" | "ur" |
 	"uz" | "ve" | "vi" | "vo" | "wa" | "cy" | "wo" | "fy" | "xh" | "yi" | "yo" | "za" | "zu"
 
-// The following definitions necessarily reference the nested definitions
-// in #Guide, because those definitions rely on references to Terminals
-// which only makes sense in the context of a #Guide instance
-
 _stepCommon: {
 	Name:     string
 	StepType: #StepType
 	Terminal: string
 }
 
-_#commandCommon: {
+#Step: (#Command | #Upload ) & _stepCommon
+
+#Command: {
 	_stepCommon
+
+	StepType: #StepTypeCommand
+	Source?:  string
+	Path?:    string
 
 	// RandomReplace indicates the entire output from this command block
 	// should be used to sanitise the output from the entire script,
@@ -127,8 +127,12 @@ _#commandCommon: {
 	InformationOnly: *false | bool
 }
 
-_#uploadCommon: {
+#Upload: {
 	_stepCommon
+
+	StepType: #StepTypeUpload
+	Source?:  string
+	Path?:    string
 
 	Target: string
 
@@ -141,32 +145,6 @@ _#uploadCommon: {
 	// Renderer defines how the upload file contents will be
 	// rendered to the user in the guide.
 	Renderer: #Renderer
-}
-
-#Step: (#Command | #CommandFile | #Upload | #UploadFile) & _stepCommon
-
-#Command: {
-	_#commandCommon
-	StepType: #StepTypeCommand
-	Source:   string
-}
-
-#CommandFile: {
-	_#commandCommon
-	StepType: #StepTypeCommandFile
-	Path:     string
-}
-
-#Upload: {
-	_#uploadCommon
-	StepType: #StepTypeUpload
-	Source:   string
-}
-
-#UploadFile: {
-	_#uploadCommon
-	StepType: #StepTypeUploadFile
-	Path:     string
 }
 
 // #PrestepServiceConfig is a mapping from prestep package path to endpoint

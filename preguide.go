@@ -59,9 +59,7 @@ type Schemas struct {
 	PrestepServiceConfig cue.Value
 	Guide                cue.Value
 	Command              cue.Value
-	CommandFile          cue.Value
 	Upload               cue.Value
-	UploadFile           cue.Value
 	GuideOutput          cue.Value
 	CommandStep          cue.Value
 	UploadStep           cue.Value
@@ -116,9 +114,7 @@ func LoadSchemas(r *cue.Context) (res Schemas, err error) {
 	res.PrestepServiceConfig = mustFind(preguide.LookupPath(cue.ParsePath("#PrestepServiceConfig")))
 	res.Guide = mustFind(preguide.LookupPath(cue.ParsePath("#Guide")))
 	res.Command = mustFind(preguide.LookupPath(cue.ParsePath("#Command")))
-	res.CommandFile = mustFind(preguide.LookupPath(cue.ParsePath("#CommandFile")))
 	res.Upload = mustFind(preguide.LookupPath(cue.ParsePath("#Upload")))
-	res.UploadFile = mustFind(preguide.LookupPath(cue.ParsePath("#UploadFile")))
 	res.GuideOutput = mustFind(preguideOut.LookupPath(cue.ParsePath("#GuideOutput")))
 	res.CommandStep = mustFind(preguideOut.LookupPath(cue.ParsePath("#CommandStep")))
 	res.UploadStep = mustFind(preguideOut.LookupPath(cue.ParsePath("#UploadStep")))

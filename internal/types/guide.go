@@ -19,10 +19,8 @@ type StepType int64
 
 const (
 	// TODO: keep this in sync with the CUE definitions
-	StepTypeCommand StepType = iota + 1
-	StepTypeCommandFile
-	StepTypeUpload
-	StepTypeUploadFile
+	StepTypeCommand StepType = 1
+	StepTypeUpload  StepType = 3
 )
 
 type Mode string
@@ -106,12 +104,8 @@ func unmarshalStep(r json.RawMessage) (Step, error) {
 	switch discrim.StepType {
 	case StepTypeCommand:
 		s = new(Command)
-	case StepTypeCommandFile:
-		s = new(CommandFile)
 	case StepTypeUpload:
 		s = new(Upload)
-	case StepTypeUploadFile:
-		s = new(UploadFile)
 	default:
 		panic(fmt.Errorf("unknown StepType: %v", discrim.StepType))
 	}
@@ -132,28 +126,13 @@ type Command struct {
 	RandomReplace   *string
 	DoNotTrim       bool
 	InformationOnly bool
-	Source          string
+	Source          *string
+	Path            *string
 }
 
 var _ Step = (*Command)(nil)
 
 func (c *Command) StepType() StepType {
-	return c.StepTypeVal
-}
-
-type CommandFile struct {
-	StepTypeVal     StepType `json:"StepType"`
-	Terminal        string
-	Name            string
-	RandomReplace   *string
-	DoNotTrim       bool
-	InformationOnly bool
-	Path            string
-}
-
-var _ Step = (*CommandFile)(nil)
-
-func (c *CommandFile) StepType() StepType {
 	return c.StepTypeVal
 }
 
@@ -164,7 +143,8 @@ type Upload struct {
 	Target      string
 	Language    string
 	Renderer    Renderer
-	Source      string
+	Source      *string
+	Path        *string
 }
 
 var _ Step = (*Upload)(nil)
@@ -182,40 +162,6 @@ func (u *Upload) UnmarshalJSON(b []byte) error {
 	uv.noUnmarshall = (*noUnmarshall)(u)
 	if err := json.Unmarshal(b, &uv); err != nil {
 		return fmt.Errorf("failed to unmarshal wrapped Upload: %v", err)
-	}
-	r, err := UnmarshalRenderer(uv.Renderer)
-	if err != nil {
-		return err
-	}
-	u.Renderer = r
-	return nil
-}
-
-type UploadFile struct {
-	StepTypeVal StepType `json:"StepType"`
-	Terminal    string
-	Name        string
-	Target      string
-	Language    string
-	Renderer    Renderer
-	Path        string
-}
-
-var _ Step = (*UploadFile)(nil)
-
-func (u *UploadFile) StepType() StepType {
-	return u.StepTypeVal
-}
-
-func (u *UploadFile) UnmarshalJSON(b []byte) error {
-	type noUnmarshall UploadFile
-	var uv struct {
-		*noUnmarshall
-		Renderer json.RawMessage
-	}
-	uv.noUnmarshall = (*noUnmarshall)(u)
-	if err := json.Unmarshal(b, &uv); err != nil {
-		return fmt.Errorf("failed to unmarshal wrapped UploadFile: %v", err)
 	}
 	r, err := UnmarshalRenderer(uv.Renderer)
 	if err != nil {

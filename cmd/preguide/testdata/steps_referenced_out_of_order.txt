@@ -44,7 +44,7 @@ ls
 """
 }
 
-Steps: step2: preguide.#CommandFile & {
+Steps: step2: preguide.#Command & {
 	Path: "step2_commandFile.sh"
 }
 
