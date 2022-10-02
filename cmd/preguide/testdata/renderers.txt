@@ -156,10 +156,9 @@ Steps: {
 		Order:    0
 		Terminal: "term1"
 		Stmts: [{
-			CmdStr:           "echo -n \"Hello\""
-			ExitCode:         0
-			Output:           "Hello"
-			ComparisonOutput: "Hello"
+			CmdStr:   "echo -n \"Hello\""
+			ExitCode: 0
+			Output:   "Hello"
 		}]
 	}
 	step1: {
@@ -206,10 +205,9 @@ Steps: {
 		Order:    0
 		Terminal: "term1"
 		Stmts: [{
-			CmdStr:           "echo -n \"Hello\""
-			ExitCode:         0
-			Output:           "Hello"
-			ComparisonOutput: "Hello"
+			CmdStr:   "echo -n \"Hello\""
+			ExitCode: 0
+			Output:   "Hello"
 		}]
 	}
 	step1: {

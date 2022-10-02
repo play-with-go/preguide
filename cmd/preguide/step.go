@@ -12,11 +12,11 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"text/template"
 
 	"github.com/play-with-go/preguide/internal/types"
-	"github.com/play-with-go/preguide/sanitisers"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -111,16 +111,52 @@ func (c *commandStep) setorder(i int) {
 }
 
 type commandStmt struct {
-	Negated          *bool
-	CmdStr           string
-	ExitCode         int
-	Output           string
-	ComparisonOutput string
-	RandomReplace    *string
-	DoNotTrim        *bool
-	outputFence      string
+	Negated           *bool
+	CmdStr            string
+	ExitCode          int
+	Output            string
+	RandomReplace     *string
+	DoNotTrim         *bool
+	outputFence       string
+	sanitisers        []*sanitiser
+	comparators       []*pattern
+	unstableLineOrder *bool
+}
 
-	sanitiser sanitisers.Sanitiser
+type sanitiser struct {
+	types.Sanitiser
+	re *regexp.Regexp
+}
+
+type pattern struct {
+	types.Pattern
+	re *regexp.Regexp
+}
+
+func buildSanitisers(vs []types.Sanitiser) []*sanitiser {
+	if len(vs) == 0 {
+		return nil
+	}
+	res := make([]*sanitiser, len(vs))
+	for i, v := range vs {
+		var cs sanitiser
+		cs.Sanitiser = v
+		res[i] = &cs
+	}
+	return res
+}
+
+func buildComparators(vs []types.Pattern) []*pattern {
+	if len(vs) == 0 {
+		return nil
+	}
+	res := make([]*pattern, len(vs))
+	for i, v := range vs {
+		var cs pattern
+		cs.Pattern = v
+		res[i] = &cs
+	}
+	return res
 }
 
 // commandStepFromCommand takes a string value that is a sequence of shell
@@ -179,24 +215,24 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 	default:
 		panic("not possible")
 	}
-	var f *syntax.File
+	var topLevelF *syntax.File
 	if source != nil {
 		// In case our input does not have a trailing newline, adding
 		// another one is fine.
 		*source += "\n"
-		f, err = syntax.NewParser().Parse(strings.NewReader(*source), "")
+		topLevelF, err = syntax.NewParser().Parse(strings.NewReader(*source), "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse command string %q: %v", *source, err)
 		}
 		// If we also had Stmts set to a list of Cmd to control each of the
 		// statements we just parsed, ensure that the lengths match
 		if csl != nil {
-			if len(csl) != len(f.Stmts) {
-				return nil, fmt.Errorf("parsed source from Path contained %d statements; Stmts contained %d", len(f.Stmts), len(csl))
+			if len(csl) != len(topLevelF.Stmts) {
+				return nil, fmt.Errorf("parsed source from Path contained %d statements; Stmts contained %d", len(topLevelF.Stmts), len(csl))
 			}
 		} else {
 			// Nothing to augment to the parsed statements
-			for i, stmt := range f.Stmts {
+			for i, stmt := range topLevelF.Stmts {
 				cmdStmt := &commandStmt{}
 				if err := pdc.commandStmtFromStmt(stmt, cmdStmt); err != nil {
 					return nil, fmt.Errorf("failed to build command statement for Stmts element %d: %v", i, err)
@@ -212,8 +248,8 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 		// or a Cmd with a Cmd string set
 		var stmt *syntax.Stmt
 		cmdStmt := &commandStmt{}
-		if f != nil {
-			stmt = f.Stmts[i]
+		if topLevelF != nil {
+			stmt = topLevelF.Stmts[i]
 		} else {
 			// Parse a single statement either from either the string
 			// value or the Cmd.Cmd
@@ -225,13 +261,16 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 				source = *csle.Cmd
 				cmdStmt.RandomReplace = csle.RandomReplace
 				cmdStmt.DoNotTrim = csle.DoNotTrim
+				cmdStmt.unstableLineOrder = csle.UnstableLineOrder
+				cmdStmt.sanitisers = buildSanitisers(csle.Sanitisers)
+				cmdStmt.comparators = buildComparators(csle.Comparators)
 			default:
 				panic("not possible")
 			}
 			// In case our input does not have a trailing newline, adding
 			// another one is fine.
 			source += "\n"
-			f, err = syntax.NewParser().Parse(strings.NewReader(source), "")
+			f, err := syntax.NewParser().Parse(strings.NewReader(source), "")
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse command string from Stmts element %d: %v", i, err)
 			}
@@ -259,25 +298,10 @@ func (pdc *processDirContext) commandStmtFromStmt(stmt *syntax.Stmt, cmdStmt *co
 	if err := pdc.stmtPrinter.Print(&sb, stmt); err != nil {
 		return fmt.Errorf("failed to print statement: %v", err)
 	}
-	var sans []sanitisers.Sanitiser
-	for _, d := range stmtSanitisers {
-		if san := d(pdc.sanitiserHelper, stmt); san != nil {
-			sans = append(sans, san)
-		}
-	}
-	var san sanitisers.Sanitiser
-	switch len(sans) {
-	case 0:
-	case 1:
-		san = sans[0]
-	default:
-		return fmt.Errorf("statement %v resulted in multiple sanitisers", stmt.Cmd)
-	}
 	cmdStmt.CmdStr = sb.String()
 	if negated {
 		cmdStmt.Negated = &negated
 	}
-	cmdStmt.sanitiser = san
 	return nil
 }
 
@@ -338,7 +362,6 @@ func (c *commandStep) setOutputFrom(s step) {
 	for i, s := range oc.Stmts {
 		c.Stmts[i].ExitCode = s.ExitCode
 		c.Stmts[i].Output = s.Output
-		c.Stmts[i].ComparisonOutput = s.ComparisonOutput
 	}
 }
 

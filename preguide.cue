@@ -129,6 +129,21 @@ _stepCommon: {
 	// should not be trimmed (the default is to trim the trailing \n
 	// from the output) prior to sanitising the output from the script
 	DoNotTrim?: bool
+
+	Sanitisers?: [...#Sanitiser]
+	Comparators?: [...#Pattern]
+	UnstableLineOrder?: bool
+}
+
+#Sanitiser: {
+	#Pattern
+	Replacement: string
+}
+
+#Pattern: {
+	Pattern:   string
+	Longest?:  bool
+	LineWise?: bool
 }
 
 #Upload: {

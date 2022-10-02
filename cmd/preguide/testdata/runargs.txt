@@ -58,10 +58,9 @@ Steps: {
 		Order:    0
 		Terminal: "term1"
 		Stmts: [{
-			CmdStr:           "echo -n \"The answer is: $GREETING\""
-			ExitCode:         0
-			Output:           "The answer is: hello"
-			ComparisonOutput: "The answer is: hello"
+			CmdStr:   "echo -n \"The answer is: $GREETING\""
+			ExitCode: 0
+			Output:   "The answer is: hello"
 		}]
 	}
 }

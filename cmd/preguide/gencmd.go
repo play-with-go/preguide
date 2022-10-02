@@ -39,7 +39,6 @@ import (
 	"github.com/play-with-go/preguide"
 	"github.com/play-with-go/preguide/internal/types"
 	"github.com/play-with-go/preguide/internal/util"
-	"github.com/play-with-go/preguide/sanitisers"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -212,8 +211,7 @@ type processDirContext struct {
 	// The following is context that current sits on genCmd but
 	// will likely have to move to a separate context object when
 	// we start to concurrently process guides
-	sanitiserHelper *sanitisers.S
-	stmtPrinter     *syntax.Printer
+	stmtPrinter *syntax.Printer
 }
 
 func (pdc *processDirContext) debugf(format string, args ...interface{}) {
@@ -390,10 +388,9 @@ func (gc *genCmd) run(args []string) error {
 	var pdcs []*processDirContext
 	for _, d := range toWalk {
 		pdc := &processDirContext{
-			genCmd:          gc,
-			sanitiserHelper: sanitisers.NewS(),
-			stmtPrinter:     syntax.NewPrinter(syntax.SingleLine(true)),
-			guideDir:        d,
+			genCmd:      gc,
+			stmtPrinter: syntax.NewPrinter(syntax.SingleLine(true)),
+			guideDir:    d,
 		}
 		pdcs = append(pdcs, pdc)
 	}
@@ -565,6 +562,7 @@ func (pdc *processDirContext) runSteps() {
 	pdc.buildBashFile(g)
 	out := g.outputGuide
 	cacheHit := out != nil && out.Hash == g.Hash
+	pdc.debugf("cache hit? %v\n", cacheHit)
 	if !*pdc.fSkipCache && cacheHit {
 		pdc.debugf("cache hit: will not re-run script\n")
 		g.updateFromOutput(out)
@@ -595,10 +593,39 @@ func (pdc *processDirContext) comparisonEqual(regen, out *guide) bool {
 			o := o.(*commandStep)
 			for j, rs := range r.Stmts {
 				os := o.Stmts[j]
-				if rs.ComparisonOutput != os.ComparisonOutput {
+				rv, ov := rs.Output, os.Output
+				for _, c := range rs.comparators {
+					f := getFence() // random string value
+					if c.LineWise != nil && *c.LineWise {
+						rlines := strings.Split(rv, "\n")
+						olines := strings.Split(ov, "\n")
+						for i := range rlines {
+							rlines[i] = c.re.ReplaceAllString(rlines[i], f)
+						}
+						for i := range olines {
+							olines[i] = c.re.ReplaceAllString(olines[i], f)
+						}
+						rv = strings.Join(rlines, "\n")
+						ov = strings.Join(olines, "\n")
+					} else {
+						rv = c.re.ReplaceAllString(rv, f)
+						ov = c.re.ReplaceAllString(ov, f)
+					}
+				}
+				if rs.unstableLineOrder != nil && *rs.unstableLineOrder {
+					sortLines := func(v string) string {
+						lines := strings.Split(v, "\n")
+						sort.Strings(lines)
+						return strings.Join(lines, "\n")
+					}
+					rv = sortLines(rv)
+					ov = sortLines(ov)
+				}
+				if rv != ov {
 					return false
 				}
 			}
+
 		}
 	}
 	return true
@@ -797,6 +824,26 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 			// by the terminal scenario). However for now we assume Unix
 			if !isAbsolute(s.Target) {
 				raise("target path %q must be absolute", s.Target)
+			}
+		case *commandStep:
+			// Verfiy all Sanitisers and Patterns ahead of time
+			for _, s := range s.Stmts {
+				for i, sl := range s.sanitisers {
+					r, err := regexp.Compile(sl.Pattern.Pattern)
+					check(err, "failed to compile sanitiser at index %d pattern %q: %v", i, sl.Pattern.Pattern, err)
+					if sl.Longest != nil && *sl.Longest {
+						r.Longest()
+					}
+					sl.re = r
+				}
+				for _, sl := range s.comparators {
+					r, err := regexp.Compile(sl.Pattern.Pattern)
+					check(err, "failed to compile sanitiser pattern %q: %v", sl.Pattern.Pattern, err)
+					if sl.Longest != nil && *sl.Longest {
+						r.Longest()
+					}
+					sl.re = r
+				}
 			}
 		}
 		g.Steps[stepName] = s
@@ -1361,14 +1408,19 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 				for _, san := range sanVals {
 					o = strings.ReplaceAll(o, san[0], san[1])
 				}
-				cmpO := o
 				// Now run sanitisers
-				if san := stmt.sanitiser; san != nil {
-					o = san.Output(nil, o)
-					cmpO = san.ComparisonOutput(nil, o)
+				for _, s := range stmt.sanitisers {
+					if s.LineWise != nil && *s.LineWise {
+						lines := strings.Split(o, "\n")
+						for li := range lines {
+							lines[li] = s.re.ReplaceAllString(lines[li], s.Replacement)
+						}
+						o = strings.Join(lines, "\n")
+					} else {
+						o = s.re.ReplaceAllString(o, s.Replacement)
+					}
 				}
 				stmt.Output = o
-				stmt.ComparisonOutput = cmpO
 			}
 		}
 	}
