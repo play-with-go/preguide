@@ -708,7 +708,7 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 
 	var intGuide types.Guide
 	err = gv.Decode(&intGuide)
-	check(err, "failed to decode guide: %T %v", err, err)
+	check(err, "failed to decode guide: %v", err)
 
 	g.FilenameComment = intGuide.FilenameComment
 	g.langs = intGuide.Languages
@@ -1301,12 +1301,12 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 	for _, step := range g.steps {
 		switch step := step.(type) {
 		case *commandStep:
-			var stepOutput *bytes.Buffer
-			doRandomReplace := pdc.fMode != types.ModeRaw && step.RandomReplace != nil
-			if doRandomReplace {
-				stepOutput = new(bytes.Buffer)
-			}
 			for _, stmt := range step.Stmts {
+				var stepOutput *bytes.Buffer
+				doRandomReplace := pdc.fMode != types.ModeRaw && stmt.RandomReplace != nil
+				if doRandomReplace {
+					stepOutput = new(bytes.Buffer)
+				}
 				// TODO: tidy this up
 				fence := []byte(stmt.outputFence + "\r\n")
 				slurp(fence) // Ignore everything before the fence
@@ -1317,15 +1317,15 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 				exitCodeStr := slurp([]byte("\r\n"))
 				stmt.ExitCode, err = strconv.Atoi(exitCodeStr)
 				check(err, "failed to parse exit code from %q at position %v in output: %v\n%s", exitCodeStr, len(out)-len(walk)-len(exitCodeStr)-1, err, out)
-			}
-			if doRandomReplace {
-				v := stepOutput.String()
-				if !step.DoNotTrim {
-					v = trimTrailingNewline(v)
+				if doRandomReplace {
+					v := stmt.Output
+					if !stmt.DoNotTrim {
+						v = trimTrailingNewline(v)
+					}
+					sanVals = append(sanVals, [2]string{
+						v, *stmt.RandomReplace,
+					})
 				}
-				sanVals = append(sanVals, [2]string{
-					v, *step.RandomReplace,
-				})
 			}
 		}
 	}

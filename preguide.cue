@@ -106,8 +106,18 @@ _stepCommon: {
 	_stepCommon
 
 	StepType: #StepTypeCommand
-	Source?:  string
+	Source?:  string | [...string | #Stmt]
 	Path?:    string
+
+	// InformationOnly indicates that this field is not required for the
+	// successful execution of the script. Generally this is used by
+	// command blocks which are outputting random data for post-execution
+	// sanitisation, e.g. git commits.
+	InformationOnly: *false | bool
+}
+
+#Stmt: {
+	Source?: string
 
 	// RandomReplace indicates the entire output from this command block
 	// should be used to sanitise the output from the entire script,
@@ -119,12 +129,6 @@ _stepCommon: {
 	// should not be trimmed (the default is to trim the trailing \n
 	// from the output) prior to sanitising the output from the script
 	DoNotTrim: *false | bool
-
-	// InformationOnly indicates that this field is not required for the
-	// successful execution of the script. Generally this is used by
-	// command blocks which are outputting random data for post-execution
-	// sanitisation, e.g. git commits.
-	InformationOnly: *false | bool
 }
 
 #Upload: {

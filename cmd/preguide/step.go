@@ -81,8 +81,6 @@ type renderOptions struct {
 type commandStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
 	StepType        StepType
-	RandomReplace   *string
-	DoNotTrim       bool
 	InformationOnly bool
 	Name            string
 	Order           int
@@ -118,6 +116,8 @@ type commandStmt struct {
 	ExitCode         int
 	Output           string
 	ComparisonOutput string
+	RandomReplace    *string
+	DoNotTrim        bool
 	outputFence      string
 
 	sanitiser sanitisers.Sanitiser
@@ -126,71 +126,157 @@ type commandStmt struct {
 // commandStepFromCommand takes a string value that is a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case s cannot be parsed
+//
+// XXX tidy up
 func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*commandStep, error) {
-	if c.Source != nil && c.Path != nil || c.Source == nil && c.Path == nil {
-		return nil, fmt.Errorf("set either Source and Path but not both")
-	}
-	var source string
-	if c.Source != nil {
-		source = *c.Source
-	} else {
+	var err error
+	res := newCommandStep(commandStep{
+		Name:            c.Name,
+		InformationOnly: c.InformationOnly,
+		Terminal:        c.Terminal,
+	})
+	// source represents the results of c.Path or c.Source if the latter is a string value
+	var source *string
+	if c.Path != nil {
 		byts, err := os.ReadFile(*c.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %v: %v", c.Path, err)
 		}
-		source = string(byts)
-	}
-	f, err := syntax.NewParser().Parse(strings.NewReader(source), "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse command string %q: %v", source, err)
-	}
-	res := newCommandStep(commandStep{
-		Name:            c.Name,
-		RandomReplace:   c.RandomReplace,
-		InformationOnly: c.InformationOnly,
-		DoNotTrim:       c.DoNotTrim,
-		Terminal:        c.Terminal,
-	})
-	return pdc.commadStepFromSyntaxFile(res, f)
-}
-
-// commadStepFromSyntaxFile takes a *mvdan.cc/sh/syntax.File and returns a
-// commandStep with the individual statements, or an error in case any of the
-// statements cannot be printed as string values
-func (pdc *processDirContext) commadStepFromSyntaxFile(res *commandStep, f *syntax.File) (*commandStep, error) {
-	res.StepType = StepTypeCommand
-	for i, stmt := range f.Stmts {
-		// Capture whether this statement is negated or not
-		negated := stmt.Negated
-		// Set to not negated because we need to capture the exit code.
-		// Handling of the exit code and negated happens in the generated
-		// bash script
-		stmt.Negated = false
-		var sb strings.Builder
-		if err := pdc.stmtPrinter.Print(&sb, stmt); err != nil {
-			return res, fmt.Errorf("failed to print statement %v: %v", i, err)
-		}
-		var sans []sanitisers.Sanitiser
-		for _, d := range stmtSanitisers {
-			if san := d(pdc.sanitiserHelper, stmt); san != nil {
-				sans = append(sans, san)
+		sbyts := string(byts)
+		source = &sbyts
+		switch cs := c.Source.(type) {
+		case types.CommandSourceString:
+			return nil, fmt.Errorf("found Path for command source, but Source also set")
+		case types.CommandSourceList:
+			for _, v := range cs {
+				switch v := v.(type) {
+				case types.CommandSourceListElemString:
+					return nil, fmt.Errorf("found Path for command source, but string value in Source list")
+				case types.Stmt:
+					if v.Source != nil {
+						return nil, fmt.Errorf("found Path for command source, but Cmd value in Source list has Cmd set")
+					}
+				default:
+					panic("not possible")
+				}
 			}
-		}
-		var san sanitisers.Sanitiser
-		switch len(sans) {
-		case 0:
-		case 1:
-			san = sans[0]
+		case nil:
 		default:
-			return nil, fmt.Errorf("statement %v resulted in multiple sanitisers", stmt.Cmd)
+			panic("not possible")
 		}
-		res.Stmts = append(res.Stmts, &commandStmt{
-			CmdStr:    sb.String(),
-			Negated:   negated,
-			sanitiser: san,
-		})
+	}
+	var csl types.CommandSourceList
+	// A this point we know that we have consistency with respect to c.Path
+	// and c.Source
+	res.StepType = StepTypeCommand
+	switch cs := c.Source.(type) {
+	case types.CommandSourceString:
+		scs := string(cs)
+		source = &scs
+	case types.CommandSourceList:
+		csl = cs
+	case nil:
+	default:
+		panic("not possible")
+	}
+	var f *syntax.File
+	if source != nil {
+		// In case our input does not have a trailing newline, adding
+		// another one is fine.
+		*source += "\n"
+		f, err = syntax.NewParser().Parse(strings.NewReader(*source), "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse command string %q: %v", *source, err)
+		}
+		// If we also had Source set to a list of Cmd to control each of the
+		// statements we just parsed, ensure that the lengths match
+		if csl != nil {
+			if len(csl) != len(f.Stmts) {
+				return nil, fmt.Errorf("parsed source from Path contained %d statements; Source contained %d", len(f.Stmts), len(csl))
+			}
+		} else {
+			// Nothing to augment to the parsed statements
+			for i, stmt := range f.Stmts {
+				cmdStmt := &commandStmt{}
+				if err := pdc.commandStmtFromStmt(stmt, cmdStmt); err != nil {
+					return nil, fmt.Errorf("failed to build command statement for Source element %d: %v", i, err)
+				}
+				res.Stmts = append(res.Stmts, cmdStmt)
+			}
+			return res, nil
+		}
+	}
+	// At this point f might be set, but we know csl != nil
+	for i, csle := range csl {
+		// We know that if f != nil, then csle cannot be a string
+		// or a Cmd with a Cmd string set
+		var stmt *syntax.Stmt
+		cmdStmt := &commandStmt{}
+		if f != nil {
+			stmt = f.Stmts[i]
+		} else {
+			// Parse a single statement either from either the string
+			// value or the Cmd.Cmd
+			var source string
+			switch csle := csle.(type) {
+			case types.CommandSourceListElemString:
+				source = string(csle)
+			case types.Stmt:
+				source = *csle.Source
+				cmdStmt.RandomReplace = csle.RandomReplace
+				cmdStmt.DoNotTrim = csle.DoNotTrim
+			default:
+				panic("not possible")
+			}
+			// In case our input does not have a trailing newline, adding
+			// another one is fine.
+			source += "\n"
+			f, err = syntax.NewParser().Parse(strings.NewReader(source), "")
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse command string from Source element %d: %v", i, err)
+			}
+			if len(f.Stmts) != 1 {
+				return nil, fmt.Errorf("parsed %d statements from Source element %d; expected 1", len(f.Stmts), i)
+			}
+			stmt = f.Stmts[0]
+		}
+		if err := pdc.commandStmtFromStmt(stmt, cmdStmt); err != nil {
+			return nil, fmt.Errorf("failed to build command statement for Source element %d: %v", i, err)
+		}
+		res.Stmts = append(res.Stmts, cmdStmt)
 	}
 	return res, nil
+}
+
+func (pdc *processDirContext) commandStmtFromStmt(stmt *syntax.Stmt, cmdStmt *commandStmt) error {
+	// Capture whether this statement is negated or not
+	negated := stmt.Negated
+	// Set to not negated because we need to capture the exit code.
+	// Handling of the exit code and negated happens in the generated
+	// bash script
+	stmt.Negated = false
+	var sb strings.Builder
+	if err := pdc.stmtPrinter.Print(&sb, stmt); err != nil {
+		return fmt.Errorf("failed to print statement: %v", err)
+	}
+	var sans []sanitisers.Sanitiser
+	for _, d := range stmtSanitisers {
+		if san := d(pdc.sanitiserHelper, stmt); san != nil {
+			sans = append(sans, san)
+		}
+	}
+	var san sanitisers.Sanitiser
+	switch len(sans) {
+	case 0:
+	case 1:
+		san = sans[0]
+	default:
+		return fmt.Errorf("statement %v resulted in multiple sanitisers", stmt.Cmd)
+	}
+	cmdStmt.CmdStr = sb.String()
+	cmdStmt.Negated = negated
+	cmdStmt.sanitiser = san
+	return nil
 }
 
 func (c *commandStep) render(w io.Writer, opts renderOptions) {

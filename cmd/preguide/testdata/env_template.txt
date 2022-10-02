@@ -112,7 +112,6 @@ FilenameComment: false
 Steps: {
 	step1: {
 		StepType:        1
-		DoNotTrim:       false
 		InformationOnly: false
 		Name:            "step1"
 		Order:           0
@@ -123,6 +122,7 @@ Steps: {
 			ExitCode:         0
 			Output:           "The answer is: Hello, world!!"
 			ComparisonOutput: "The answer is: Hello, world!!"
+			DoNotTrim:        false
 		}]
 	}
 }

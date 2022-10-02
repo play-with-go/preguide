@@ -69,18 +69,18 @@ Steps: step3: preguide.#Command & {
 
 Steps: step4: preguide.#Command & {
 	InformationOnly: true
-	RandomReplace: "abcdefg123456789"
-	Source: """
-		git rev-parse HEAD
-		"""
+        Source: [{
+		Source: "git rev-parse HEAD"
+                RandomReplace: "abcdefg123456789"
+        }]
 }
 
 Steps: first_random_commit: preguide.#Command & {
 	InformationOnly: true
-	RandomReplace: "abcd123"
-	Source: """
-		git rev-parse --short HEAD
-		"""
+        Source: [{
+		Source: "git rev-parse --short HEAD"
+                RandomReplace: "abcd123"
+        }]
 }
 
 Steps: step5: preguide.#Upload & {
@@ -99,18 +99,18 @@ Steps: step6: preguide.#Command & {
 
 Steps: second_random_commit: preguide.#Command & {
 	InformationOnly: true
-	RandomReplace: "abcd123"
-	Source: """
-		git rev-parse --short HEAD
-		"""
+        Source: [{
+		Source: "git rev-parse --short HEAD"
+                RandomReplace: "abcd123"
+        }]
 }
 
 Steps: step7: preguide.#Command & {
 	InformationOnly: true
-	RandomReplace: "abcdefg123456789"
-	Source: """
-		git rev-parse HEAD
-		"""
+        Source: [{
+		Source: "git rev-parse HEAD"
+                RandomReplace: "abcdefg123456789"
+        }]
 }
 
 -- myguide/go115_en.markdown.golden --
