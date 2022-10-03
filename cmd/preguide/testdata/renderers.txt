@@ -153,7 +153,6 @@ FilenameComment: false
 Steps: {
 	step0: {
 		StepType:        1
-		DoNotTrim:       false
 		InformationOnly: false
 		Name:            "step0"
 		Order:           0
@@ -164,6 +163,7 @@ Steps: {
 			ExitCode:         0
 			Output:           "Hello"
 			ComparisonOutput: "Hello"
+			DoNotTrim:        false
 		}]
 	}
 	step1: {
@@ -207,7 +207,6 @@ FilenameComment: false
 Steps: {
 	step0: {
 		StepType:        1
-		DoNotTrim:       false
 		InformationOnly: false
 		Name:            "step0"
 		Order:           0
@@ -218,6 +217,7 @@ Steps: {
 			ExitCode:         0
 			Output:           "Hello"
 			ComparisonOutput: "Hello"
+			DoNotTrim:        false
 		}]
 	}
 	step1: {

@@ -86,7 +86,7 @@ func (l *Steps) UnmarshalJSON(b []byte) error {
 		var s Step
 		s, err := unmarshalStep(m)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal Step: %v", err)
+			return fmt.Errorf("failed to unmarshal Step %q: %v", stepName, err)
 		}
 		(*l)[stepName] = s
 	}
@@ -123,12 +123,99 @@ type Command struct {
 	StepTypeVal     StepType `json:"StepType"`
 	Terminal        string
 	Name            string
-	RandomReplace   *string
-	DoNotTrim       bool
 	InformationOnly bool
-	Source          *string
+	Source          CommandSource
 	Path            *string
 }
+
+func (u *Command) UnmarshalJSON(b []byte) error {
+	type noUnmarshall Command
+	var uv struct {
+		*noUnmarshall
+		Source json.RawMessage
+	}
+	uv.noUnmarshall = (*noUnmarshall)(u)
+	if err := json.Unmarshal(b, &uv); err != nil {
+		return fmt.Errorf("failed to unmarshal wrapped Command: %v", err)
+	}
+	r, err := UnmarshalSource(uv.Source)
+	if err != nil {
+		return err
+	}
+	u.Source = r
+	return nil
+}
+
+func UnmarshalSource(v json.RawMessage) (CommandSource, error) {
+	if v == nil {
+		return nil, nil
+	}
+	// Try to unmarshal string first
+	var css CommandSourceString
+	if err := json.Unmarshal(v, &css); err == nil {
+		return css, nil
+	}
+	// Now try a list. Is this fails that's an error
+	var cslraw []json.RawMessage
+	if err := json.Unmarshal(v, &cslraw); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal; not string or list")
+	}
+	// We have a list at this point. We need to ensure that
+	// each element is the correct type
+	var csl CommandSourceList
+	for i, v := range cslraw {
+		// Try to unmarshal a string first
+		var csles CommandSourceListElemString
+		if err := json.Unmarshal(v, &csles); err == nil {
+			csl = append(csl, csles)
+			continue
+		}
+		// Now try a Cmd
+		var cslecmd Stmt
+		if err := json.Unmarshal(v, &cslecmd); err == nil {
+			csl = append(csl, cslecmd)
+			continue
+		}
+		return nil, fmt.Errorf("failed to unmarshal element %d (%s); not string or Cmd", i, v)
+	}
+	return csl, nil
+}
+
+type CommandSource interface {
+	isCommandSource()
+}
+
+type CommandSourceString string
+
+var _ CommandSource = CommandSourceString("")
+
+func (c CommandSourceString) isCommandSource() {}
+
+type CommandSourceList []CommandSourceListElem
+
+var _ CommandSource = CommandSourceList(nil)
+
+func (c CommandSourceList) isCommandSource() {}
+
+type CommandSourceListElem interface {
+	isCommandSourceListElem()
+}
+
+type CommandSourceListElemString string
+
+var _ CommandSourceListElem = CommandSourceListElemString("")
+
+func (c CommandSourceListElemString) isCommandSourceListElem() {}
+
+type Stmt struct {
+	Source        *string
+	RandomReplace *string
+	DoNotTrim     bool
+}
+
+var _ CommandSourceListElem = Stmt{}
+
+func (c Stmt) isCommandSourceListElem() {}
 
 var _ Step = (*Command)(nil)
 

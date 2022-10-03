@@ -42,8 +42,6 @@ _stepCommon: {
 
 #CommandStep: {
 	_stepCommon
-	DoNotTrim:       bool
-	RandomReplace:   string
 	InformationOnly: bool
 	Stmts: [...#Stmt]
 }
@@ -54,6 +52,8 @@ _stepCommon: {
 	ExitCode:         int
 	Output:           string
 	ComparisonOutput: string
+	DoNotTrim:        bool
+	RandomReplace:    string
 }
 
 #UploadStep: {
