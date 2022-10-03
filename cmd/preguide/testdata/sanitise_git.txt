@@ -46,7 +46,7 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
 		mkdir example
 		cd example
 		git init
@@ -61,7 +61,7 @@ Steps: step2: preguide.#Upload & {
 }
 
 Steps: step3: preguide.#Command & {
-	Source: """
+	Stmts: """
 		git add -A
 		git commit -am 'Initial commit'
 		"""
@@ -69,16 +69,16 @@ Steps: step3: preguide.#Command & {
 
 Steps: step4: preguide.#Command & {
 	InformationOnly: true
-        Source: [{
-		Source: "git rev-parse HEAD"
+        Stmts: [{
+		Cmd: "git rev-parse HEAD"
                 RandomReplace: "abcdefg123456789"
         }]
 }
 
 Steps: first_random_commit: preguide.#Command & {
 	InformationOnly: true
-        Source: [{
-		Source: "git rev-parse --short HEAD"
+        Stmts: [{
+		Cmd: "git rev-parse --short HEAD"
                 RandomReplace: "abcd123"
         }]
 }
@@ -91,7 +91,7 @@ Steps: step5: preguide.#Upload & {
 }
 
 Steps: step6: preguide.#Command & {
-	Source: """
+	Stmts: """
 		git add -A
 		git commit -am 'Second commit'
 		"""
@@ -99,16 +99,16 @@ Steps: step6: preguide.#Command & {
 
 Steps: second_random_commit: preguide.#Command & {
 	InformationOnly: true
-        Source: [{
-		Source: "git rev-parse --short HEAD"
+        Stmts: [{
+		Cmd: "git rev-parse --short HEAD"
                 RandomReplace: "abcd123"
         }]
 }
 
 Steps: step7: preguide.#Command & {
 	InformationOnly: true
-        Source: [{
-		Source: "git rev-parse HEAD"
+        Stmts: [{
+		Cmd: "git rev-parse HEAD"
                 RandomReplace: "abcdefg123456789"
         }]
 }

@@ -66,13 +66,13 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step0: preguide.#Command & {
-	Source: """
+	Stmts: """
 mkdir nooutput
 """
 }
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo "Hello, world! I am a #Command"
 touch blah
 ! false
@@ -101,7 +101,7 @@ Steps: step4: preguide.#Upload & {
 }
 
 Steps: step5: preguide.#Command & {
-	Source: "go version"
+	Stmts: "go version"
 }
 -- myguide/step2_commandFile.sh --
 echo "Hello, world! I am a #CommandFile"

@@ -57,7 +57,7 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
           echo "The answer is: {{{.GREETING}}}!"
           echo "This is a test {}"
           """

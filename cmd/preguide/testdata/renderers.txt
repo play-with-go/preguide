@@ -49,7 +49,7 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step0: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo -n "Hello"
 """
 }
@@ -80,7 +80,7 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step0: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo -n "Hello"
 """
 }

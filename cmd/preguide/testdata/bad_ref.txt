@@ -31,6 +31,6 @@ Scenarios: {
 	}
 }
 
-Steps: step1: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Stmts: """
 echo -n "Hello, world!"
 """}

@@ -4,7 +4,7 @@
 # Intial run
 ! preguide gen -out _output
 ! stdout .+
-stderr 'myguide: failed to build mod.com/myguide:steps: Steps.step1.Source: reference "Defs" not found'
+stderr 'myguide: failed to build mod.com/myguide:steps: Steps.step1.Stmts: reference "Defs" not found'
 
 -- myguide/en.markdown --
 ---
@@ -28,7 +28,7 @@ Terminals: term1: preguide.#Terminal & {
 Banana: 5
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo "\(Defs.hello)!"
 """
 }

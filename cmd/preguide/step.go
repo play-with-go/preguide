@@ -135,7 +135,7 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 		InformationOnly: c.InformationOnly,
 		Terminal:        c.Terminal,
 	})
-	// source represents the results of c.Path or c.Source if the latter is a string value
+	// source represents the results of c.Path or c.Stmts if the latter is a string value
 	var source *string
 	if c.Path != nil {
 		byts, err := os.ReadFile(*c.Path)
@@ -144,17 +144,17 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 		}
 		sbyts := string(byts)
 		source = &sbyts
-		switch cs := c.Source.(type) {
-		case types.CommandSourceString:
-			return nil, fmt.Errorf("found Path for command source, but Source also set")
-		case types.CommandSourceList:
+		switch cs := c.Stmts.(type) {
+		case types.StmtsString:
+			return nil, fmt.Errorf("found Path for command source, but Stmts also set")
+		case types.StmtsList:
 			for _, v := range cs {
 				switch v := v.(type) {
-				case types.CommandSourceListElemString:
-					return nil, fmt.Errorf("found Path for command source, but string value in Source list")
+				case types.StmtsListElemString:
+					return nil, fmt.Errorf("found Path for command source, but string value in Stmts list")
 				case types.Stmt:
-					if v.Source != nil {
-						return nil, fmt.Errorf("found Path for command source, but Cmd value in Source list has Cmd set")
+					if v.Cmd != nil {
+						return nil, fmt.Errorf("found Path for command source, but Cmd value in Stmts list has Cmd set")
 					}
 				default:
 					panic("not possible")
@@ -165,15 +165,15 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 			panic("not possible")
 		}
 	}
-	var csl types.CommandSourceList
+	var csl types.StmtsList
 	// A this point we know that we have consistency with respect to c.Path
-	// and c.Source
+	// and c.Stmts
 	res.StepType = StepTypeCommand
-	switch cs := c.Source.(type) {
-	case types.CommandSourceString:
+	switch cs := c.Stmts.(type) {
+	case types.StmtsString:
 		scs := string(cs)
 		source = &scs
-	case types.CommandSourceList:
+	case types.StmtsList:
 		csl = cs
 	case nil:
 	default:
@@ -188,18 +188,18 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse command string %q: %v", *source, err)
 		}
-		// If we also had Source set to a list of Cmd to control each of the
+		// If we also had Stmts set to a list of Cmd to control each of the
 		// statements we just parsed, ensure that the lengths match
 		if csl != nil {
 			if len(csl) != len(f.Stmts) {
-				return nil, fmt.Errorf("parsed source from Path contained %d statements; Source contained %d", len(f.Stmts), len(csl))
+				return nil, fmt.Errorf("parsed source from Path contained %d statements; Stmts contained %d", len(f.Stmts), len(csl))
 			}
 		} else {
 			// Nothing to augment to the parsed statements
 			for i, stmt := range f.Stmts {
 				cmdStmt := &commandStmt{}
 				if err := pdc.commandStmtFromStmt(stmt, cmdStmt); err != nil {
-					return nil, fmt.Errorf("failed to build command statement for Source element %d: %v", i, err)
+					return nil, fmt.Errorf("failed to build command statement for Stmts element %d: %v", i, err)
 				}
 				res.Stmts = append(res.Stmts, cmdStmt)
 			}
@@ -219,10 +219,10 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 			// value or the Cmd.Cmd
 			var source string
 			switch csle := csle.(type) {
-			case types.CommandSourceListElemString:
+			case types.StmtsListElemString:
 				source = string(csle)
 			case types.Stmt:
-				source = *csle.Source
+				source = *csle.Cmd
 				cmdStmt.RandomReplace = csle.RandomReplace
 				cmdStmt.DoNotTrim = csle.DoNotTrim
 			default:
@@ -233,15 +233,15 @@ func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*command
 			source += "\n"
 			f, err = syntax.NewParser().Parse(strings.NewReader(source), "")
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse command string from Source element %d: %v", i, err)
+				return nil, fmt.Errorf("failed to parse command string from Stmts element %d: %v", i, err)
 			}
 			if len(f.Stmts) != 1 {
-				return nil, fmt.Errorf("parsed %d statements from Source element %d; expected 1", len(f.Stmts), i)
+				return nil, fmt.Errorf("parsed %d statements from Stmts element %d; expected 1", len(f.Stmts), i)
 			}
 			stmt = f.Stmts[0]
 		}
 		if err := pdc.commandStmtFromStmt(stmt, cmdStmt); err != nil {
-			return nil, fmt.Errorf("failed to build command statement for Source element %d: %v", i, err)
+			return nil, fmt.Errorf("failed to build command statement for Stmts element %d: %v", i, err)
 		}
 		res.Stmts = append(res.Stmts, cmdStmt)
 	}

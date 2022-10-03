@@ -28,6 +28,6 @@ Scenarios: go115: {
 	Description: "Go 1.15"
 }
 
-Steps: step1: preguide.#Command & {Source: """
+Steps: step1: preguide.#Command & {Stmts: """
 echo "Hello, world!"
 """}
