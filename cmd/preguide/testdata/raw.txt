@@ -67,21 +67,17 @@ Scenarios: [{
 }]
 Networks: []
 Env: ["A=B"]
-FilenameComment: false
 Steps: {
 	step1: {
-		StepType:        1
-		InformationOnly: false
-		Name:            "step1"
-		Order:           0
-		Terminal:        "term1"
+		StepType: 1
+		Name:     "step1"
+		Order:    0
+		Terminal: "term1"
 		Stmts: [{
-			Negated:          false
 			CmdStr:           "echo -n \"Hello, world!\""
 			ExitCode:         0
 			Output:           "Hello, world!"
 			ComparisonOutput: "Hello, world!"
-			DoNotTrim:        false
 		}]
 	}
 	step2: {

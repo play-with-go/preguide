@@ -108,21 +108,17 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-FilenameComment: false
 Steps: {
 	step1: {
-		StepType:        1
-		InformationOnly: false
-		Name:            "step1"
-		Order:           0
-		Terminal:        "term1"
+		StepType: 1
+		Name:     "step1"
+		Order:    0
+		Terminal: "term1"
 		Stmts: [{
-			Negated:          false
 			CmdStr:           "echo -n \"The answer is: {{.GREETING}}!\""
 			ExitCode:         0
 			Output:           "The answer is: Hello, world!!"
 			ComparisonOutput: "The answer is: Hello, world!!"
-			DoNotTrim:        false
 		}]
 	}
 }

@@ -42,7 +42,7 @@ type guide struct {
 	Networks  []string
 	Env       []string
 
-	FilenameComment bool
+	FilenameComment *bool
 
 	Steps      steps
 	bashScript string

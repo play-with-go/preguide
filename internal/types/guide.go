@@ -52,7 +52,7 @@ type Guide struct {
 	Languages       []string
 	Delims          [2]string
 	Presteps        []*preguide.Prestep
-	FilenameComment bool
+	FilenameComment *bool
 	Steps           Steps
 	Terminals       map[string]*preguide.Terminal
 	Scenarios       map[string]*preguide.Scenario
@@ -123,7 +123,7 @@ type Command struct {
 	StepTypeVal     StepType `json:"StepType"`
 	Terminal        string
 	Name            string
-	InformationOnly bool
+	InformationOnly *bool
 	Stmts           Stmts
 	Path            *string
 }
@@ -210,7 +210,7 @@ func (c StmtsListElemString) isStmtsListElem() {}
 type Stmt struct {
 	Cmd           *string
 	RandomReplace *string
-	DoNotTrim     bool
+	DoNotTrim     *bool
 }
 
 var _ StmtsListElem = Stmt{}

@@ -149,21 +149,17 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-FilenameComment: false
 Steps: {
 	step0: {
-		StepType:        1
-		InformationOnly: false
-		Name:            "step0"
-		Order:           0
-		Terminal:        "term1"
+		StepType: 1
+		Name:     "step0"
+		Order:    0
+		Terminal: "term1"
 		Stmts: [{
-			Negated:          false
 			CmdStr:           "echo -n \"Hello\""
 			ExitCode:         0
 			Output:           "Hello"
 			ComparisonOutput: "Hello"
-			DoNotTrim:        false
 		}]
 	}
 	step1: {
@@ -203,21 +199,17 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-FilenameComment: false
 Steps: {
 	step0: {
-		StepType:        1
-		InformationOnly: false
-		Name:            "step0"
-		Order:           0
-		Terminal:        "term1"
+		StepType: 1
+		Name:     "step0"
+		Order:    0
+		Terminal: "term1"
 		Stmts: [{
-			Negated:          false
 			CmdStr:           "echo -n \"Hello\""
 			ExitCode:         0
 			Output:           "Hello"
 			ComparisonOutput: "Hello"
-			DoNotTrim:        false
 		}]
 	}
 	step1: {
