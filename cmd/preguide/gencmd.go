@@ -775,24 +775,19 @@ func (pdc *processDirContext) loadAndValidateSteps(g *guide, mustContainGuide bo
 		var s step
 		switch is := v.(type) {
 		case *types.Command:
+			if is.Path != nil && !filepath.IsAbs(*is.Path) {
+				abs := filepath.Join(g.dir, *is.Path)
+				is.Path = &abs
+			}
 			s, err = pdc.commandStepFromCommand(is)
 			check(err, "failed to parse #Command from step %v: %v", stepName, err)
-		case *types.CommandFile:
-			if !filepath.IsAbs(is.Path) {
-				is.Path = filepath.Join(g.dir, is.Path)
-			}
-			s, err = pdc.commandStepFromCommandFile(is)
-			check(err, "failed to parse #CommandFile from step %v: %v", stepName, err)
 		case *types.Upload:
-			// TODO: when we support non-Unix terminals,
+			if is.Path != nil && !filepath.IsAbs(*is.Path) {
+				abs := filepath.Join(g.dir, *is.Path)
+				is.Path = &abs
+			}
 			s, err = pdc.uploadStepFromUpload(is)
 			check(err, "failed to parse #Upload from step %v: %v", stepName, err)
-		case *types.UploadFile:
-			if !filepath.IsAbs(is.Path) {
-				is.Path = filepath.Join(g.dir, is.Path)
-			}
-			s, err = pdc.uploadStepFromUploadFile(is)
-			check(err, "failed to parse #UploadFile from step %v: %v", stepName, err)
 		}
 		// Validate various things about the step
 		switch s := s.(type) {

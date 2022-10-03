@@ -126,41 +126,30 @@ type commandStmt struct {
 // commandStepFromCommand takes a string value that is a sequence of shell
 // statements and returns a commandStep with the individual parsed statements,
 // or an error in case s cannot be parsed
-func (pdc *processDirContext) commandStepFromCommand(s *types.Command) (*commandStep, error) {
-	r := strings.NewReader(s.Source)
-	f, err := syntax.NewParser().Parse(r, "")
+func (pdc *processDirContext) commandStepFromCommand(c *types.Command) (*commandStep, error) {
+	if c.Source != nil && c.Path != nil || c.Source == nil && c.Path == nil {
+		return nil, fmt.Errorf("set either Source and Path but not both")
+	}
+	var source string
+	if c.Source != nil {
+		source = *c.Source
+	} else {
+		byts, err := os.ReadFile(*c.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %v: %v", c.Path, err)
+		}
+		source = string(byts)
+	}
+	f, err := syntax.NewParser().Parse(strings.NewReader(source), "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse command string %q: %v", s.Source, err)
+		return nil, fmt.Errorf("failed to parse command string %q: %v", source, err)
 	}
 	res := newCommandStep(commandStep{
-		Name:            s.Name,
-		RandomReplace:   s.RandomReplace,
-		InformationOnly: s.InformationOnly,
-		DoNotTrim:       s.DoNotTrim,
-		Terminal:        s.Terminal,
-	})
-	return pdc.commadStepFromSyntaxFile(res, f)
-}
-
-// commandStepFromCommandFile takes a path to a file that contains a sequence of shell
-// statements and returns a commandStep with the individual parsed statements,
-// or an error in case path cannot be read or parsed
-func (pdc *processDirContext) commandStepFromCommandFile(s *types.CommandFile) (*commandStep, error) {
-	byts, err := os.ReadFile(s.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %v: %v", s.Path, err)
-	}
-	r := bytes.NewReader(byts)
-	f, err := syntax.NewParser().Parse(r, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse commands from %v: %v", s.Path, err)
-	}
-	res := newCommandStep(commandStep{
-		Name:            s.Name,
-		RandomReplace:   s.RandomReplace,
-		InformationOnly: s.InformationOnly,
-		DoNotTrim:       s.DoNotTrim,
-		Terminal:        s.Terminal,
+		Name:            c.Name,
+		RandomReplace:   c.RandomReplace,
+		InformationOnly: c.InformationOnly,
+		DoNotTrim:       c.DoNotTrim,
+		Terminal:        c.Terminal,
 	})
 	return pdc.commadStepFromSyntaxFile(res, f)
 }
@@ -330,21 +319,18 @@ func (u *uploadStep) UnmarshalJSON(b []byte) error {
 }
 
 func (pdc *processDirContext) uploadStepFromUpload(u *types.Upload) (*uploadStep, error) {
-	res := newUploadStep(uploadStep{
-		Name:     u.Name,
-		Terminal: u.Terminal,
-		Language: u.Language,
-		Renderer: u.Renderer,
-		Target:   u.Target,
-		Source:   u.Source,
-	})
-	return res, nil
-}
-
-func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*uploadStep, error) {
-	byts, err := os.ReadFile(u.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
+	if u.Source == nil && u.Path == nil || u.Source != nil && u.Path != nil {
+		return nil, fmt.Errorf("set either Source and Path but not both")
+	}
+	var s string
+	if u.Source != nil {
+		s = *u.Source
+	} else {
+		byts, err := os.ReadFile(*u.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %v: %v", u.Path, err)
+		}
+		s = string(byts)
 	}
 	res := newUploadStep(uploadStep{
 		Name:     u.Name,
@@ -352,7 +338,7 @@ func (pdc *processDirContext) uploadStepFromUploadFile(u *types.UploadFile) (*up
 		Language: u.Language,
 		Renderer: u.Renderer,
 		Target:   u.Target,
-		Source:   string(byts),
+		Source:   s,
 	})
 	return res, nil
 }

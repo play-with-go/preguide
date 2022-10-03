@@ -43,7 +43,7 @@ ls
 """
 }
 
-Steps: step2: preguide.#CommandFile & {
+Steps: step2: preguide.#Command & {
 	Path: "step2_commandFile.sh"
 }
 
@@ -56,7 +56,7 @@ echo "Hello, world! I am an #Upload"
 """
 }
 
-Steps: step4: preguide.#UploadFile & {
+Steps: step4: preguide.#Upload & {
 	Language: "bash" // Vary the language for fun
 	Target:   "/scripts/step2.sh"
 	Path:     "step2_uploadFile.sh"
