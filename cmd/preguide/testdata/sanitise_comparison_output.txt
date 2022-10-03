@@ -34,7 +34,7 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step0: preguide.#Command & {
-	Source: """
+	Stmts: """
 go mod init mod.com
 go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360
 """

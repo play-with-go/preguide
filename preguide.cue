@@ -106,7 +106,7 @@ _stepCommon: {
 	_stepCommon
 
 	StepType: #StepTypeCommand
-	Source?:  string | [...string | #Stmt]
+	Stmts?:   string | [...string | #Stmt]
 	Path?:    string
 
 	// InformationOnly indicates that this field is not required for the
@@ -117,7 +117,7 @@ _stepCommon: {
 }
 
 #Stmt: {
-	Source?: string
+	Cmd?: string
 
 	// RandomReplace indicates the entire output from this command block
 	// should be used to sanitise the output from the entire script,

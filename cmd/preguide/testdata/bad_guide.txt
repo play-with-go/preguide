@@ -28,7 +28,7 @@ Terminals: term1: preguide.#Terminal & {
 Banana: 5
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo "Hello!"
 """
 }

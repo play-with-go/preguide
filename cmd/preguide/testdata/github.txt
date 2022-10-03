@@ -35,7 +35,7 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo "Hello, world! I am a #Command { ok } {{ .ok }}"
 touch blah
 ! false

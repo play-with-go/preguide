@@ -35,13 +35,13 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step0: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo hello
 """
 }
 
 Steps: step1: preguide.#Command & {
-	Source: """
+	Stmts: """
 echo world
 """
 }
