@@ -1319,7 +1319,7 @@ func (pdc *processDirContext) runBashFile(g *guide) {
 				check(err, "failed to parse exit code from %q at position %v in output: %v\n%s", exitCodeStr, len(out)-len(walk)-len(exitCodeStr)-1, err, out)
 				if doRandomReplace {
 					v := stmt.Output
-					if !stmt.DoNotTrim {
+					if stmt.DoNotTrim == nil || !*stmt.DoNotTrim {
 						v = trimTrailingNewline(v)
 					}
 					sanVals = append(sanVals, [2]string{
@@ -1469,7 +1469,7 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 				pf("%v\n", stmt.CmdStr)
 				pf("%s=$?\n", exitCodeVar)
 				pf("echo %v\n", stmt.outputFence)
-				if stmt.Negated {
+				if stmt.Negated != nil && *stmt.Negated {
 					pf("if [ $%s -eq 0 ]\n", exitCodeVar)
 				} else {
 					pf("if [ $%s -ne 0 ]\n", exitCodeVar)

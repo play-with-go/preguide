@@ -67,7 +67,6 @@ Steps: {
 		Order:           0
 		Terminal:        "term1"
 		Stmts: [{
-			Negated:  false
 			CmdStr:   "go mod init mod.com"
 			ExitCode: 0
 			Output: """
@@ -84,7 +83,6 @@ Steps: {
 				"""
 			DoNotTrim: false
 		}, {
-			Negated:  false
 			CmdStr:   "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
 			ExitCode: 0
 			Output: """

@@ -75,13 +75,13 @@ type step interface {
 
 type renderOptions struct {
 	mode            types.Mode
-	FilenameComment bool
+	FilenameComment *bool
 }
 
 type commandStep struct {
 	// Extract once we have a solution to cuelang.org/issue/376
 	StepType        StepType
-	InformationOnly bool
+	InformationOnly *bool
 	Name            string
 	Order           int
 	Terminal        string
@@ -111,13 +111,13 @@ func (c *commandStep) setorder(i int) {
 }
 
 type commandStmt struct {
-	Negated          bool
+	Negated          *bool
 	CmdStr           string
 	ExitCode         int
 	Output           string
 	ComparisonOutput string
 	RandomReplace    *string
-	DoNotTrim        bool
+	DoNotTrim        *bool
 	outputFence      string
 
 	sanitiser sanitisers.Sanitiser
@@ -274,7 +274,9 @@ func (pdc *processDirContext) commandStmtFromStmt(stmt *syntax.Stmt, cmdStmt *co
 		return fmt.Errorf("statement %v resulted in multiple sanitisers", stmt.Cmd)
 	}
 	cmdStmt.CmdStr = sb.String()
-	cmdStmt.Negated = negated
+	if negated {
+		cmdStmt.Negated = &negated
+	}
 	cmdStmt.sanitiser = san
 	return nil
 }
@@ -341,7 +343,7 @@ func (c *commandStep) setOutputFrom(s step) {
 }
 
 func (c *commandStep) mustBeReferenced() bool {
-	return !c.InformationOnly
+	return c.InformationOnly == nil || !*c.InformationOnly
 }
 
 func trimTrailingNewline(s string) string {
@@ -436,7 +438,7 @@ func (u *uploadStep) render(w io.Writer, opts renderOptions) {
 	// Special case GitHub for now
 	if opts.mode == types.ModeGitHub {
 		fmt.Fprintf(w, "```%s", u.Language)
-		if opts.FilenameComment {
+		if opts.FilenameComment != nil && *opts.FilenameComment {
 			fmt.Fprintf(w, "\n%s\n", comment(opts.mode, u.Target, u.Language))
 		}
 		fmt.Fprintf(w, "\n%s", origSource)
@@ -459,7 +461,7 @@ func (u *uploadStep) render(w io.Writer, opts renderOptions) {
 	case types.ModeJekyll:
 		fmt.Fprintf(w, "<pre data-upload-path=\"%v\" data-upload-src=\"%v:%v\" data-upload-term=\"%v\"><code class=\"language-%v\">", targetDir, targetFile, source, "."+u.Terminal, u.Language)
 	}
-	if opts.FilenameComment {
+	if opts.FilenameComment != nil && *opts.FilenameComment {
 		fmt.Fprintf(w, "<i class=\"filename\">%s</i>\n\n", comment(opts.mode, u.Target, u.Language))
 	}
 	fmt.Fprintf(w, "%s", renderedSource)
