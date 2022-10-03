@@ -178,7 +178,7 @@ Steps: {
 		Target: "/home/gopher/somewhere.md"
 	}
 }
-Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
+Hash: "ccf65b005cc3d2031e7fbf427c663e252b83976c6ca7f973a54dba9ecbea8696"
 Delims: ["{{", "}}"]
 -- myguide/out/gen_out_post.cue.golden --
 package out
@@ -227,5 +227,5 @@ Steps: {
 		Target: "/home/gopher/somewhere.md"
 	}
 }
-Hash: "3687cfa919111d3226121f07d207ed7361a74eec5b26028c4fe7c94e1ba633e9"
+Hash: "ccf65b005cc3d2031e7fbf427c663e252b83976c6ca7f973a54dba9ecbea8696"
 Delims: ["{{", "}}"]

@@ -121,7 +121,7 @@ Steps: {
 		}]
 	}
 }
-Hash: "e419ad5f6c5f02aa9c78658abb5b4ef480ebc0783a23072224c9c38d8c4ff830"
+Hash: "b6876960c4eb04289aefb5a4f973193f76bd6d76eee1f58460438d650aa02fb7"
 Delims: ["{{", "}}"]
 -- myguide/go115_en.markdown.raw.golden --
 # Step 1
