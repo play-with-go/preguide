@@ -63,14 +63,12 @@ Scenarios: [{
 }]
 Networks: []
 Env: []
-FilenameComment: false
 Steps: {
 	step0: {
-		StepType:        1
-		InformationOnly: false
-		Name:            "step0"
-		Order:           0
-		Terminal:        "term1"
+		StepType: 1
+		Name:     "step0"
+		Order:    0
+		Terminal: "term1"
 		Stmts: [{
 			CmdStr:   "go mod init mod.com"
 			ExitCode: 0
@@ -80,7 +78,6 @@ Steps: {
 				\tgo mod tidy
 
 				"""
-			DoNotTrim: false
 		}, {
 			CmdStr:   "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
 			ExitCode: 0
@@ -93,9 +90,8 @@ Steps: {
 				go: added golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 
 				"""
-			DoNotTrim: false
 		}]
 	}
 }
-Hash: "8f5ce36fc6fd4718bc7410da4fa958290db1a37040ade5160857ba93b38f157c"
+Hash: "7b676cd41daf1892a1c9f88ed76eeb8b9dbcdf4cf2bd5e8fa7e597d455503f3a"
 Delims: ["{{", "}}"]

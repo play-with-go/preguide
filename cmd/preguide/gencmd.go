@@ -1511,6 +1511,12 @@ func (pdc *processDirContext) buildBashFile(g *guide) {
 		case *commandStep:
 			for i, stmt := range step.Stmts {
 				hf("step: %q, command statement %v: %v\n\n", step.Name, i, stmt.CmdStr)
+				hf("  unstableLineOrder: %s\n", mustJSONMarshalIndent(stmt.unstableLineOrder))
+				hf("  doNotTrim: %s\n", mustJSONMarshalIndent(stmt.DoNotTrim))
+				hf("  negated: %s\n", mustJSONMarshalIndent(stmt.Negated))
+				hf("  randomReplace: %s\n", mustJSONMarshalIndent(stmt.RandomReplace))
+				hf("  sanitisers: %s\n", mustJSONMarshalIndent(stmt.sanitisers))
+				hf("  comparators: %s\n", mustJSONMarshalIndent(stmt.comparators))
 				// echo the command we will run
 				cmdEchoFence := getFence()
 				pf("cat <<'%v'\n", cmdEchoFence)

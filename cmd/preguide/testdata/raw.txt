@@ -92,5 +92,5 @@ Steps: {
 		Target: "/home/gopher/special.sh"
 	}
 }
-Hash: "c3ff9c8755cc05011560b487162a59cc316da54934b4dd0ac5796bdebd64c0b5"
+Hash: "389d0fd1207c1f750997883397156bb9fad050aebbe99ac41ceec9373efae625"
 Delims: ["{{", "}}"]
