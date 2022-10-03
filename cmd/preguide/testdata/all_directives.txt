@@ -101,7 +101,13 @@ Steps: step4: preguide.#Upload & {
 }
 
 Steps: step5: preguide.#Command & {
-	Stmts: "go version"
+	Stmts: [{
+          Cmd: "go version"
+          Sanitisers: [{
+            Pattern: #"linux\/.+(?:\n$)"#
+            Replacement: "linux/amd64"
+          }]
+        }]
 }
 -- myguide/step2_commandFile.sh --
 echo "Hello, world! I am a #CommandFile"

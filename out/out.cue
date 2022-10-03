@@ -47,13 +47,12 @@ _stepCommon: {
 }
 
 #Stmt: {
-	Negated?:         bool
-	CmdStr:           string
-	ExitCode:         int
-	Output:           string
-	ComparisonOutput: string
-	DoNotTrim?:       bool
-	RandomReplace?:   string
+	Negated?:       bool
+	CmdStr:         string
+	ExitCode:       int
+	Output:         string
+	DoNotTrim?:     bool
+	RandomReplace?: string
 }
 
 #UploadStep: {

@@ -34,10 +34,15 @@ Terminals: term1: preguide.#Terminal & {
 }
 
 Steps: step0: preguide.#Command & {
-	Stmts: """
-go mod init mod.com
-go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360
-"""
+  Stmts: [
+    {
+      Cmd: "go mod init mod.com"
+    },
+    {
+      Cmd: "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
+      UnstableLineOrder: true
+    },
+  ]
 }
 
 -- myguide/out/gen_out.cue.golden --
@@ -75,12 +80,6 @@ Steps: {
 				\tgo mod tidy
 
 				"""
-			ComparisonOutput: """
-				go: creating new go.mod: module mod.com
-				go: to add module requirements and sums:
-				\tgo mod tidy
-
-				"""
 			DoNotTrim: false
 		}, {
 			CmdStr:   "go get -d golang.org/x/tools/cmd/stringer@v0.0.0-20201105220310-78b158585360"
@@ -93,15 +92,6 @@ Steps: {
 				go: added golang.org/x/tools v0.0.0-20201105220310-78b158585360
 				go: added golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 
-				"""
-			ComparisonOutput: """
-
-				go: added golang.org/x/mod v0.3.0
-				go: added golang.org/x/tools v0.0.0-20201105220310-78b158585360
-				go: added golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
-				go: downloading golang.org/x/mod v0.3.0
-				go: downloading golang.org/x/tools v0.0.0-20201105220310-78b158585360
-				go: downloading golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 				"""
 			DoNotTrim: false
 		}]

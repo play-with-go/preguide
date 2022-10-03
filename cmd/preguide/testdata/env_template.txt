@@ -115,10 +115,9 @@ Steps: {
 		Order:    0
 		Terminal: "term1"
 		Stmts: [{
-			CmdStr:           "echo -n \"The answer is: {{.GREETING}}!\""
-			ExitCode:         0
-			Output:           "The answer is: Hello, world!!"
-			ComparisonOutput: "The answer is: Hello, world!!"
+			CmdStr:   "echo -n \"The answer is: {{.GREETING}}!\""
+			ExitCode: 0
+			Output:   "The answer is: Hello, world!!"
 		}]
 	}
 }

@@ -96,13 +96,30 @@ func BenchmarkFib10(b *testing.B) {
 
 """ }
 
-Steps: step3: preguide.#Command & { Stmts: """
-go test
-"""}
+Steps: step3: preguide.#Command & {
+  Stmts: [{
+    Cmd: "go test"
+    Comparators: [
+      { Pattern: #"^( *--- (PASS|FAIL): .+\()\d+(\.\d+)?s\)"#, LineWise: true },
+      { Pattern: #"^((FAIL|ok  )\t.+\t)`\d+(\.\d+)?s$"#, LineWise: true },
+    ]
+  }]
+}
 
-Steps: step4: preguide.#Command & { Stmts: """
-go test -bench=.
-"""}
+Steps: step4: preguide.#Command & {
+  Stmts: [{
+    Cmd: "go test -bench=."
+    Sanitisers: [
+      { Pattern: #"(?m)^goos: .*\ngoarch: .*\n"#, Replacement: "goos: linux\ngoarch: amd64\n" },
+      { Pattern: #"(?m)^cpu: .*\n"#, Replacement: "" },
+    ]
+    Comparators: [
+      { Pattern: #"^( *--- (PASS|FAIL): .+\()\d+(\.\d+)?s\)"#, LineWise: true },
+      { Pattern: #"^((FAIL|ok  )\t.+\t)`\d+(\.\d+)?s$"#, LineWise: true },
+      { Pattern: #"^([^\s]+)\s+\d+\s+\d+(\.\d+)? ns/op$"#, LineWise: true },
+    ]
+  }]
+}
 
 Steps: step5: preguide.#Upload & { Target: "/home/gopher/hello.go", Source: """
 package main
@@ -121,10 +138,22 @@ Steps: step6: preguide.#Command & { Stmts: """
 go build -o hello
 """}
 
-Steps: step7: preguide.#Command & { Stmts: """
-go version -m ./hello
-"""}
-
+Steps: step7: preguide.#Command & {
+  Stmts: [{
+    Cmd: "go version -m ./hello"
+    Sanitisers: [
+      {
+        Pattern:#"(?ms)^\s+build\s.*(?:\n)"#
+        Replacement: ""
+      },
+      {
+        Pattern:#"(?m)\s+(?:$)"#
+        LineWise: true
+        Replacement: ""
+      },
+    ]
+  }]
+}
 -- myguide/go115_en.markdown.golden --
 ---
 guide: myguide

@@ -208,9 +208,23 @@ var _ StmtsListElem = StmtsListElemString("")
 func (c StmtsListElemString) isStmtsListElem() {}
 
 type Stmt struct {
-	Cmd           *string
-	RandomReplace *string
-	DoNotTrim     *bool
+	Cmd               *string
+	RandomReplace     *string
+	DoNotTrim         *bool
+	Sanitisers        []Sanitiser
+	Comparators       []Pattern
+	UnstableLineOrder *bool
+}
+
+type Sanitiser struct {
+	Pattern
+	Replacement string
+}
+
+type Pattern struct {
+	Pattern  string
+	Longest  *bool
+	LineWise *bool
 }
 
 var _ StmtsListElem = Stmt{}

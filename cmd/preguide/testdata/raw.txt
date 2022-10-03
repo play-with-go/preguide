@@ -74,10 +74,9 @@ Steps: {
 		Order:    0
 		Terminal: "term1"
 		Stmts: [{
-			CmdStr:           "echo -n \"Hello, world!\""
-			ExitCode:         0
-			Output:           "Hello, world!"
-			ComparisonOutput: "Hello, world!"
+			CmdStr:   "echo -n \"Hello, world!\""
+			ExitCode: 0
+			Output:   "Hello, world!"
 		}]
 	}
 	step2: {
